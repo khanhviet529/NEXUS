@@ -75,6 +75,12 @@ describe('Ma trận quyền (§8.2 #8)', () => {
     ['STAFF', 'POST', '/org-units', 403],
     ['MANAGER', 'POST', '/org-units', 403],
     ['VIEWER', 'POST', '/org-units', 403],
+    // §3.2 Báo cáo A1 (GĐ6b) — GET /reports chỉ liệt kê report có quyền;
+    // run/export + scope + field-level kiểm sâu ở reports-gd6b.spec.ts
+    ['STAFF', 'GET', '/reports', 200],
+    ['MANAGER', 'GET', '/reports', 200],
+    ['TENANT_ADMIN', 'GET', '/reports', 200],
+    ['VIEWER', 'GET', '/reports', 200],
   ];
 
   for (const [role, method, path, expected] of MATRIX) {

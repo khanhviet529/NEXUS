@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
+import { SUPPORTED_LOCALES, type Locale } from '../../common/query/localized';
+import { RequestContextService } from '../../infra/cls/request-context';
 import { KyselyService } from '../../infra/kysely/kysely.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { AbilityService } from '../auth/ability.service';
@@ -29,7 +31,28 @@ export class ReportsService {
     private readonly redis: RedisService,
     private readonly ability: AbilityService,
     private readonly orgTree: OrgTreeRepository,
+    private readonly ctx: RequestContextService,
   ) {}
+
+  /** Param khai `required` thiếu/sai hình → 422, KHÔNG để query nổ 500 */
+  private validateParams(def: ReportDef, params: Record<string, unknown>): void {
+    for (const p of def.params) {
+      const v = params[p.key];
+      if (p.required && (v === undefined || v === null)) {
+        throw new AppException('COMMON.VALIDATION_FAILED', {
+          details: { [p.key]: ['Thiếu tham số bắt buộc'] },
+        });
+      }
+      if (p.type === 'dateRange' && v !== undefined && v !== null) {
+        const d = v as { from?: unknown; to?: unknown };
+        if (typeof d.from !== 'string' || typeof d.to !== 'string') {
+          throw new AppException('COMMON.VALIDATION_FAILED', {
+            details: { [p.key]: ['dateRange cần { from, to } dạng ISO'] },
+          });
+        }
+      }
+    }
+  }
 
   async listForUser(user: AuthUser): Promise<Array<{ id: string; name: string }>> {
     const ability = await this.ability.forUser(user);
@@ -66,6 +89,7 @@ export class ReportsService {
     params: Record<string, unknown>,
   ): Promise<ReportRunResult> {
     const def = await this.getAuthorized(user, reportId);
+    this.validateParams(def, params);
     const ability = await this.ability.forUser(user);
     const groups = ability.grantedFieldGroups();
     const visibleColumns = def.columns.filter(
@@ -73,13 +97,19 @@ export class ReportsService {
     );
 
     const scope = ability.scopeOf(def.permission)!;
-    // Cache key gồm CẢ scope + user (own khác nhau theo người) — không rò qua cache
+    const rawLocale = this.ctx.locale;
+    const locale: Locale = (SUPPORTED_LOCALES as readonly string[]).includes(rawLocale)
+      ? (rawLocale as Locale)
+      : 'vi';
+    // Cache key gồm CẢ scope + user (own khác nhau theo người) + locale
+    // (display resolve theo locale §3.10) — không rò qua cache
     const cacheKey = this.redis.tenantKey(
       'report',
       user.tenantId,
       reportId,
       scope,
       scope === 'all' ? 'shared' : user.sub,
+      locale,
       createHash('sha256').update(JSON.stringify(params)).digest('hex').slice(0, 16),
     );
     if (def.cacheTtlSeconds) {
@@ -110,12 +140,14 @@ export class ReportsService {
       userId: user.sub,
       scope,
       orgUnitIds,
+      locale,
       params,
       db: this.kysely.db,
     });
 
-    // Lọc cột theo quyền TRƯỚC khi trả (kể cả khi query trả thừa)
-    const keys = new Set(visibleColumns.map((c) => c.key).concat(['customerId']));
+    // Lọc cột theo quyền TRƯỚC khi trả (kể cả khi query trả thừa).
+    // KHÔNG hardcode key của báo cáo cụ thể — drilldown đã tính từ rawRows
+    const keys = new Set(visibleColumns.map((c) => c.key));
     const rows = rawRows.map((r) =>
       Object.fromEntries(Object.entries(r).filter(([k]) => keys.has(k))),
     );

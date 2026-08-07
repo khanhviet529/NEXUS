@@ -123,7 +123,11 @@ export class ImportsRepository {
       // Postgres: một câu FAIL trong tx là tx ABORT (25P02) — nên KHÔNG catch
       // P2002 giữa chừng; PRE-CHECK trùng bằng SELECT trước khi insert.
       // (Race hai import song song → P2002 hiếm → cả batch rollback, retry lại.)
-      await this.prisma.client.$transaction(async (tx) => {
+      // Timeout tường minh: batch 500 dòng ≈ 1.000 câu tuần tự — mặc định 5s
+      // của Prisma không đủ khi máy tải nặng; hết timeout giữa batch vẫn an
+      // toàn nhờ checkpoint (#27) nhưng làm job fail không đáng.
+      await this.prisma.client.$transaction(
+        async (tx) => {
         const codes = rows
           .map((r) => (r.raw as Record<string, unknown>)['code'])
           .filter((c): c is string => typeof c === 'string' && c !== '');
@@ -184,7 +188,9 @@ export class ImportsRepository {
           where: { id: jobId },
           data: { lastProcessedRow: cursor },
         });
-      });
+        },
+        { timeout: 60_000, maxWait: 10_000 },
+      );
 
       batchesDone++;
       if (opts?.failAfterBatches !== undefined && batchesDone >= opts.failAfterBatches) {

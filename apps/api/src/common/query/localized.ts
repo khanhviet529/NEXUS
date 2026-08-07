@@ -11,6 +11,8 @@
  * JSONB với fallback vi. KHÔNG dùng unaccent() trong index/generated column.
  */
 
+import { sql, type RawBuilder } from 'kysely';
+
 export const SUPPORTED_LOCALES = ['vi', 'en'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -30,6 +32,16 @@ export function normalizeSearch(v: string | undefined | null): string | null {
     .replace(/Đ/g, 'D')
     .toLowerCase()
     .trim();
+}
+
+/**
+ * Nơi 1 (biến thể SQL) — display trong báo cáo Kysely/raw (A1, §12 #51):
+ * cùng ngữ nghĩa fallback với resolveLocalizedValue, nhưng resolve NGAY trong
+ * câu SQL. `column` là literal của lập trình viên (vd 'customers.name'),
+ * sql.ref quote an toàn; locale đi qua bind parameter.
+ */
+export function resolveLocaleExpr(column: string, locale: Locale): RawBuilder<string> {
+  return sql<string>`COALESCE(${sql.ref(column)}->>${locale}, ${sql.ref(column)}->>'vi')`;
 }
 
 /** Nơi 1 — RESPONSE: giải quyết theo locale, fallback vi (§3.10) */

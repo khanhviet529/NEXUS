@@ -5,7 +5,8 @@ import { createTestApp, type TestHarness } from './setup/test-app';
 /**
  * Test §8.2 #9 (invalidation), #10 (field-leak), #11 (whitelist).
  * #10 GĐ3 phủ 2/4 nơi: API response + audit diff.
- * Export (GĐ6) và report (GĐ6b) bổ sung assert khi có — ghi ở progress.md.
+ * Nơi 2 (export): import-export-gd6.spec #26b. Nơi 3 (report): reports-gd6b.spec.
+ * → #10 đã phủ đủ 4/4 nơi (§4.4c).
  */
 describe('Field-level + invalidation (§8.2 #9, #10, #11)', () => {
   let h: TestHarness;

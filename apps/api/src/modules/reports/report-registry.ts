@@ -1,4 +1,5 @@
 import { sql } from 'kysely';
+import { resolveLocaleExpr } from '../../common/query/localized';
 import { dateRange, type ReportDef } from './report.types';
 
 /**
@@ -32,7 +33,7 @@ export const salesByCustomer: ReportDef = {
       .select([
         'orders.customer_id as customerId',
         'customers.code as customerCode',
-        sql<string>`customers.name->>'vi'`.as('customerName'),
+        resolveLocaleExpr('customers.name', ctx.locale).as('customerName'),
         sql<string>`count(*)::text`.as('orderCount'),
         sql<string>`COALESCE(sum(orders.total), 0)::text`.as('revenue'),
         sql<string>`COALESCE(sum(orders.margin), 0)::text`.as('margin'),
@@ -51,7 +52,9 @@ export const salesByCustomer: ReportDef = {
     } else if (ctx.scope === 'department' || ctx.scope === 'descendants') {
       q = q.where('orders.org_unit_id', 'in', ctx.orgUnitIds ?? ['__none__']);
     }
-    return q.orderBy('revenue', 'desc').execute();
+    // Order theo biểu thức SỐ — alias 'revenue' đã ::text (tiền là chuỗi §3.7),
+    // orderBy alias sẽ sort CHỮ ('5' > '30') → sai thứ tự
+    return q.orderBy(sql`COALESCE(sum(orders.total), 0)`, 'desc').execute();
   },
 };
 

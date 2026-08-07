@@ -168,6 +168,26 @@ Có quyền **chưa đủ**. Phần này ánh xạ thẳng vào `enabled()` củ
 
 **Không tự duyệt** là luật kiểm soát nội bộ cơ bản, gần như dự án nào cũng cần. Đưa vào module mẫu để mọi module sau copy theo.
 
+## 3.2 Báo cáo — A1 report framework (GĐ6b)
+
+Quyền kiểm **theo từng report** (`ReportDef.permission`) trong service; controller là
+`@AllowAuthenticated` vì danh sách báo cáo động. Scope nhúng vào `WHERE` của query
+báo cáo (§4.4), cột `fieldGroup` lọc theo §4.4c nơi 3.
+
+| Endpoint | Permission | STAFF | MANAGER | TENANT_ADMIN | VIEWER |
+|---|---|:---:|:---:|:---:|:---:|
+| `GET /reports` | đã đăng nhập — chỉ liệt kê report user có quyền | ✅ | ✅ | ✅ | ✅ |
+| `GET /reports/:id/meta` | permission của report đó | theo report | theo report | theo report | theo report |
+| `POST /reports/:id/run` | permission của report đó | theo report | theo report | theo report | theo report |
+| `POST /reports/:id/export` | như `run` — cùng đường lọc cột | theo report | theo report | theo report | theo report |
+
+Scope seed cho từng permission report (chốt 2026-08-07, soi gương `order:export` vì
+báo cáo doanh thu đọc đúng tập dòng quyền xem đơn hàng phủ):
+
+| Permission | STAFF | MANAGER | TENANT_ADMIN | VIEWER |
+|---|:---:|:---:|:---:|:---:|
+| `report:sales` (`sales-by-customer`) | `own` | `desc` | `all` | `all` |
+
 ---
 
 # 4. Phân quyền cấp trường

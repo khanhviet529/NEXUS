@@ -1,5 +1,7 @@
 import type { Kysely } from 'kysely';
+import type { PermissionCode } from '@nexus/shared';
 import type { ReportDatabase } from '../../infra/kysely/kysely.service';
+import type { Locale } from '../../common/query/localized';
 import type { Scope } from '../auth/permission-resolver.service';
 
 /**
@@ -34,6 +36,8 @@ export interface ReportQueryContext {
   /** ĐÃ resolve từ Ability — nhúng vào WHERE, không lọc sau (§4.4) */
   scope: Scope;
   orgUnitIds: string[] | null; // descendants đã tính sẵn; null = không giới hạn
+  /** Locale request (CLS §3.1c) — display resolve qua resolveLocaleExpr (§12 #51) */
+  locale: Locale;
   params: Record<string, unknown>;
   db: Kysely<ReportDatabase>;
 }
@@ -41,7 +45,8 @@ export interface ReportQueryContext {
 export interface ReportDef {
   id: string;
   name: string;
-  permission: string;
+  /** PHẢI có trong packages/shared/src/permissions.ts — registry là nguồn duy nhất */
+  permission: PermissionCode;
   params: ReportParamDef[];
   columns: ReportColumnDef[];
   /** Kysely/raw — CHỈ ĐỌC (§4.9), PHẢI áp scope từ ctx (cookbook §7 ⚠️) */
