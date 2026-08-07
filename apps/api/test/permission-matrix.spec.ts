@@ -81,6 +81,12 @@ describe('Ma trận quyền (§8.2 #8)', () => {
     ['MANAGER', 'GET', '/reports', 200],
     ['TENANT_ADMIN', 'GET', '/reports', 200],
     ['VIEWER', 'GET', '/reports', 200],
+    // §2.5 audit + files (GĐ7) — nội dung sâu ở gd7.spec.ts
+    ['STAFF', 'GET', '/audit-logs', 403],
+    ['MANAGER', 'GET', '/audit-logs', 200],
+    ['TENANT_ADMIN', 'GET', '/audit-logs', 200],
+    ['VIEWER', 'GET', '/audit-logs', 200],
+    ['VIEWER', 'POST', '/files/presign', 403],
   ];
 
   for (const [role, method, path, expected] of MATRIX) {

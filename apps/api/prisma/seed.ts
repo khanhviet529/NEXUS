@@ -1,7 +1,14 @@
 /* eslint-disable no-console */
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { PERMISSIONS, SEED_ROLES, SEED_ROLE_PERMISSIONS } from '@nexus/shared';
+import {
+  PERMISSIONS,
+  SEED_ROLES,
+  SEED_ROLE_PERMISSIONS,
+  VN_DEFAULT_WORKING_HOURS,
+  VN_LUNAR_HOLIDAYS,
+  VN_RECURRING_HOLIDAYS,
+} from '@nexus/shared';
 
 /**
  * [CORE] Seed — spec §8.3: fixture HAI TENANT dữ liệu giống nhau.
@@ -163,6 +170,46 @@ async function seedTenant(
       },
       create: { tenantId: tenant.id, membershipId: membership.id, roleId },
       update: {},
+    });
+  }
+
+  // Business calendar mặc định (§5C.4, GĐ7) — giờ hành chính + lễ VN.
+  // Lễ âm lịch là DATA theo năm (chốt 2026-08-07), recurring neo năm 2026.
+  let calendar = await prisma.businessCalendar.findFirst({
+    where: { tenantId: tenant.id, isDefault: true },
+  });
+  if (!calendar) {
+    calendar = await prisma.businessCalendar.create({
+      data: { tenantId: tenant.id, name: 'Lịch làm việc chuẩn', isDefault: true },
+    });
+    await prisma.calendarWorkingHour.createMany({
+      data: VN_DEFAULT_WORKING_HOURS.flatMap((d) =>
+        d.intervals.map((iv) => ({
+          tenantId: tenant.id,
+          calendarId: calendar!.id,
+          dayOfWeek: d.dayOfWeek,
+          fromTime: iv.from,
+          toTime: iv.to,
+        })),
+      ),
+    });
+    await prisma.calendarHoliday.createMany({
+      data: [
+        ...VN_RECURRING_HOLIDAYS.map((h) => ({
+          tenantId: tenant.id,
+          calendarId: calendar!.id,
+          date: new Date(`2026-${h.monthDay}T00:00:00Z`),
+          name: h.name,
+          isRecurring: true,
+        })),
+        ...VN_LUNAR_HOLIDAYS.map((h) => ({
+          tenantId: tenant.id,
+          calendarId: calendar!.id,
+          date: new Date(`${h.date}T00:00:00Z`),
+          name: h.name,
+          isRecurring: false,
+        })),
+      ],
     });
   }
 

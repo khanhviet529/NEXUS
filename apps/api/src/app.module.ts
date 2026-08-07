@@ -30,6 +30,11 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ImportsModule } from './modules/imports/imports.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
+import { FilesModule } from './modules/files/files.module';
+import { ExportsModule } from './modules/exports/exports.module';
+import { S3Module } from './infra/s3/s3.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -87,6 +92,11 @@ import { HealthController } from './modules/health/health.controller';
     InventoryModule,
     ImportsModule,
     ReportsModule,
+    NotificationsModule,
+    CalendarModule,
+    S3Module,
+    FilesModule,
+    ExportsModule,
   ],
   controllers: [HealthController],
   providers: [

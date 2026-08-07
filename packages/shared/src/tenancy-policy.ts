@@ -58,6 +58,12 @@ export const TENANCY_POLICY = {
     'ReconciliationLog',
     'ImportJob',
     'ImportRow',
+    'File',
+    'Attachment',
+    'NotificationPreference',
+    'BusinessCalendar',
+    'CalendarWorkingHour',
+    'CalendarHoliday',
   ],
 } as const;
 

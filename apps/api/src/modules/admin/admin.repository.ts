@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PERMISSIONS, SEED_ROLES, SEED_ROLE_PERMISSIONS } from '@nexus/shared';
+import {
+  PERMISSIONS,
+  SEED_ROLES,
+  SEED_ROLE_PERMISSIONS,
+  VN_DEFAULT_WORKING_HOURS,
+  VN_LUNAR_HOLIDAYS,
+  VN_RECURRING_HOLIDAYS,
+} from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { OrgTreeRepository } from '../auth/org-tree.repository';
@@ -116,6 +123,40 @@ export class AdminRepository {
           });
         }
       }
+
+      // Business calendar mặc định (§5C.4, GĐ7) — CÙNG data với prisma/seed.ts
+      const calendar = await this.prisma.client.businessCalendar.create({
+        data: { tenantId: tenant.id, name: 'Lịch làm việc chuẩn', isDefault: true },
+      });
+      await this.prisma.client.calendarWorkingHour.createMany({
+        data: VN_DEFAULT_WORKING_HOURS.flatMap((d) =>
+          d.intervals.map((iv) => ({
+            tenantId: tenant.id,
+            calendarId: calendar.id,
+            dayOfWeek: d.dayOfWeek,
+            fromTime: iv.from,
+            toTime: iv.to,
+          })),
+        ),
+      });
+      await this.prisma.client.calendarHoliday.createMany({
+        data: [
+          ...VN_RECURRING_HOLIDAYS.map((h) => ({
+            tenantId: tenant.id,
+            calendarId: calendar.id,
+            date: new Date(`2026-${h.monthDay}T00:00:00Z`),
+            name: h.name,
+            isRecurring: true,
+          })),
+          ...VN_LUNAR_HOLIDAYS.map((h) => ({
+            tenantId: tenant.id,
+            calendarId: calendar.id,
+            date: new Date(`${h.date}T00:00:00Z`),
+            name: h.name,
+            isRecurring: false,
+          })),
+        ],
+      });
     });
 
     return tenant;

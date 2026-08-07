@@ -22,6 +22,7 @@
 | 5b | Kho: thuật toán 4 bước (dedup → conditional UPDATE → movement → outbox), partition RANGE tháng + hàm tạo mảnh, serial cùng tx, 2 job rebuild/đối soát | Claude | 🔍 chờ review | **#22-#25 ✅** (123/123) | ADR-0003 chốt 6 câu hỏi kho; không FK dedup→movements |
 | 6 | Export streaming keyset + backpressure; import batch/checkpoint/resume + lỗi từng dòng; bulk partial success | Claude | 🔍 chờ review | **#26-#28 ✅** (128/128) | GĐ7 nối file S3 presigned cho luồng upload import |
 | 6b | A1 Report framework: registry khai báo → tự sinh list/meta/run/export, scope trong WHERE, field-level nơi 3, cache theo (tenant, scope, user, locale, params), `resolveLocaleExpr` (#51) | Claude | 🔍 chờ review | **#10 nơi 3 ✅** (reports-gd6b 11 test, suite 143/143) | Scope seed `report:sales` chốt 2026-08-07 = soi gương `order:export` (matrix §3.2); saved_reports/schedule là OPT GĐ10 |
+| 7 | Audit timeline (GET /audit-logs, desc = actor trong cây); Files presigned S3/MinIO (@aws-sdk, đã hỏi-chốt) + attachments kế thừa quyền entity; Notifications đọc + preferences (membership); Business calendar + `addWorkingDays` + seed lễ VN (data, đã hỏi-chốt); export QUA QUEUE → S3 → notification; cron partition movements+audit_logs | Claude | 🔍 chờ review | **gd7 12 test + calendar unit 11 ✅** (suite 171/171) | MinIO vào Testcontainers; audit CRUD hiện ghi TƯỜNG MINH trong service — query-extension diff tự động (§4.9) chưa làm, cần quyết khi review; lễ âm 2027-2030 là data xấp xỉ, nghiệp vụ đối chiếu |
 
 ## Việc chặn (blocker)
 

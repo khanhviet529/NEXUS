@@ -250,11 +250,12 @@ model TenantMembership {
   // Composite FK §6.4: membership của tenant A không trỏ được vào org unit của B
   orgUnit OrgUnit? @relation(fields: [tenantId, orgUnitId], references: [tenantId, id])
 
-  userRoles       UserRole[]
-  sessions        Session[]
-  userPreferences UserPreference[]
-  savedViews      SavedView[]
-  notifications   Notification[]
+  userRoles               UserRole[]
+  sessions                Session[]
+  userPreferences         UserPreference[]
+  savedViews              SavedView[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id]) // đích cho composite FK từ bảng con
@@ -950,4 +951,152 @@ model Notification {
 
   @@index([tenantId, membershipId, readAt, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// ============================================================
+// GĐ7 — Files, Notification preferences, Business calendar
+// ============================================================
+
+/// [CORE] File trên S3/MinIO qua presigned URL (§2, matrix §2.5).
+/// Object key BẮT BUỘC tiền tố <tenantId>/ (§4.6). Row chỉ tạo SAU khi client
+/// PUT xong và gọi confirm (server HeadObject xác minh) — không cần cột status.
+/// Tenancy: TENANT · Base: Tenant · +SoftDelete
+model File {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [+SoftDelete]
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  bucket       String
+  objectKey    String  @map("object_key")
+  filename     String
+  mime         String
+  size         Int // bytes — đủ tới 2GB; file admin app không vượt (nếu vượt: đổi BigInt + DTO chuỗi)
+  checksum     String?
+  uploadedById String? @map("uploaded_by_id") @db.Uuid
+
+  attachments Attachment[]
+
+  @@unique([tenantId, id]) // đích composite FK (§6.4)
+  @@unique([tenantId, objectKey])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("files")
+}
+
+/// [CORE] Đính file vào bản ghi — quan hệ đa hình (entity, entity_id), POLY erd.md.
+/// Quyền đọc KẾ THỪA entity gốc (matrix §2.5) — không có quyền riêng.
+/// Tenancy: TENANT · Base: Tenant
+model Attachment {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  fileId   String  @map("file_id") @db.Uuid
+  entity   String // EntityType (packages/shared) — không phải chuỗi tự do
+  entityId String  @map("entity_id") @db.Uuid
+  category String?
+
+  file File @relation(fields: [tenantId, fileId], references: [tenantId, id])
+
+  @@index([tenantId, entity, entityId])
+  @@index([tenantId, fileId])
+  @@map("attachments")
+}
+
+/// [CORE nhẹ] Sở thích nhận thông báo — theo MEMBERSHIP (erd.md #1).
+/// Tenancy: TENANT · Base: Tenant
+model NotificationPreference {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String   @map("membership_id") @db.Uuid
+  type         String // NotificationType (packages/shared)
+  channels     String[] // 'IN_APP' | 'EMAIL'
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+
+  @@unique([tenantId, membershipId, type])
+  @@map("notification_preferences")
+}
+
+/// [CORE nhẹ] Business calendar (§5C.4) — "ngày làm việc" dùng khắp nơi.
+/// Tenancy: TENANT · Base: Tenant · một lịch mặc định mỗi tenant (partial unique, DDL tay)
+model BusinessCalendar {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  name      String
+  timezone  String  @default("Asia/Ho_Chi_Minh")
+  isDefault Boolean @default(false) @map("is_default")
+
+  workingHours CalendarWorkingHour[]
+  holidays     CalendarHoliday[]
+
+  @@unique([tenantId, id]) // đích composite FK (§6.4)
+  @@map("business_calendars")
+}
+
+/// Giờ làm việc theo thứ — dayOfWeek ISO-8601: 1=Thứ 2 … 7=Chủ nhật.
+/// Tenancy: TENANT · Base: Tenant
+model CalendarWorkingHour {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  calendarId String @map("calendar_id") @db.Uuid
+  dayOfWeek  Int    @map("day_of_week")
+  fromTime   String @map("from_time") // 'HH:mm'
+  toTime     String @map("to_time") // 'HH:mm'
+
+  calendar BusinessCalendar @relation(fields: [tenantId, calendarId], references: [tenantId, id])
+
+  @@unique([tenantId, calendarId, dayOfWeek, fromTime])
+  @@map("calendar_working_hours")
+}
+
+/// Ngày nghỉ — lễ dương recurring theo (tháng, ngày); Tết/Giỗ Tổ (âm lịch)
+/// seed NGÀY CỤ THỂ theo năm (đã chốt 2026-08-07: seed data, không lib âm lịch).
+/// Tenancy: TENANT · Base: Tenant
+model CalendarHoliday {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  calendarId  String   @map("calendar_id") @db.Uuid
+  date        DateTime @db.Date
+  name        String
+  isRecurring Boolean  @default(false) @map("is_recurring")
+
+  calendar BusinessCalendar @relation(fields: [tenantId, calendarId], references: [tenantId, id])
+
+  @@unique([tenantId, calendarId, date, name])
+  @@index([tenantId, calendarId, date])
+  @@map("calendar_holidays")
 }

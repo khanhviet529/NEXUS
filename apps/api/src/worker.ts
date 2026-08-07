@@ -64,12 +64,46 @@ async function bootstrap(): Promise<void> {
     });
   }, 2_000);
 
+  // GĐ7f — export qua queue (§4.7): stream → S3 → files row → notification
+  const { ExportsService } = await import('./modules/exports/exports.service');
+  const exportsService = app.get(ExportsService);
+  const exportWorker = new Worker(
+    JOB_NAMES.EXPORT_RUN.queue,
+    async (job) => {
+      await exportsService.runExportJob(job.data);
+    },
+    { connection, concurrency: 2 },
+  );
+  exportWorker.on('failed', (job, err) => {
+    // eslint-disable-next-line no-console
+    console.error(`[worker] export job ${job?.id} failed:`, err.message);
+  });
+
+  // GĐ7g — cron partition (§5B.3/C2): mảnh tháng này + tháng sau, idempotent.
+  // Chạy lúc boot rồi mỗi 24h — CREATE IF NOT EXISTS nên nhiều instance an toàn.
+  const { PartitionMaintenanceRepository } = await import(
+    './infra/prisma/partition-maintenance.repository'
+  );
+  const partitions = app.get(PartitionMaintenanceRepository);
+  const runPartitionMaintenance = () =>
+    partitions
+      .ensureUpcoming()
+      // eslint-disable-next-line no-console
+      .then((names) => console.log(`[worker] partition OK: ${names.join(', ')}`))
+      .catch((e: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error('[worker] partition lỗi:', e instanceof Error ? e.message : e);
+      });
+  void runPartitionMaintenance();
+  const partitionTimer = setInterval(() => void runPartitionMaintenance(), 24 * 3600_000);
+
   // eslint-disable-next-line no-console
   console.log(`[worker] mail queue: ${JOB_NAMES.MAIL_SEND.queue} · outbox poll 2s`);
 
   const shutdown = async () => {
     clearInterval(outboxTimer);
-    await mailWorker.close();
+    clearInterval(partitionTimer);
+    await Promise.all([mailWorker.close(), exportWorker.close()]);
     await connection.quit();
     await app.close();
     process.exit(0);

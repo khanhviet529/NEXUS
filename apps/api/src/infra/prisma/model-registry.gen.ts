@@ -42,7 +42,13 @@ export const ALL_MODELS = [
   "ReconciliationLog",
   "ImportJob",
   "ImportRow",
-  "Notification"
+  "Notification",
+  "File",
+  "Attachment",
+  "NotificationPreference",
+  "BusinessCalendar",
+  "CalendarWorkingHour",
+  "CalendarHoliday"
 ] as const;
 
 /** Model có cột deletedAt — nguồn cho assertExhaustiveSoftDeletePolicy (§4.5) */
@@ -56,5 +62,6 @@ export const MODELS_WITH_DELETED_AT = [
   "Order",
   "Warehouse",
   "Lot",
-  "InventorySerial"
+  "InventorySerial",
+  "File"
 ] as const;

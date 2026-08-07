@@ -6,8 +6,14 @@
  */
 
 export * from './acceptInvitationDto';
+export * from './addHolidayDto';
 export * from './assignRolesDto';
+export * from './auditControllerListParams';
 export * from './bulkApproveDto';
+export * from './calendarControllerAddWorkingDaysParams';
+export * from './calendarControllerWorkingMinutesParams';
+export * from './confirmDto';
+export * from './confirmDtoEntity';
 export * from './createCustomerDto';
 export * from './createCustomerDtoName';
 export * from './createLotDto';
@@ -40,10 +46,12 @@ export * from './meRoleDto';
 export * from './meTenantDto';
 export * from './membershipSummaryDto';
 export * from './movementDto';
+export * from './notificationsControllerListParams';
 export * from './object';
 export * from './orderItemInputDto';
 export * from './ordersControllerListParams';
 export * from './paginationMetaDto';
+export * from './presignDto';
 export * from './productListDto';
 export * from './productResponseDto';
 export * from './productResponseDtoName';
@@ -67,6 +75,9 @@ export * from './updateRoleDto';
 export * from './updateUserDto';
 export * from './updateViewDto';
 export * from './updateViewDtoConfig';
+export * from './upsertPreferenceDto';
+export * from './upsertPreferenceDtoChannelsItem';
+export * from './upsertPreferenceDtoType';
 export * from './upsertProductDto';
 export * from './upsertProductDtoName';
 export * from './upsertProductDtoTrackingType';
