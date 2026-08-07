@@ -64,6 +64,12 @@ export const TENANCY_POLICY = {
     'BusinessCalendar',
     'CalendarWorkingHour',
     'CalendarHoliday',
+    'ApprovalAuthority',
+    'WebhookEndpoint',
+    'WebhookSubscription',
+    'WebhookDelivery',
+    'RecentItem',
+    'FavoriteItem',
   ],
 } as const;
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OutboxRepository, type OutboxEventRow } from './outbox.repository';
 import { OrderApprovedHandler } from './handlers/order-approved.handler';
+import { WebhooksRepository } from '../webhooks/webhooks.repository';
 
 /**
  * [CORE] Outbox dispatcher — spec §4.8.
@@ -14,6 +15,7 @@ export class OutboxWorkerService {
 
   constructor(
     private readonly repo: OutboxRepository,
+    private readonly webhooks: WebhooksRepository,
     orderApproved: OrderApprovedHandler,
   ) {
     this.handlers.set(orderApproved.eventType, (e) => orderApproved.handle(e));
@@ -30,6 +32,9 @@ export class OutboxWorkerService {
       try {
         if (handler) await handler(event);
         else this.logger.warn(`Không có handler cho ${event.eventType} — đánh DONE`);
+        // GĐ10 §5C.5 — webhook phát QUA OUTBOX: fan-out cho MỌI event có
+        // subscription; dedup bằng UNIQUE (tenant, endpoint, event)
+        await this.webhooks.fanoutEvent(event);
         await this.repo.markDone(event.id);
         processed++;
       } catch (e) {

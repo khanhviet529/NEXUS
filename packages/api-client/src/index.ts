@@ -20,4 +20,7 @@ export * from './gen/endpoints/notifications/notifications';
 export * from './gen/endpoints/business-calendar/business-calendar';
 export * from './gen/endpoints/files/files';
 export * from './gen/endpoints/search/search';
+export * from './gen/endpoints/approval-authorities/approval-authorities';
+export * from './gen/endpoints/webhooks/webhooks';
+export * from './gen/endpoints/personalization/personalization';
 export * from './gen/models';

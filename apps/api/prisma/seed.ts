@@ -173,6 +173,30 @@ async function seedTenant(
     });
   }
 
+  // GĐ10 — hạn mức duyệt seed (§5C.12): MANAGER + TENANT_ADMIN duyệt ORDER
+  // KHÔNG GIỚI HẠN. FAIL-CLOSED: thiếu dòng nào = không ai duyệt được.
+  const hasAuthority = await prisma.approvalAuthority.findFirst({
+    where: { tenantId: tenant.id, documentType: 'ORDER' },
+  });
+  if (!hasAuthority) {
+    for (const roleCode of [SEED_ROLES.MANAGER, SEED_ROLES.TENANT_ADMIN]) {
+      const roleId = roleIds.get(roleCode);
+      if (!roleId) continue;
+      await prisma.approvalAuthority.create({
+        data: {
+          tenantId: tenant.id,
+          documentType: 'ORDER',
+          currency: 'VND',
+          roleId,
+          minAmount: 0,
+          maxAmount: null, // không giới hạn
+          effectiveFrom: new Date('2020-01-01T00:00:00Z'),
+          priority: 0,
+        },
+      });
+    }
+  }
+
   // Business calendar mặc định (§5C.4, GĐ7) — giờ hành chính + lễ VN.
   // Lễ âm lịch là DATA theo năm (chốt 2026-08-07), recurring neo năm 2026.
   let calendar = await prisma.businessCalendar.findFirst({

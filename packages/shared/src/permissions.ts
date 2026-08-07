@@ -85,6 +85,11 @@ export const PERMISSIONS: readonly PermissionDef[] = [
   // --- [CORE] A1 report framework (GĐ6b, §5B.1/A1) ---
   p('report', 'sales', 'Xem/chạy báo cáo doanh thu'),
 
+  // --- [OPT] GĐ10: hạn mức duyệt (§5C.12) + webhook (§5C.5) ---
+  p('approval_authority', 'read'),
+  p('approval_authority', 'manage', 'Cấu hình hạn mức duyệt theo tenant'),
+  p('webhook', 'manage', 'Đăng ký endpoint, subscription, rotate secret, replay'),
+
   // --- field-level serializer groups (spec §4.4c, permission-matrix §4) ---
   // Cột nhạy cảm gắn @Expose({ groups: ['hr'|'pii'|'cost'|'finance'] });
   // SerializeInterceptor mở group khi user có permission tương ứng.

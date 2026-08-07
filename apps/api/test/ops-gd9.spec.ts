@@ -31,7 +31,8 @@ describe('GĐ9 — system operations (§5C.8)', () => {
     expect(res.body.db).toBe(true);
     expect(res.body.redis).toBe(true);
     expect(res.body.s3).toBe(true);
-    expect(res.body.migrationVersion).toContain('gd7'); // migration mới nhất
+    // Migration mới nhất — KHÔNG neo tên GĐ cụ thể (mỗi GĐ mới sẽ đổi)
+    expect(res.body.migrationVersion).toMatch(/^\d{14}_/);
 
     const denied = await agent()
       .get('/api/v1/admin/ops/health')

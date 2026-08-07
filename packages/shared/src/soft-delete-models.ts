@@ -20,6 +20,7 @@ export const SOFT_DELETE_MODELS = [
   'Lot',
   'InventorySerial',
   'File',
+  'ApprovalAuthority',
 ] as const;
 
 export type SoftDeleteModel = (typeof SOFT_DELETE_MODELS)[number];

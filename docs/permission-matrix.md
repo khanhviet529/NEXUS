@@ -189,6 +189,19 @@ báo cáo doanh thu đọc đúng tập dòng quyền xem đơn hàng phủ):
 |---|:---:|:---:|:---:|:---:|
 | `report:sales` (`sales-by-customer`) | `own` | `desc` | `all` | `all` |
 
+## 3.3 GĐ10 — hạn mức duyệt (§5C.12) + webhook (§5C.5)
+
+| Endpoint | Permission | STAFF | MANAGER | TENANT_ADMIN | VIEWER |
+|---|---|:---:|:---:|:---:|:---:|
+| `GET /approval-authorities` (+`/check`) | `approval_authority:read` | ❌ | `all` | `all` | ❌ |
+| `POST/DELETE /approval-authorities` | `approval_authority:manage` | ❌ | ❌ | `all` | ❌ |
+| `/webhooks/**` | `webhook:manage` | ❌ | ❌ | `all` | ❌ |
+| `/recent-items`, `/favorite-items` | đã đăng nhập — own tuyệt đối theo membership | ✅ | ✅ | ✅ | ✅ |
+
+Hạn mức seed (chốt 2026-08-08, tự quyết theo uỷ quyền): MANAGER + TENANT_ADMIN
+duyệt `ORDER`/VND **không giới hạn** từ 2020-01-01 — GIỮ nguyên hành vi duyệt
+trước GĐ10; tenant siết lại bằng dòng cụ thể hơn (membership/priority).
+
 ---
 
 # 4. Phân quyền cấp trường

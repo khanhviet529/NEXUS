@@ -79,6 +79,16 @@ async function bootstrap(): Promise<void> {
     console.error(`[worker] export job ${job?.id} failed:`, err.message);
   });
 
+  // GĐ10 §5C.5 — gửi webhook delivery đến hạn (retry backoff trong repository)
+  const { WebhooksRepository } = await import('./modules/webhooks/webhooks.repository');
+  const webhooks = app.get(WebhooksRepository);
+  const webhookTimer = setInterval(() => {
+    void webhooks.deliverDue().catch((e: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error('[worker] webhook lỗi:', e instanceof Error ? e.message : e);
+    });
+  }, 5_000);
+
   // GĐ7g — cron partition (§5B.3/C2): mảnh tháng này + tháng sau, idempotent.
   // Chạy lúc boot rồi mỗi 24h — CREATE IF NOT EXISTS nên nhiều instance an toàn.
   const { PartitionMaintenanceRepository } = await import(
@@ -103,6 +113,7 @@ async function bootstrap(): Promise<void> {
   const shutdown = async () => {
     clearInterval(outboxTimer);
     clearInterval(partitionTimer);
+    clearInterval(webhookTimer);
     await Promise.all([mailWorker.close(), exportWorker.close()]);
     await connection.quit();
     await app.close();

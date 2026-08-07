@@ -35,7 +35,11 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { FilesModule } from './modules/files/files.module';
 import { ExportsModule } from './modules/exports/exports.module';
 import { SearchModule } from './modules/search/search.module';
+import { ApprovalAuthoritiesModule } from './modules/approval-authorities/approval-authorities.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { PersonalizationModule } from './modules/personalization/personalization.module';
 import { S3Module } from './infra/s3/s3.module';
+import { CryptoModule } from './infra/crypto/crypto.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -96,9 +100,13 @@ import { HealthController } from './modules/health/health.controller';
     NotificationsModule,
     CalendarModule,
     S3Module,
+    CryptoModule,
     FilesModule,
     ExportsModule,
     SearchModule,
+    ApprovalAuthoritiesModule,
+    WebhooksModule,
+    PersonalizationModule,
   ],
   controllers: [HealthController],
   providers: [

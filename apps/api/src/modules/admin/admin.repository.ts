@@ -106,11 +106,13 @@ export class AdminRepository {
       const allPermissions = await this.prisma.client.permission.findMany();
       const byCode = new Map(allPermissions.map((p) => [p.code, p.id]));
 
+      const roleIdByCode = new Map<string, string>();
       for (const [roleCode, perms] of Object.entries(SEED_ROLE_PERMISSIONS)) {
         if (roleCode === SEED_ROLES.SYSADMIN) continue;
         const role = await this.prisma.client.role.create({
           data: { tenantId: tenant.id, code: roleCode, name: roleCode, isSystem: true },
         });
+        roleIdByCode.set(roleCode, role.id);
         const entries =
           perms === 'ALL'
             ? PERMISSIONS.map((p) => ({ code: p.code, scope: 'all' }))
@@ -122,6 +124,24 @@ export class AdminRepository {
             data: { tenantId: tenant.id, roleId: role.id, permissionId, scope: e.scope },
           });
         }
+      }
+
+      // GĐ10 — hạn mức duyệt (§5C.12): CÙNG seed với prisma/seed.ts, fail-closed
+      for (const roleCode of [SEED_ROLES.MANAGER, SEED_ROLES.TENANT_ADMIN]) {
+        const roleId = roleIdByCode.get(roleCode);
+        if (!roleId) continue;
+        await this.prisma.client.approvalAuthority.create({
+          data: {
+            tenantId: tenant.id,
+            documentType: 'ORDER',
+            currency: 'VND',
+            roleId,
+            minAmount: 0,
+            maxAmount: null,
+            effectiveFrom: new Date('2020-01-01T00:00:00Z'),
+            priority: 0,
+          },
+        });
       }
 
       // Business calendar mặc định (§5C.4, GĐ7) — CÙNG data với prisma/seed.ts

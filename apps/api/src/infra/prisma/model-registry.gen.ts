@@ -48,7 +48,13 @@ export const ALL_MODELS = [
   "NotificationPreference",
   "BusinessCalendar",
   "CalendarWorkingHour",
-  "CalendarHoliday"
+  "CalendarHoliday",
+  "ApprovalAuthority",
+  "WebhookEndpoint",
+  "WebhookSubscription",
+  "WebhookDelivery",
+  "RecentItem",
+  "FavoriteItem"
 ] as const;
 
 /** Model có cột deletedAt — nguồn cho assertExhaustiveSoftDeletePolicy (§4.5) */
@@ -63,5 +69,6 @@ export const MODELS_WITH_DELETED_AT = [
   "Warehouse",
   "Lot",
   "InventorySerial",
-  "File"
+  "File",
+  "ApprovalAuthority"
 ] as const;

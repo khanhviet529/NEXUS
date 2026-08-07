@@ -56,6 +56,12 @@ export const ERROR_CODES = {
   'ORDER.ALREADY_APPROVED': { status: 409, message: 'Đơn hàng đã được duyệt, không thể sửa' },
   'ORDER.SELF_APPROVAL': { status: 409, message: 'Không thể tự duyệt đơn mình tạo' },
   'ORDER.EMPTY_ITEMS': { status: 422, message: 'Đơn hàng phải có ít nhất một dòng' },
+  // GĐ10 — hạn mức duyệt §5C.12 (matrix §3.1). Fail-closed: không khớp dòng nào = KHÔNG duyệt
+  'ORDER.EXCEEDS_LIMIT': { status: 409, message: 'Giá trị đơn vượt hạn mức duyệt của bạn' },
+  'ORDER.NO_APPROVAL_AUTHORITY': {
+    status: 409,
+    message: 'Bạn chưa được cấp hạn mức duyệt cho loại chứng từ này',
+  },
 
   // --- STOCK (GĐ5b) ---
   'STOCK.INSUFFICIENT': { status: 409, message: 'Không đủ tồn kho khả dụng' },

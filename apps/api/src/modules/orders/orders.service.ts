@@ -4,6 +4,7 @@ import { AppException } from '../../common/errors/app.exception';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { AbilityService } from '../auth/ability.service';
 import { AuditRepository } from '../audit/audit.repository';
+import { ApprovalAuthoritiesRepository } from '../approval-authorities/approval-authorities.repository';
 import { OrdersRepository, type OrderItemInput } from './orders.repository';
 
 /**
@@ -18,6 +19,7 @@ export class OrdersService {
     private readonly repo: OrdersRepository,
     private readonly ability: AbilityService,
     private readonly audit: AuditRepository,
+    private readonly authorities: ApprovalAuthoritiesRepository,
   ) {}
 
   private async getInScope(user: AuthUser, orderId: string, permission: string) {
@@ -127,6 +129,20 @@ export class OrdersService {
     // KHÔNG TỰ DUYỆT — luật kiểm soát nội bộ cơ bản (permission-matrix §3.1)
     if ((action === 'approve' || action === 'reject') && order.createdById === user.sub) {
       throw new AppException('ORDER.SELF_APPROVAL');
+    }
+
+    // GĐ10 — HẠN MỨC DUYỆT (§5C.12, §12 #62): FAIL-CLOSED, resolve từ
+    // approval_authorities theo NGÀY CHỨNG TỪ. Quyền order:approve chưa đủ.
+    if (action === 'approve') {
+      const authority = await this.authorities.resolveFor(
+        user,
+        'ORDER',
+        order.currency,
+        order.total,
+        order.createdAt,
+      );
+      if (!authority.hasAnyRow) throw new AppException('ORDER.NO_APPROVAL_AUTHORITY');
+      if (!authority.covered) throw new AppException('ORDER.EXCEEDS_LIMIT');
     }
 
     const result = await this.repo.transition({

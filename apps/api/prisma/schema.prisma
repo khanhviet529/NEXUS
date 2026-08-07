@@ -1100,3 +1100,151 @@ model CalendarHoliday {
   @@index([tenantId, calendarId, date])
   @@map("calendar_holidays")
 }
+
+// ============================================================
+// GĐ10 — Hạn mức duyệt (§5C.12), Webhook (§5C.5), Recent/Favorites (§5C.2)
+// ============================================================
+
+/// [OPT] Hạn mức duyệt — BẢNG RIÊNG, tuyệt đối KHÔNG trên tenant_memberships
+/// (§12 #62). Fail-closed: không khớp dòng nào = KHÔNG duyệt.
+/// CHECK num_nonnulls(membership,role,org_unit) >= 1 nằm ở migration (DDL tay).
+/// Tenancy: TENANT · Base: Tenant · +SoftDelete · Audit: trigger
+model ApprovalAuthority {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [+SoftDelete]
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  documentType  String    @map("document_type") // 'ORDER'…
+  currency      String    @default("VND")
+  membershipId  String?   @map("membership_id") @db.Uuid
+  roleId        String?   @map("role_id") @db.Uuid
+  orgUnitId     String?   @map("org_unit_id") @db.Uuid
+  minAmount     Decimal   @default(0) @map("min_amount") @db.Decimal(18, 2)
+  maxAmount     Decimal?  @map("max_amount") @db.Decimal(18, 2) // NULL = không giới hạn
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  priority      Int       @default(0)
+
+  @@index([tenantId, documentType, effectiveFrom, effectiveTo])
+  @@map("approval_authorities")
+}
+
+/// [OPT ưu tiên cao] Webhook outgoing (§5C.5) — secret MÃ HOÁ tầng ứng dụng
+/// (§4.11, §12 #35), rotation giữ secret cũ hiệu lực song song.
+/// Tenancy: TENANT · Base: Tenant · Audit: trigger
+model WebhookEndpoint {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  url             String
+  secret          String // AES-256-GCM, API KHÔNG BAO GIỜ trả (§4.11)
+  secretPrevious  String?   @map("secret_previous")
+  secretRotatedAt DateTime? @map("secret_rotated_at") @db.Timestamptz
+  status          String    @default("ACTIVE") // ACTIVE | DISABLED
+  failureCount    Int       @default(0) @map("failure_count")
+  disabledAt      DateTime? @map("disabled_at") @db.Timestamptz
+
+  subscriptions WebhookSubscription[]
+  deliveries    WebhookDelivery[]
+
+  @@unique([tenantId, id]) // đích composite FK (§6.4)
+  @@map("webhook_endpoints")
+}
+
+/// Tenancy: TENANT · Base: Tenant
+model WebhookSubscription {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  endpointId String @map("endpoint_id") @db.Uuid
+  eventType  String @map("event_type")
+
+  endpoint WebhookEndpoint @relation(fields: [tenantId, endpointId], references: [tenantId, id])
+
+  @@unique([tenantId, endpointId, eventType])
+  @@map("webhook_subscriptions")
+}
+
+/// Delivery log — UNIQUE (tenant, endpoint, event) chống gửi trùng (§8.2 outbox note)
+/// Tenancy: TENANT · Base: Tenant
+model WebhookDelivery {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  endpointId     String    @map("endpoint_id") @db.Uuid
+  eventId        String    @map("event_id") @db.Uuid
+  eventType      String    @map("event_type")
+  payload        Json
+  status         String    @default("PENDING") // PENDING | DELIVERED | FAILED | DISABLED
+  responseStatus Int?      @map("response_status")
+  attempts       Int       @default(0)
+  nextRetryAt    DateTime? @map("next_retry_at") @db.Timestamptz
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz
+
+  endpoint WebhookEndpoint @relation(fields: [tenantId, endpointId], references: [tenantId, id])
+
+  @@unique([tenantId, endpointId, eventId])
+  @@index([status, nextRetryAt])
+  @@map("webhook_deliveries")
+}
+
+/// [OPT ưu tiên cao] Vừa xem (§5C.2/§5C.7) — theo MEMBERSHIP (erd.md #1), xoá cứng
+/// Tenancy: TENANT · Base: Tenant
+model RecentItem {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String   @map("membership_id") @db.Uuid
+  entity       String
+  entityId     String   @map("entity_id") @db.Uuid
+  viewedAt     DateTime @default(now()) @map("viewed_at") @db.Timestamptz
+
+  @@unique([tenantId, membershipId, entity, entityId])
+  @@index([tenantId, membershipId, viewedAt(sort: Desc)])
+  @@map("recent_items")
+}
+
+/// Tenancy: TENANT · Base: Tenant · xoá cứng
+model FavoriteItem {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String  @map("membership_id") @db.Uuid
+  entity       String
+  entityId     String  @map("entity_id") @db.Uuid
+  label        String?
+
+  @@unique([tenantId, membershipId, entity, entityId])
+  @@map("favorite_items")
+}
