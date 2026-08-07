@@ -4,10 +4,13 @@
  * Nexus API
  * OpenAPI spec version: 1.0
  */
+import type { LoginDtoClient } from './loginDtoClient';
 
 export interface LoginDto {
   email: string;
   password: string;
   /** Bắt buộc khi user thuộc nhiều tenant */
   tenantId?: string;
+  /** web → token qua httpOnly cookie; mobile → token trong body (§4.3b) */
+  client?: LoginDtoClient;
 }

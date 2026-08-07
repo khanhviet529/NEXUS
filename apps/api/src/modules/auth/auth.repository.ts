@@ -65,12 +65,53 @@ export class AuthRepository {
     });
   }
 
+  /** Thu hồi phiên — bước 1 của thứ tự §4.3d (ghi bền trước khi xoá Redis) */
+  revokeSession(sessionId: string, tenantId: string) {
+    return this.ctx.runWith({ tenantId, tenancyBypass: false }, () =>
+      this.prisma.client.session.updateMany({
+        where: { id: sessionId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    );
+  }
+
   /**
-   * Tập quyền của user trong tenant hiện hành — chạy TRONG request context
+   * Mọi phiên còn sống của user trên MỌI tenant — bypass có chủ đích:
+   * dùng cho revoke-all khi phát hiện token bị đánh cắp / reset mật khẩu (§4.3c).
+   */
+  findActiveSessionsOfUser(userId: string) {
+    return this.ctx.runWith({ tenancyBypass: true }, () =>
+      this.prisma.client.session.findMany({
+        where: {
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          membership: { userId },
+        },
+        select: { id: true, tenantId: true },
+      }),
+    );
+  }
+
+  /** Phiên của một membership (màn "thiết bị đang đăng nhập") */
+  findSessionsOfMembership(tenantId: string, membershipId: string) {
+    return this.ctx.runWith({ tenantId }, () =>
+      this.prisma.client.session.findMany({
+        where: { membershipId },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      }),
+    );
+  }
+
+  /**
+   * (code, scope) của user trong tenant hiện hành — chạy TRONG request context
    * (guard đã set tenantId, extension tự inject).
    * ERD #1: role đi theo MEMBERSHIP, không theo user.
    */
-  async findPermissionCodes(tenantId: string, userId: string): Promise<string[]> {
+  async findPermissionScopes(
+    tenantId: string,
+    userId: string,
+  ): Promise<Array<{ code: string; scope: string }>> {
     const membership = await this.prisma.client.tenantMembership.findUnique({
       where: { tenantId_userId: { tenantId, userId } },
       include: {
@@ -84,12 +125,157 @@ export class AuthRepository {
       },
     });
     if (!membership || membership.status !== 'ACTIVE') return [];
-    const codes = new Set<string>();
+    const rows: Array<{ code: string; scope: string }> = [];
     for (const ur of membership.userRoles) {
       if (ur.role.deletedAt) continue;
-      for (const rp of ur.role.permissions) codes.add(rp.permission.code);
+      for (const rp of ur.role.permissions) {
+        rows.push({ code: rp.permission.code, scope: rp.scope });
+      }
     }
-    return [...codes];
+    return rows;
+  }
+
+  // ==================== Password reset (§4.3c) ====================
+
+  /** DB chỉ lưu HASH — bản gốc chỉ nằm trong email */
+  createPasswordResetToken(input: {
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+    requestedIp?: string;
+  }) {
+    return this.prisma.client.passwordResetToken.create({ data: input });
+  }
+
+  /** Cấp token mới → vô hiệu mọi token chưa dùng của user (§4.3c) */
+  invalidateUserResetTokens(userId: string) {
+    return this.prisma.client.passwordResetToken.updateMany({
+      where: { userId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+  }
+
+  findValidResetToken(tokenHash: string) {
+    return this.prisma.client.passwordResetToken.findFirst({
+      where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+  }
+
+  markResetTokenUsed(id: string) {
+    return this.prisma.client.passwordResetToken.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
+  }
+
+  updatePassword(userId: string, passwordHash: string) {
+    return this.prisma.client.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
+  // ==================== Invitation (§4.3c) ====================
+
+  createInvitation(input: {
+    tenantId: string;
+    email: string;
+    tokenHash: string;
+    orgUnitId?: string;
+    expiresAt: Date;
+    invitedById?: string;
+    roleIds: string[];
+  }) {
+    return this.ctx.runWith({ tenantId: input.tenantId }, () =>
+      this.prisma.client.invitation.create({
+        data: {
+          tenantId: input.tenantId,
+          email: input.email,
+          tokenHash: input.tokenHash,
+          orgUnitId: input.orgUnitId,
+          expiresAt: input.expiresAt,
+          invitedById: input.invitedById,
+          // Child nhận tenant qua composite FK (§6.4)
+          roles: { create: input.roleIds.map((roleId) => ({ roleId })) },
+        },
+      }),
+    );
+  }
+
+  /** Pre-auth (user bấm link trong mail) — bypass có chủ đích */
+  findInvitationByHash(tokenHash: string) {
+    return this.ctx.runWith({ tenancyBypass: true }, () =>
+      this.prisma.client.invitation.findUnique({
+        where: { tokenHash },
+        include: { roles: true },
+      }),
+    );
+  }
+
+  /** Accept: tạo/tái dùng user global + membership + roles, đánh dấu đã nhận — 1 transaction */
+  async acceptInvitation(input: {
+    invitationId: string;
+    tenantId: string;
+    email: string;
+    fullName: string;
+    passwordHash: string | null; // null nếu user đã tồn tại (giữ mật khẩu cũ)
+    orgUnitId?: string;
+    roleIds: string[];
+  }) {
+    return this.ctx.runWith({ tenantId: input.tenantId }, () =>
+      this.prisma.client.$transaction(async (tx) => {
+        let user = await tx.user.findUnique({ where: { email: input.email } });
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              email: input.email,
+              fullName: input.fullName,
+              passwordHash: input.passwordHash,
+              status: 'ACTIVE',
+            },
+          });
+        }
+        const membership = await tx.tenantMembership.upsert({
+          where: { tenantId_userId: { tenantId: input.tenantId, userId: user.id } },
+          create: {
+            tenantId: input.tenantId,
+            userId: user.id,
+            orgUnitId: input.orgUnitId,
+            status: 'ACTIVE',
+            joinedAt: new Date(),
+          },
+          update: { status: 'ACTIVE' },
+        });
+        for (const roleId of input.roleIds) {
+          await tx.userRole.upsert({
+            where: {
+              tenantId_membershipId_roleId: {
+                tenantId: input.tenantId,
+                membershipId: membership.id,
+                roleId,
+              },
+            },
+            create: { tenantId: input.tenantId, membershipId: membership.id, roleId },
+            update: {},
+          });
+        }
+        await tx.invitation.update({
+          where: { id: input.invitationId },
+          data: { acceptedAt: new Date() },
+        });
+        return { user, membership };
+      }),
+    );
+  }
+
+  /** Membership để switch-tenant — kiểm tra đích trước khi cấp token mới (§3.1b) */
+  findMembershipForSwitch(targetTenantId: string, userId: string) {
+    return this.ctx.runWith({ tenancyBypass: true }, () =>
+      this.prisma.client.tenantMembership.findUnique({
+        where: { tenantId_userId: { tenantId: targetTenantId, userId } },
+        include: { tenant: { select: { status: true } } },
+      }),
+    );
   }
 
   /** Sync permission registry → DB lúc boot (§4.4). Permission là GLOBAL. */

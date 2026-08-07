@@ -14,8 +14,8 @@
 | 1 | SerializeInterceptor (field-level) | Claude | 🔍 chờ review | #10 ⬜ (GĐ3) | Cơ chế xong; cột nhạy cảm thật vào GĐ3 |
 | 1 | Codegen orval + GET /me từ FE | Claude | 🔍 chờ review | — | Smoke test thật: login cookie → /me trả đúng tenant A |
 | 1 | 7 check kiến trúc (4 script + 2 ESLint + 1 test) | Claude | ✅ xong | #3c ✅ | check #6 (đếm query) bắt đầu GĐ4 |
-| 2 | Auth đầy đủ: refresh rotation, CSRF, Redis session, rate limit | — | ⬜ chưa | #4-#7 | Login GĐ1 đã có phần tối thiểu; #4 một phần đã xanh |
-| 3 | Users/Roles/OrgUnits CRUD + vòng đời tài khoản | — | ⬜ chưa | #8-#11 | |
+| 2 | Auth đầy đủ: refresh rotation + family, CSRF double-submit, Redis session runtime, rate limit + khoá TK, forgot password, invitation, switch-tenant, /me/sessions | Claude | 🔍 chờ review | **#4-#7 ✅ 34/34** | Worker BullMQ mail; select-tenant = login kèm tenantId |
+| 3 | Users/Roles/OrgUnits CRUD + vòng đời tài khoản | — | 🔄 đang làm | #8-#11 | |
 
 ## Việc chặn (blocker)
 

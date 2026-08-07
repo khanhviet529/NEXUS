@@ -25,6 +25,14 @@ export class LoginResponseDto {
   @Expose()
   accessToken!: string | null;
 
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description: 'CHỈ trả cho client=mobile — web nhận qua httpOnly cookie (§4.3b)',
+  })
+  @Expose()
+  refreshToken!: string | null;
+
   @ApiProperty()
   @Expose()
   expiresIn!: number;

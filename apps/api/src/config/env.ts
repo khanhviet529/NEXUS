@@ -13,6 +13,7 @@ const envSchema = z.object({
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+  WEB_URL: z.string().url().default('http://localhost:3000'),
   S3_ENDPOINT: z.string().url().optional(),
   S3_ACCESS_KEY: z.string().optional(),
   S3_SECRET_KEY: z.string().optional(),

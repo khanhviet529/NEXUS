@@ -24,10 +24,17 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AcceptInvitationDto,
   ErrorDto,
+  ForgotPasswordDto,
   LoginDto,
   LoginResponseDto,
-  MeResponseDto
+  MeResponseDto,
+  RefreshDto,
+  ResetPasswordDto,
+  SessionDto,
+  SwitchTenantDto,
+  TokenPairDto
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -36,7 +43,7 @@ import { apiMutator } from '../../../mutator';
 
 
 /**
- * @summary Đăng nhập bằng email + mật khẩu
+ * @summary Đăng nhập. User nhiều tenant → trả danh sách, gọi lại kèm tenantId (= select-tenant)
  */
 export const authControllerLogin = (
     loginDto: LoginDto,
@@ -84,7 +91,7 @@ const {mutation: mutationOptions} = options ?
     export type AuthControllerLoginMutationError = ErrorDto
 
     /**
- * @summary Đăng nhập bằng email + mật khẩu
+ * @summary Đăng nhập. User nhiều tenant → trả danh sách, gọi lại kèm tenantId (= select-tenant)
  */
 export const useAuthControllerLogin = <TError = ErrorDto,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogin>>, TError,{data: LoginDto}, TContext>, }
@@ -96,6 +103,388 @@ export const useAuthControllerLogin = <TError = ErrorDto,
       > => {
 
       const mutationOptions = getAuthControllerLoginMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Xoay vòng refresh token — dùng lại token cũ = huỷ mọi phiên (§4.3d)
+ */
+export const authControllerRefresh = (
+    refreshDto: RefreshDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<TokenPairDto>(
+      {url: `/api/v1/auth/refresh`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: refreshDto, signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerRefreshMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext> => {
+
+const mutationKey = ['authControllerRefresh'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerRefresh>>, {data: RefreshDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerRefresh(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerRefreshMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerRefresh>>>
+    export type AuthControllerRefreshMutationBody = RefreshDto
+    export type AuthControllerRefreshMutationError = unknown
+
+    /**
+ * @summary Xoay vòng refresh token — dùng lại token cũ = huỷ mọi phiên (§4.3d)
+ */
+export const useAuthControllerRefresh = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerRefresh>>,
+        TError,
+        {data: RefreshDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerRefreshMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Thu hồi phiên hiện tại
+ */
+export const authControllerLogout = (
+    
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/auth/logout`, method: 'POST', signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerLogoutMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogout>>, TError,void, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerLogout>>, TError,void, TContext> => {
+
+const mutationKey = ['authControllerLogout'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerLogout>>, void> = () => {
+          
+
+          return  authControllerLogout()
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerLogoutMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerLogout>>>
+    
+    export type AuthControllerLogoutMutationError = unknown
+
+    /**
+ * @summary Thu hồi phiên hiện tại
+ */
+export const useAuthControllerLogout = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerLogout>>, TError,void, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerLogout>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerLogoutMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Đổi tenant — cấp token MỚI sau khi kiểm membership (§3.1b)
+ */
+export const authControllerSwitchTenant = (
+    switchTenantDto: SwitchTenantDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<TokenPairDto>(
+      {url: `/api/v1/auth/switch-tenant`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: switchTenantDto, signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerSwitchTenantMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerSwitchTenant>>, TError,{data: SwitchTenantDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerSwitchTenant>>, TError,{data: SwitchTenantDto}, TContext> => {
+
+const mutationKey = ['authControllerSwitchTenant'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerSwitchTenant>>, {data: SwitchTenantDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerSwitchTenant(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerSwitchTenantMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerSwitchTenant>>>
+    export type AuthControllerSwitchTenantMutationBody = SwitchTenantDto
+    export type AuthControllerSwitchTenantMutationError = unknown
+
+    /**
+ * @summary Đổi tenant — cấp token MỚI sau khi kiểm membership (§3.1b)
+ */
+export const useAuthControllerSwitchTenant = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerSwitchTenant>>, TError,{data: SwitchTenantDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerSwitchTenant>>,
+        TError,
+        {data: SwitchTenantDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerSwitchTenantMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary LUÔN 202 cùng response, bất kể email tồn tại hay không
+ */
+export const authControllerForgotPassword = (
+    forgotPasswordDto: ForgotPasswordDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/auth/forgot-password`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: forgotPasswordDto, signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerForgotPasswordMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext> => {
+
+const mutationKey = ['authControllerForgotPassword'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerForgotPassword>>, {data: ForgotPasswordDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerForgotPassword(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerForgotPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerForgotPassword>>>
+    export type AuthControllerForgotPasswordMutationBody = ForgotPasswordDto
+    export type AuthControllerForgotPasswordMutationError = unknown
+
+    /**
+ * @summary LUÔN 202 cùng response, bất kể email tồn tại hay không
+ */
+export const useAuthControllerForgotPassword = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerForgotPassword>>, TError,{data: ForgotPasswordDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerForgotPassword>>,
+        TError,
+        {data: ForgotPasswordDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerForgotPasswordMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Đặt mật khẩu mới — thu hồi TOÀN BỘ phiên (§4.3c)
+ */
+export const authControllerResetPassword = (
+    resetPasswordDto: ResetPasswordDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/auth/reset-password`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resetPasswordDto, signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerResetPasswordMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext> => {
+
+const mutationKey = ['authControllerResetPassword'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerResetPassword>>, {data: ResetPasswordDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerResetPassword(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerResetPassword>>>
+    export type AuthControllerResetPasswordMutationBody = ResetPasswordDto
+    export type AuthControllerResetPasswordMutationError = unknown
+
+    /**
+ * @summary Đặt mật khẩu mới — thu hồi TOÀN BỘ phiên (§4.3c)
+ */
+export const useAuthControllerResetPassword = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerResetPassword>>, TError,{data: ResetPasswordDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerResetPassword>>,
+        TError,
+        {data: ResetPasswordDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerResetPasswordMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Nhận lời mời — link một lần, có hạn; user tự đặt mật khẩu
+ */
+export const authControllerAcceptInvitation = (
+    acceptInvitationDto: AcceptInvitationDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/auth/accept-invitation`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: acceptInvitationDto, signal
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerAcceptInvitationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerAcceptInvitation>>, TError,{data: AcceptInvitationDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerAcceptInvitation>>, TError,{data: AcceptInvitationDto}, TContext> => {
+
+const mutationKey = ['authControllerAcceptInvitation'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerAcceptInvitation>>, {data: AcceptInvitationDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerAcceptInvitation(data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerAcceptInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerAcceptInvitation>>>
+    export type AuthControllerAcceptInvitationMutationBody = AcceptInvitationDto
+    export type AuthControllerAcceptInvitationMutationError = unknown
+
+    /**
+ * @summary Nhận lời mời — link một lần, có hạn; user tự đặt mật khẩu
+ */
+export const useAuthControllerAcceptInvitation = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerAcceptInvitation>>, TError,{data: AcceptInvitationDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerAcceptInvitation>>,
+        TError,
+        {data: AcceptInvitationDto},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerAcceptInvitationMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -191,3 +580,157 @@ export function useAuthControllerMe<TData = Awaited<ReturnType<typeof authContro
 
 
 
+/**
+ * @summary Thiết bị đang đăng nhập — metadata từ DB (§4.3d)
+ */
+export const authControllerMySessions = (
+    
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<SessionDto[]>(
+      {url: `/api/v1/me/sessions`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getAuthControllerMySessionsQueryKey = () => {
+    return [
+    `/api/v1/me/sessions`
+    ] as const;
+    }
+
+    
+export const getAuthControllerMySessionsQueryOptions = <TData = Awaited<ReturnType<typeof authControllerMySessions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAuthControllerMySessionsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authControllerMySessions>>> = ({ signal }) => authControllerMySessions(signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AuthControllerMySessionsQueryResult = NonNullable<Awaited<ReturnType<typeof authControllerMySessions>>>
+export type AuthControllerMySessionsQueryError = unknown
+
+
+export function useAuthControllerMySessions<TData = Awaited<ReturnType<typeof authControllerMySessions>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authControllerMySessions>>,
+          TError,
+          Awaited<ReturnType<typeof authControllerMySessions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerMySessions<TData = Awaited<ReturnType<typeof authControllerMySessions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authControllerMySessions>>,
+          TError,
+          Awaited<ReturnType<typeof authControllerMySessions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthControllerMySessions<TData = Awaited<ReturnType<typeof authControllerMySessions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Thiết bị đang đăng nhập — metadata từ DB (§4.3d)
+ */
+
+export function useAuthControllerMySessions<TData = Awaited<ReturnType<typeof authControllerMySessions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authControllerMySessions>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAuthControllerMySessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Thu hồi một phiên của chính mình
+ */
+export const authControllerRevokeMySession = (
+    id: string,
+ ) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/me/sessions/${id}`, method: 'DELETE'
+    },
+      );
+    }
+  
+
+
+export const getAuthControllerRevokeMySessionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRevokeMySession>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerRevokeMySession>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['authControllerRevokeMySession'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerRevokeMySession>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  authControllerRevokeMySession(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerRevokeMySessionMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerRevokeMySession>>>
+    
+    export type AuthControllerRevokeMySessionMutationError = unknown
+
+    /**
+ * @summary Thu hồi một phiên của chính mình
+ */
+export const useAuthControllerRevokeMySession = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRevokeMySession>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerRevokeMySession>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAuthControllerRevokeMySessionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    

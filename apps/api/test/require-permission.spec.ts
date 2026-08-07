@@ -35,8 +35,10 @@ describe('Check #5 — endpoint phải khai quyền', () => {
 
         for (const name of Object.getOwnPropertyNames(prototype)) {
           if (name === 'constructor') continue;
-          const handler = prototype[name];
-          if (typeof handler !== 'function') continue;
+          // Descriptor thay vì truy cập trực tiếp — prototype[name] sẽ THỰC THI getter
+          const desc = Object.getOwnPropertyDescriptor(prototype, name);
+          if (!desc || typeof desc.value !== 'function') continue;
+          const handler = desc.value as (...args: unknown[]) => unknown;
           const method = Reflect.getMetadata(METHOD_METADATA, handler);
           if (method === undefined) continue; // không phải route handler
 

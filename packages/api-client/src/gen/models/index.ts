@@ -5,9 +5,13 @@
  * OpenAPI spec version: 1.0
  */
 
+export * from './acceptInvitationDto';
 export * from './errorDto';
 export * from './errorDtoDetails';
+export * from './forgotPasswordDto';
+export * from './inviteUserDto';
 export * from './loginDto';
+export * from './loginDtoClient';
 export * from './loginResponseDto';
 export * from './meOrgUnitDto';
 export * from './meResponseDto';
@@ -15,3 +19,8 @@ export * from './meResponseDtoOrgUnit';
 export * from './meRoleDto';
 export * from './meTenantDto';
 export * from './membershipSummaryDto';
+export * from './refreshDto';
+export * from './resetPasswordDto';
+export * from './sessionDto';
+export * from './switchTenantDto';
+export * from './tokenPairDto';

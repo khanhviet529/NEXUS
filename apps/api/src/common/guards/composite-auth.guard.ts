@@ -7,15 +7,19 @@ import type { RequestContext } from '../../infra/cls/request-context';
 import { AppException } from '../errors/app.exception';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { AuthUser } from '../decorators/current-user.decorator';
+import { SessionService } from '../../modules/auth/session.service';
 
 export const ACCESS_TOKEN_COOKIE = 'access_token';
 
 /**
- * [CORE] CompositeAuthGuard — spec §4.3b, quyết định #15.
+ * [CORE] CompositeAuthGuard — spec §4.3b, §4.3d, quyết định #15/#48.
  *
  * - Web: httpOnly cookie. Mobile/đối tác: Authorization Bearer.
  * - Một request chỉ được dùng MỘT cơ chế. Có cả hai → 400 AUTH.DUAL_TRANSPORT.
  * - tenantId lấy TỪ TOKEN, không nơi nào khác (§3.1b) — set vào CLS tại đây.
+ * - Phiên phải CÒN SỐNG ở Redis — "nguồn sự thật cho việc phiên còn hiệu lực
+ *   là Redis, mọi lần kiểm tra xác thực" (§4.3d). Thu hồi có hiệu lực NGAY,
+ *   không chờ access token hết hạn.
  */
 @Injectable()
 export class CompositeAuthGuard implements CanActivate {
@@ -23,6 +27,7 @@ export class CompositeAuthGuard implements CanActivate {
     private readonly jwt: JwtService,
     private readonly reflector: Reflector,
     private readonly cls: ClsService<RequestContext>,
+    private readonly sessions: SessionService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -52,6 +57,11 @@ export class CompositeAuthGuard implements CanActivate {
           ? 'AUTH.TOKEN_EXPIRED'
           : 'AUTH.UNAUTHENTICATED',
       );
+    }
+
+    // Phiên bị thu hồi → chết NGAY dù access token còn hạn (§4.3d)
+    if (!(await this.sessions.isAlive(payload.sessionId))) {
+      throw new AppException('AUTH.UNAUTHENTICATED');
     }
 
     req.user = payload;

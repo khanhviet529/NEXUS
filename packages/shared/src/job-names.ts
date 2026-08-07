@@ -9,11 +9,12 @@ export interface JobPolicy {
   backoffMs: number;
 }
 
+// Lưu ý: BullMQ CẤM dấu ':' trong tên queue (dùng làm phân cách key nội bộ)
 export const JOB_NAMES = {
-  MAIL_SEND: { queue: 'mail:send', attempts: 3, backoffMs: 2_000 },
-  OUTBOX_DISPATCH: { queue: 'outbox:dispatch', attempts: 3, backoffMs: 5_000 },
-  EXPORT_RUN: { queue: 'export:run', attempts: 3, backoffMs: 10_000 },
-  IMPORT_RUN: { queue: 'import:run', attempts: 3, backoffMs: 10_000 },
+  MAIL_SEND: { queue: 'mail-send', attempts: 3, backoffMs: 2_000 },
+  OUTBOX_DISPATCH: { queue: 'outbox-dispatch', attempts: 3, backoffMs: 5_000 },
+  EXPORT_RUN: { queue: 'export-run', attempts: 3, backoffMs: 10_000 },
+  IMPORT_RUN: { queue: 'import-run', attempts: 3, backoffMs: 10_000 },
 } as const satisfies Record<string, JobPolicy>;
 
 export type JobName = keyof typeof JOB_NAMES;

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({ example: 'admin@tenant-a.local' })
@@ -15,4 +15,13 @@ export class LoginDto {
   @IsOptional()
   @IsUUID()
   tenantId?: string;
+
+  @ApiPropertyOptional({
+    enum: ['web', 'mobile'],
+    default: 'web',
+    description: 'web → token qua httpOnly cookie; mobile → token trong body (§4.3b)',
+  })
+  @IsOptional()
+  @IsIn(['web', 'mobile'])
+  client?: 'web' | 'mobile';
 }

@@ -8,11 +8,16 @@ import { validateEnv } from './config/env';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { RedisModule } from './infra/redis/redis.module';
 import { ContextModule } from './infra/cls/context.module';
+import { QueueModule } from './infra/queue/queue.module';
+import { MailModule } from './infra/mail/mail.module';
 import { CompositeAuthGuard } from './common/guards/composite-auth.guard';
+import { CsrfGuard } from './common/guards/csrf.guard';
 import { PermissionGuard } from './common/guards/permission.guard';
 import { SerializeInterceptor } from './common/interceptors/serialize.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -53,11 +58,16 @@ import { HealthController } from './modules/health/health.controller';
     ContextModule,
     PrismaModule,
     RedisModule,
+    QueueModule,
+    MailModule,
+    AuditModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: CompositeAuthGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_INTERCEPTOR, useClass: SerializeInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

@@ -12,6 +12,11 @@ export interface LoginResponseDto {
    * @nullable
    */
   accessToken: string | null;
+  /**
+   * CHỈ trả cho client=mobile — web nhận qua httpOnly cookie (§4.3b)
+   * @nullable
+   */
+  refreshToken: string | null;
   expiresIn: number;
   memberships: MembershipSummaryDto[];
 }
