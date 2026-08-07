@@ -1,0 +1,21 @@
+/**
+ * [CORE] Tên hành động audit cho timeline — spec §4.9.
+ */
+export const AUDIT_ACTIONS = {
+  CREATE: 'CREATE',
+  UPDATE: 'UPDATE',
+  DELETE: 'DELETE',
+  RESTORE: 'RESTORE',
+  LOGIN: 'LOGIN',
+  LOGOUT: 'LOGOUT',
+  LOGIN_FAILED: 'LOGIN_FAILED',
+  PASSWORD_RESET: 'PASSWORD_RESET',
+  SESSION_REVOKED: 'SESSION_REVOKED',
+  TOKEN_REUSE_DETECTED: 'TOKEN_REUSE_DETECTED',
+  /** Sysadmin truy cập chéo tenant — BẮT BUỘC mỗi lần, spec §3.1b */
+  CROSS_TENANT_ACCESS: 'CROSS_TENANT_ACCESS',
+  IMPERSONATION_START: 'IMPERSONATION_START',
+  IMPERSONATION_END: 'IMPERSONATION_END',
+} as const;
+
+export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

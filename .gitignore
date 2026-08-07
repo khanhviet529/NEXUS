@@ -1,0 +1,33 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# env — .env.example là file duy nhất được commit
+.env
+.env.*
+!.env.example
+
+# prisma
+apps/api/prisma/*.db
+
+# codegen output tạm
+apps/api/openapi.json
+
+# test
+coverage/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log

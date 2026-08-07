@@ -1,0 +1,5 @@
+# Chốt LF trong repo — dev Windows + CI Linux không đánh nhau về line ending
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

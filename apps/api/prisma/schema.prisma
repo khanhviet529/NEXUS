@@ -1,0 +1,530 @@
+// ============================================================================
+// SCHEMA GĐ1 — nguồn tham chiếu: spec §6.1, §6.2, §6.4, §6.5 + docs/erd.md
+//
+// Quy ước đọc:
+//  - Prisma không có mixin nên cột base được viết lại ở từng model, nhưng
+//    NHÓM THEO COMMENT để đối chiếu với §6.2:
+//      [GlobalAuditedBase]   id, createdAt, updatedAt, createdById, updatedById
+//      [TenantAuditedBase]   = Global + tenantId
+//      [BusinessEntityBase]  = Tenant + orgUnitId?, version, externalId?, source?
+//                              + SoftDeleteFields
+//      [+SoftDelete]         deletedAt
+//  - createdById/updatedById là cột audit thuần (uuid), KHÔNG khai FK để tránh
+//    rừng quan hệ ngược về users — tra cứu qua audit_logs.
+//  - MỌI model phải có mặt trong TENANCY_POLICY (packages/shared) — kiểm tra
+//    vét cạn chặn khởi động nếu thiếu (spec §4.4b).
+//  - Partial unique index (soft delete, HYBRID) và ltree KHÔNG biểu diễn được
+//    trong Prisma — nằm ở migration SQL, xem prisma/sql/manual-ddl.sql.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // ltree + pg_trgm: CREATE EXTENSION nằm ở prisma/sql/manual-ddl.sql
+  // (tránh previewFeature postgresqlExtensions)
+}
+
+// ===========================================================================
+// GLOBAL — extension KHÔNG inject tenant (TENANCY_POLICY.GLOBAL)
+// ===========================================================================
+
+/// Tenancy: GLOBAL · Base: Global +SoftDelete · Audit: trigger (§4.9)
+model Tenant {
+  // [GlobalAuditedBase]
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  // [+SoftDelete]
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code              String    @unique
+  name              String
+  status            String    @default("ACTIVE") // ACTIVE | SUSPENDED — shared enum
+  defaultLocale     String    @default("vi") @map("default_locale")
+  defaultTimezone   String    @default("Asia/Ho_Chi_Minh") @map("default_timezone")
+  dataRetentionDays Int?      @map("data_retention_days")
+  suspendedAt       DateTime? @map("suspended_at") @db.Timestamptz
+
+  domains     TenantDomain[]
+  memberships TenantMembership[]
+  features    TenantFeature[]
+
+  @@map("tenants")
+}
+
+/// Tenancy: GLOBAL · Base: Global · dùng trước đăng nhập để gợi ý tenant (§3.1b)
+model TenantDomain {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  tenantId  String  @map("tenant_id") @db.Uuid
+  domain    String  @unique
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("tenant_domains")
+}
+
+/// Tenancy: GLOBAL · Base: Global +SoftDelete · Audit: trigger
+/// users là GLOBAL IDENTITY — email unique TOÀN HỆ THỐNG (§4.4b)
+model User {
+  // [GlobalAuditedBase]
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  // [+SoftDelete] — deletedAt = xoá thật (ẩn danh hoá §5C.9); status = vô hiệu tạm
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  email        String    @unique
+  passwordHash String?   @map("password_hash") // null khi mời chưa kích hoạt (§4.3c)
+  fullName     String    @map("full_name")
+  status       String    @default("ACTIVE") // ACTIVE | DISABLED | LOCKED
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
+
+  memberships         TenantMembership[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+/// Tenancy: GLOBAL · Base: Global · sync từ packages/shared/src/permissions.ts (§4.4)
+model Permission {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  code        String  @unique // resource:action
+  resource    String
+  action      String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+/// Tenancy: GLOBAL · Base: Global (§4.3c — DB chỉ lưu HASH)
+model PasswordResetToken {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  userId      String    @map("user_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  usedAt      DateTime? @map("used_at") @db.Timestamptz
+  requestedIp String?   @map("requested_ip")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, usedAt])
+  @@map("password_reset_tokens")
+}
+
+/// Tenancy: GLOBAL · Base: Global (§5C.8)
+model SystemAnnouncement {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  title           String
+  body            String
+  severity        String    @default("INFO")
+  startsAt        DateTime  @map("starts_at") @db.Timestamptz
+  endsAt          DateTime? @map("ends_at") @db.Timestamptz
+  targetTenantIds String[]  @map("target_tenant_ids") @db.Uuid
+
+  @@map("system_announcements")
+}
+
+/// Tenancy: GLOBAL · Base: Global (§5C.8)
+model MaintenanceWindow {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  startsAt   DateTime @map("starts_at") @db.Timestamptz
+  endsAt     DateTime @map("ends_at") @db.Timestamptz
+  message    String
+  allowRoles String[] @map("allow_roles")
+
+  @@map("maintenance_windows")
+}
+
+// ===========================================================================
+// HYBRID — tenant_id NULL = mặc định toàn hệ thống. CHỈ HAI BẢNG (§6.4)
+// Partial unique (WHERE tenant_id IS NULL / NOT NULL) nằm ở manual-ddl.sql
+// ===========================================================================
+
+/// Tenancy: HYBRID · Base: Global · Audit: trigger
+model Setting {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  tenantId String? @map("tenant_id") @db.Uuid // NULL = default hệ thống
+  key      String
+  value    Json
+
+  @@index([tenantId, key])
+  @@map("settings")
+}
+
+/// Tenancy: HYBRID · Base: Global (§5C.8)
+model FeatureFlag {
+  // [GlobalAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+
+  tenantId       String? @map("tenant_id") @db.Uuid
+  key            String
+  enabled        Boolean @default(false)
+  rolloutPercent Int?    @map("rollout_percent")
+
+  @@index([tenantId, key])
+  @@map("feature_flags")
+}
+
+// ===========================================================================
+// TENANT — extension BẮT BUỘC inject tenant_id (TENANCY_POLICY.TENANT)
+// ===========================================================================
+
+/// Tenancy: TENANT · Base: Tenant · soft delete bằng STATUS, không deletedAt (§6.2)
+/// PK = id (khớp membershipId trong JWT §4.3) + UNIQUE (tenant_id, user_id)
+model TenantMembership {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  userId      String    @map("user_id") @db.Uuid
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  status      String    @default("ACTIVE") // ACTIVE | SUSPENDED | LEFT
+  joinedAt    DateTime? @map("joined_at") @db.Timestamptz
+  invitedById String?   @map("invited_by_id") @db.Uuid
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  // Composite FK §6.4: membership của tenant A không trỏ được vào org unit của B
+  orgUnit OrgUnit? @relation(fields: [tenantId, orgUnitId], references: [tenantId, id])
+
+  userRoles UserRole[]
+  sessions  Session[]
+
+  @@unique([tenantId, userId])
+  @@unique([tenantId, id]) // đích cho composite FK từ bảng con
+  @@index([userId])
+  @@map("tenant_memberships")
+}
+
+/// Tenancy: TENANT · Base: Tenant (§5C.1)
+model TenantFeature {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  featureKey String @map("feature_key")
+  enabled    Boolean @default(true)
+  quota      Json?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, featureKey]) // thiếu unique = 2 config cho cùng feature (§6.1)
+  @@map("tenant_features")
+}
+
+/// Tenancy: TENANT · Base: Business · Audit: ✓ · path ltree ở manual-ddl.sql
+model OrgUnit {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  parentId String? @map("parent_id") @db.Uuid
+  code     String
+  name     String
+  // path ltree: cột thêm bằng SQL thủ công (Unsupported chặn create qua client);
+  // repository cập nhật path trên mọi đường ghi — cùng cơ chế với *_search (§3.10)
+
+  parent   OrgUnit?  @relation("OrgUnitTree", fields: [tenantId, parentId], references: [tenantId, id])
+  children OrgUnit[] @relation("OrgUnitTree")
+
+  memberships TenantMembership[]
+
+  @@unique([tenantId, id]) // đích composite FK
+  @@index([tenantId, parentId])
+  @@map("org_units")
+}
+
+/// Tenancy: TENANT · Base: Tenant +SoftDelete · Audit: trigger (nhóm security-critical §4.9)
+model Role {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [+SoftDelete]
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code     String
+  name     String
+  isSystem Boolean @default(false) @map("is_system")
+
+  permissions     RolePermission[]
+  userRoles       UserRole[]
+  invitationRoles InvitationRole[]
+
+  @@unique([tenantId, id]) // đích composite FK
+  @@index([tenantId, code])
+  @@map("roles")
+}
+
+/// Tenancy: TENANT · Base: Tenant · Audit: trigger · scope nằm Ở ĐÂY, không ở Role
+model RolePermission {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+  scope        String // own | department | descendants | all
+
+  // Composite FK về roles (§6.4 "Ngoại lệ"); permission là FK đơn về bảng global
+  role       Role       @relation(fields: [tenantId, roleId], references: [tenantId, id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([tenantId, roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+/// Tenancy: TENANT · Base: Tenant · Audit: trigger
+/// ERD phát hiện #1: trỏ MEMBERSHIP chứ không phải user — không thể gán vai trò
+/// tenant A cho người không phải thành viên tenant A
+model UserRole {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String @map("membership_id") @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+  role       Role             @relation(fields: [tenantId, roleId], references: [tenantId, id])
+
+  @@unique([tenantId, membershipId, roleId])
+  @@index([tenantId, roleId])
+  @@map("user_roles")
+}
+
+/// Tenancy: TENANT · Base: Tenant · METADATA lâu dài — nguồn sự thật runtime là Redis (§4.3d)
+model Session {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String    @map("membership_id") @db.Uuid
+  device       String?
+  ip           String?
+  userAgent    String?   @map("user_agent")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz
+  lastSeenAt   DateTime? @map("last_seen_at") @db.Timestamptz
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+
+  @@index([tenantId, membershipId])
+  @@map("sessions")
+}
+
+/// Tenancy: TENANT · Base: Tenant · role_ids tách sang invitation_roles (ERD #2)
+model Invitation {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  email       String
+  tokenHash   String    @unique @map("token_hash")
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  acceptedAt  DateTime? @map("accepted_at") @db.Timestamptz
+  invitedById String?   @map("invited_by_id") @db.Uuid
+
+  roles InvitationRole[]
+
+  @@unique([tenantId, id]) // đích composite FK
+  @@index([tenantId, email])
+  @@map("invitations")
+}
+
+/// Tenancy: TENANT · Base: Tenant · ERD phát hiện #2: mảng uuid[] không FK được
+model InvitationRole {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  invitationId String @map("invitation_id") @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+
+  invitation Invitation @relation(fields: [tenantId, invitationId], references: [tenantId, id])
+  role       Role       @relation(fields: [tenantId, roleId], references: [tenantId, id])
+
+  @@unique([tenantId, invitationId, roleId])
+  @@map("invitation_roles")
+}
+
+/// Tenancy: TENANT · append-only · PARTITION BY RANGE (created_at) — DDL thủ công
+/// PK (id, created_at) BẮT BUỘC chốt ngay (§5B.3/C2, quyết định #8)
+model AuditLog {
+  id        String   @default(uuid(7)) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenantId  String   @map("tenant_id") @db.Uuid
+
+  entity       String
+  entityId     String  @map("entity_id") @db.Uuid
+  action       String
+  actorId      String? @map("actor_id") // uuid hoặc 'system:<job>' / 'migration:<ver>'
+  actorName    String? @map("actor_name")
+  onBehalfOfId String? @map("on_behalf_of_id") @db.Uuid
+  before       Json?
+  after        Json?
+  ip           String?
+  userAgent    String? @map("user_agent")
+  traceId      String? @map("trace_id")
+
+  @@id([id, createdAt])
+  @@index([tenantId, entity, entityId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+/// Tenancy: TENANT · Base: Tenant · lớp 2 của idempotency 3 lớp (§3.9)
+model IdempotencyRequest {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  key            String
+  operation      String
+  requestHash    String  @map("request_hash")
+  status         String  @default("PROCESSING") // PROCESSING | COMPLETED | FAILED
+  responseStatus Int?    @map("response_status")
+  responseBody   Json?   @map("response_body")
+  resourceType   String? @map("resource_type")
+  resourceId     String? @map("resource_id") @db.Uuid
+  attempts       Int     @default(1)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz // mặc định +30 ngày, set ở repository
+
+  @@unique([tenantId, key])
+  @@map("idempotency_requests")
+}
+
+/// Tenancy: TENANT · Base: Tenant · claim protocol FOR UPDATE SKIP LOCKED (§4.8)
+model OutboxEvent {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  eventType     String    @map("event_type")
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id") @db.Uuid
+  payload       Json
+  status        String    @default("PENDING") // PENDING | PROCESSING | DONE | DEAD
+  attempts      Int       @default(0)
+  availableAt   DateTime  @default(now()) @map("available_at") @db.Timestamptz
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz
+  lockedAt      DateTime? @map("locked_at") @db.Timestamptz
+  lockedBy      String?   @map("locked_by")
+
+  // Partial index (status IN PENDING,PROCESSING) ở manual-ddl.sql
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}
+
+/// Tenancy: TENANT · PK ghép, không dùng base chuẩn (§6.1) · atomic UPSERT (§4.7)
+model DocumentSequence {
+  tenantId     String @map("tenant_id") @db.Uuid
+  key          String
+  year         Int
+  currentValue Int    @default(0) @map("current_value")
+
+  @@id([tenantId, key, year])
+  @@map("document_sequences")
+}

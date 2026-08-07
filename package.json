@@ -1,0 +1,20 @@
+{
+  "name": "nexus",
+  "private": true,
+  "packageManager": "pnpm@8.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "gen:api": "turbo run gen:api",
+    "check:architecture": "node tools/checks/run-all.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.10.8"
+  }
+}

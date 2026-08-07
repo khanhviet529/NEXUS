@@ -1,0 +1,29 @@
+{
+  "name": "@nexus/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nexus/api-client": "workspace:*",
+    "@nexus/shared": "workspace:*",
+    "@tanstack/react-query": "^5.62.0",
+    "next": "15.5.23",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@nexus/config-ts": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "15.5.23",
+    "typescript": "^5.6.0"
+  }
+}

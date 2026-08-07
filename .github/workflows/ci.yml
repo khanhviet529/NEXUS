@@ -1,0 +1,51 @@
+# CI mỗi PR — spec §9: lint → typecheck → unit → integration → build → audit
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check kiến trúc (tenancy vét cạn, ma trận §6.5, cấm role branching)
+        run: node tools/checks/run-all.mjs
+
+      - name: Prisma generate
+        run: pnpm --filter @nexus/api prisma:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test (unit + integration qua Testcontainers)
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-only-secret-not-for-production-0000
+
+      - name: Build
+        run: pnpm build
+
+      - name: Audit
+        run: pnpm audit --audit-level high || true # cảnh báo, chưa chặn ở GĐ1
