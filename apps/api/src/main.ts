@@ -3,22 +3,19 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { buildSwaggerDocument, buildValidationPipe } from './bootstrap';
+import { buildSwaggerDocument, configureApp } from './bootstrap';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
 
-  app.setGlobalPrefix('api/v1'); // §3.1
+  configureApp(app); // prefix + query parser extended + cookie + validation
   app.use(helmet());
-  app.use(cookieParser());
   app.enableCors({
     origin: config.getOrThrow<string>('ALLOWED_ORIGINS').split(','),
     credentials: true,
   });
-  app.useGlobalPipes(buildValidationPipe());
 
   const document = buildSwaggerDocument(app);
   SwaggerModule.setup('docs', app, document);

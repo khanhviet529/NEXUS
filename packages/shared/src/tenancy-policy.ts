@@ -42,6 +42,10 @@ export const TENANCY_POLICY = {
     'IdempotencyRequest',
     'OutboxEvent',
     'DocumentSequence',
+    'UserPreference',
+    'SavedView',
+    'Customer',
+    'Product',
   ],
 } as const;
 

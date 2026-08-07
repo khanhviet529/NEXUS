@@ -4,6 +4,7 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -90,7 +91,7 @@ export class ListUsersQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page = 1;
+  page: number = 1;
 
   @ApiPropertyOptional({ default: 20, maximum: 100 })
   @IsOptional()
@@ -98,7 +99,7 @@ export class ListUsersQueryDto {
   @IsInt()
   @Min(1)
   @Max(100) // cap cứng ở BE (§3.3)
-  limit = 20;
+  limit: number = 20;
 
   @ApiPropertyOptional({ example: '-createdAt,email', description: 'Whitelist §3.4' })
   @IsOptional()
@@ -110,6 +111,12 @@ export class ListUsersQueryDto {
   @IsString()
   @Transform(({ value }) => (value === '' ? undefined : value))
   q?: string;
+
+  /** filter[field][op]=value (§3.5) — parser validate, GĐ4 users mới có q+sort */
+  @ApiPropertyOptional({ type: Object })
+  @IsOptional()
+  @IsObject()
+  filter?: Record<string, unknown>;
 }
 
 export class UpdateUserDto {

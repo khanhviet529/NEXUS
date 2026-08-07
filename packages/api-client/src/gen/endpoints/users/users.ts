@@ -5,17 +5,33 @@
  * OpenAPI spec version: 1.0
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
-  InviteUserDto
+  AssignRolesDto,
+  InviteUserDto,
+  SessionDto,
+  TransferOrgDto,
+  UpdateUserDto,
+  UserListResponseDto,
+  UserResponseDto,
+  UsersControllerListParams
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -24,7 +40,250 @@ import { apiMutator } from '../../../mutator';
 
 
 /**
- * @summary Mời tài khoản — gửi link kích hoạt một lần (§4.3c)
+ * @summary Danh sách thành viên — scope trong WHERE, phân trang §3.2/§3.3
+ */
+export const usersControllerList = (
+    params?: UsersControllerListParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<UserListResponseDto>(
+      {url: `/api/v1/users`, method: 'GET',
+        params, signal
+    },
+      );
+    }
+  
+
+
+
+export const getUsersControllerListQueryKey = (params?: UsersControllerListParams,) => {
+    return [
+    `/api/v1/users`, ...(params ? [params]: [])
+    ] as const;
+    }
+
+    
+export const getUsersControllerListQueryOptions = <TData = Awaited<ReturnType<typeof usersControllerList>>, TError = unknown>(params?: UsersControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getUsersControllerListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof usersControllerList>>> = ({ signal }) => usersControllerList(params, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type UsersControllerListQueryResult = NonNullable<Awaited<ReturnType<typeof usersControllerList>>>
+export type UsersControllerListQueryError = unknown
+
+
+export function useUsersControllerList<TData = Awaited<ReturnType<typeof usersControllerList>>, TError = unknown>(
+ params: undefined |  UsersControllerListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerList>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerList<TData = Awaited<ReturnType<typeof usersControllerList>>, TError = unknown>(
+ params?: UsersControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerList>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerList>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerList<TData = Awaited<ReturnType<typeof usersControllerList>>, TError = unknown>(
+ params?: UsersControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Danh sách thành viên — scope trong WHERE, phân trang §3.2/§3.3
+ */
+
+export function useUsersControllerList<TData = Awaited<ReturnType<typeof usersControllerList>>, TError = unknown>(
+ params?: UsersControllerListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerList>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getUsersControllerListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const usersControllerDetail = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<UserResponseDto>(
+      {url: `/api/v1/users/${id}`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getUsersControllerDetailQueryKey = (id?: string,) => {
+    return [
+    `/api/v1/users/${id}`
+    ] as const;
+    }
+
+    
+export const getUsersControllerDetailQueryOptions = <TData = Awaited<ReturnType<typeof usersControllerDetail>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getUsersControllerDetailQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof usersControllerDetail>>> = ({ signal }) => usersControllerDetail(id, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type UsersControllerDetailQueryResult = NonNullable<Awaited<ReturnType<typeof usersControllerDetail>>>
+export type UsersControllerDetailQueryError = unknown
+
+
+export function useUsersControllerDetail<TData = Awaited<ReturnType<typeof usersControllerDetail>>, TError = unknown>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerDetail>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerDetail<TData = Awaited<ReturnType<typeof usersControllerDetail>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerDetail>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerDetail>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerDetail<TData = Awaited<ReturnType<typeof usersControllerDetail>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useUsersControllerDetail<TData = Awaited<ReturnType<typeof usersControllerDetail>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerDetail>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getUsersControllerDetailQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Sửa hồ sơ — field nhạy cảm đòi field:hr / field:pii (§4.4c)
+ */
+export const usersControllerUpdate = (
+    id: string,
+    updateUserDto: UpdateUserDto,
+ ) => {
+      
+      
+      return apiMutator<UserResponseDto>(
+      {url: `/api/v1/users/${id}`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateUserDto
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerUpdateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerUpdate>>, TError,{id: string;data: UpdateUserDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerUpdate>>, TError,{id: string;data: UpdateUserDto}, TContext> => {
+
+const mutationKey = ['usersControllerUpdate'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerUpdate>>, {id: string;data: UpdateUserDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  usersControllerUpdate(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerUpdate>>>
+    export type UsersControllerUpdateMutationBody = UpdateUserDto
+    export type UsersControllerUpdateMutationError = unknown
+
+    /**
+ * @summary Sửa hồ sơ — field nhạy cảm đòi field:hr / field:pii (§4.4c)
+ */
+export const useUsersControllerUpdate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerUpdate>>, TError,{id: string;data: UpdateUserDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerUpdate>>,
+        TError,
+        {id: string;data: UpdateUserDto},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerUpdateMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Mời tài khoản — link kích hoạt một lần (§4.3c)
  */
 export const usersControllerInvite = (
     inviteUserDto: InviteUserDto,
@@ -72,7 +331,7 @@ const {mutation: mutationOptions} = options ?
     export type UsersControllerInviteMutationError = unknown
 
     /**
- * @summary Mời tài khoản — gửi link kích hoạt một lần (§4.3c)
+ * @summary Mời tài khoản — link kích hoạt một lần (§4.3c)
  */
 export const useUsersControllerInvite = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerInvite>>, TError,{data: InviteUserDto}, TContext>, }
@@ -84,6 +343,463 @@ export const useUsersControllerInvite = <TError = unknown,
       > => {
 
       const mutationOptions = getUsersControllerInviteMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Vô hiệu hoá — huỷ NGAY mọi phiên
+ */
+export const usersControllerDisable = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/disable`, method: 'POST', signal
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerDisableMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerDisable>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerDisable>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['usersControllerDisable'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerDisable>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  usersControllerDisable(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerDisableMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerDisable>>>
+    
+    export type UsersControllerDisableMutationError = unknown
+
+    /**
+ * @summary Vô hiệu hoá — huỷ NGAY mọi phiên
+ */
+export const useUsersControllerDisable = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerDisable>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerDisable>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerDisableMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export const usersControllerUnlock = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/unlock`, method: 'POST', signal
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerUnlockMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerUnlock>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerUnlock>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['usersControllerUnlock'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerUnlock>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  usersControllerUnlock(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerUnlockMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerUnlock>>>
+    
+    export type UsersControllerUnlockMutationError = unknown
+
+    export const useUsersControllerUnlock = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerUnlock>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerUnlock>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerUnlockMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Chuyển phòng ban — BẮT BUỘC huỷ mọi phiên (§4.3 cạm bẫy orgUnitId)
+ */
+export const usersControllerTransferOrg = (
+    id: string,
+    transferOrgDto: TransferOrgDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/transfer-org`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: transferOrgDto, signal
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerTransferOrgMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerTransferOrg>>, TError,{id: string;data: TransferOrgDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerTransferOrg>>, TError,{id: string;data: TransferOrgDto}, TContext> => {
+
+const mutationKey = ['usersControllerTransferOrg'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerTransferOrg>>, {id: string;data: TransferOrgDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  usersControllerTransferOrg(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerTransferOrgMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerTransferOrg>>>
+    export type UsersControllerTransferOrgMutationBody = TransferOrgDto
+    export type UsersControllerTransferOrgMutationError = unknown
+
+    /**
+ * @summary Chuyển phòng ban — BẮT BUỘC huỷ mọi phiên (§4.3 cạm bẫy orgUnitId)
+ */
+export const useUsersControllerTransferOrg = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerTransferOrg>>, TError,{id: string;data: TransferOrgDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerTransferOrg>>,
+        TError,
+        {id: string;data: TransferOrgDto},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerTransferOrgMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Nghỉ việc — thu hồi quyền + huỷ mọi phiên (§4.3c)
+ */
+export const usersControllerOffboard = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/offboard`, method: 'POST', signal
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerOffboardMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerOffboard>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerOffboard>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['usersControllerOffboard'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerOffboard>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  usersControllerOffboard(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerOffboardMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerOffboard>>>
+    
+    export type UsersControllerOffboardMutationError = unknown
+
+    /**
+ * @summary Nghỉ việc — thu hồi quyền + huỷ mọi phiên (§4.3c)
+ */
+export const useUsersControllerOffboard = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerOffboard>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerOffboard>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerOffboardMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Gán vai trò — cấm tự cấp (AUTH.SELF_GRANT_FORBIDDEN), cấm cấp quyền mình không có
+ */
+export const usersControllerAssignRoles = (
+    id: string,
+    assignRolesDto: AssignRolesDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/roles`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: assignRolesDto, signal
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerAssignRolesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerAssignRoles>>, TError,{id: string;data: AssignRolesDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerAssignRoles>>, TError,{id: string;data: AssignRolesDto}, TContext> => {
+
+const mutationKey = ['usersControllerAssignRoles'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerAssignRoles>>, {id: string;data: AssignRolesDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  usersControllerAssignRoles(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerAssignRolesMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerAssignRoles>>>
+    export type UsersControllerAssignRolesMutationBody = AssignRolesDto
+    export type UsersControllerAssignRolesMutationError = unknown
+
+    /**
+ * @summary Gán vai trò — cấm tự cấp (AUTH.SELF_GRANT_FORBIDDEN), cấm cấp quyền mình không có
+ */
+export const useUsersControllerAssignRoles = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerAssignRoles>>, TError,{id: string;data: AssignRolesDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerAssignRoles>>,
+        TError,
+        {id: string;data: AssignRolesDto},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerAssignRolesMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export const usersControllerSessions = (
+    id: string,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<SessionDto[]>(
+      {url: `/api/v1/users/${id}/sessions`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getUsersControllerSessionsQueryKey = (id?: string,) => {
+    return [
+    `/api/v1/users/${id}/sessions`
+    ] as const;
+    }
+
+    
+export const getUsersControllerSessionsQueryOptions = <TData = Awaited<ReturnType<typeof usersControllerSessions>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getUsersControllerSessionsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof usersControllerSessions>>> = ({ signal }) => usersControllerSessions(id, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type UsersControllerSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof usersControllerSessions>>>
+export type UsersControllerSessionsQueryError = unknown
+
+
+export function useUsersControllerSessions<TData = Awaited<ReturnType<typeof usersControllerSessions>>, TError = unknown>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerSessions>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerSessions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerSessions<TData = Awaited<ReturnType<typeof usersControllerSessions>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof usersControllerSessions>>,
+          TError,
+          Awaited<ReturnType<typeof usersControllerSessions>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useUsersControllerSessions<TData = Awaited<ReturnType<typeof usersControllerSessions>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useUsersControllerSessions<TData = Awaited<ReturnType<typeof usersControllerSessions>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof usersControllerSessions>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getUsersControllerSessionsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Thu hồi toàn bộ phiên của user
+ */
+export const usersControllerRevokeSessions = (
+    id: string,
+ ) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/users/${id}/sessions`, method: 'DELETE'
+    },
+      );
+    }
+  
+
+
+export const getUsersControllerRevokeSessionsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerRevokeSessions>>, TError,{id: string}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof usersControllerRevokeSessions>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['usersControllerRevokeSessions'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof usersControllerRevokeSessions>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  usersControllerRevokeSessions(id,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UsersControllerRevokeSessionsMutationResult = NonNullable<Awaited<ReturnType<typeof usersControllerRevokeSessions>>>
+    
+    export type UsersControllerRevokeSessionsMutationError = unknown
+
+    /**
+ * @summary Thu hồi toàn bộ phiên của user
+ */
+export const useUsersControllerRevokeSessions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof usersControllerRevokeSessions>>, TError,{id: string}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof usersControllerRevokeSessions>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUsersControllerRevokeSessionsMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

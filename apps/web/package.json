@@ -15,7 +15,8 @@
     "@tanstack/react-query": "^5.62.0",
     "next": "15.5.23",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "nuqs": "^2.4.0"
   },
   "devDependencies": {
     "@nexus/config-ts": "workspace:*",

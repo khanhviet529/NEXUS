@@ -47,9 +47,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     assertExhaustiveTenancyPolicy(ALL_MODELS);
     assertExhaustiveSoftDeletePolicy(MODELS_WITH_DELETED_AT);
 
-    this.base = new PrismaClient();
+    this.base = new PrismaClient({
+      log: [{ emit: 'event', level: 'query' }],
+    });
+    // Đếm query cho test #12 (expectQueryCount) + cảnh báo N+1 dev mode (§4.6)
+    (this.base as unknown as { $on(e: 'query', cb: () => void): void }).$on('query', () => {
+      for (const l of this.queryListeners) l();
+    });
     this.client = buildExtendedClient(this.base, cls);
   }
+
+  /** Test #12 + log cảnh báo N+1 đăng ký ở đây */
+  readonly queryListeners = new Set<() => void>();
 
   async onModuleInit(): Promise<void> {
     if (process.env.GEN_OPENAPI === '1') return; // codegen không cần DB

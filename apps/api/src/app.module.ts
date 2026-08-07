@@ -21,6 +21,8 @@ import { UsersModule } from './modules/users/users.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { OrgUnitsModule } from './modules/org-units/org-units.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ProductsModule } from './modules/products/products.module';
+import { SavedViewsModule } from './modules/saved-views/saved-views.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -69,6 +71,8 @@ import { HealthController } from './modules/health/health.controller';
     RolesModule,
     OrgUnitsModule,
     AdminModule,
+    ProductsModule,
+    SavedViewsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -733,4 +733,151 @@ export const useAuthControllerRevokeMySession = <TError = unknown,
 
       return useMutation(mutationOptions, queryClient);
     }
+    export const preferencesControllerGet = (
+    
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/me/preferences`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getPreferencesControllerGetQueryKey = () => {
+    return [
+    `/api/v1/me/preferences`
+    ] as const;
+    }
+
+    
+export const getPreferencesControllerGetQueryOptions = <TData = Awaited<ReturnType<typeof preferencesControllerGet>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreferencesControllerGetQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof preferencesControllerGet>>> = ({ signal }) => preferencesControllerGet(signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PreferencesControllerGetQueryResult = NonNullable<Awaited<ReturnType<typeof preferencesControllerGet>>>
+export type PreferencesControllerGetQueryError = unknown
+
+
+export function usePreferencesControllerGet<TData = Awaited<ReturnType<typeof preferencesControllerGet>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof preferencesControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof preferencesControllerGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreferencesControllerGet<TData = Awaited<ReturnType<typeof preferencesControllerGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof preferencesControllerGet>>,
+          TError,
+          Awaited<ReturnType<typeof preferencesControllerGet>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreferencesControllerGet<TData = Awaited<ReturnType<typeof preferencesControllerGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePreferencesControllerGet<TData = Awaited<ReturnType<typeof preferencesControllerGet>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preferencesControllerGet>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPreferencesControllerGetQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+/**
+ * @summary Upsert từng key: locale, timezone, density, pageSize, theme (§5C.2)
+ */
+export const preferencesControllerPatch = (
+    
+ ) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/me/preferences`, method: 'PATCH'
+    },
+      );
+    }
+  
+
+
+export const getPreferencesControllerPatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof preferencesControllerPatch>>, TError,void, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof preferencesControllerPatch>>, TError,void, TContext> => {
+
+const mutationKey = ['preferencesControllerPatch'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof preferencesControllerPatch>>, void> = () => {
+          
+
+          return  preferencesControllerPatch()
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreferencesControllerPatchMutationResult = NonNullable<Awaited<ReturnType<typeof preferencesControllerPatch>>>
+    
+    export type PreferencesControllerPatchMutationError = unknown
+
+    /**
+ * @summary Upsert từng key: locale, timezone, density, pageSize, theme (§5C.2)
+ */
+export const usePreferencesControllerPatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof preferencesControllerPatch>>, TError,void, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof preferencesControllerPatch>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPreferencesControllerPatchMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
     

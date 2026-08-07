@@ -26,6 +26,10 @@ export const ALL_MODELS = [
   "AuditLog",
   "IdempotencyRequest",
   "OutboxEvent",
+  "UserPreference",
+  "SavedView",
+  "Customer",
+  "Product",
   "DocumentSequence"
 ] as const;
 
@@ -34,5 +38,7 @@ export const MODELS_WITH_DELETED_AT = [
   "Tenant",
   "User",
   "OrgUnit",
-  "Role"
+  "Role",
+  "Customer",
+  "Product"
 ] as const;

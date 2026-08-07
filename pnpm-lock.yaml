@@ -165,6 +165,9 @@ importers:
       next:
         specifier: 15.5.23
         version: 15.5.23(react-dom@19.2.8)(react@19.2.8)
+      nuqs:
+        specifier: ^2.4.0
+        version: 2.9.5(next@15.5.23)(react@19.2.8)
       react:
         specifier: ^19.0.0
         version: 19.2.8
@@ -7186,6 +7189,32 @@ packages:
     dependencies:
       path-key: 3.1.1
     dev: true
+
+  /nuqs@2.9.5(next@15.5.23)(react@19.2.8):
+    resolution: {integrity: sha512-Ec+vVwUKKng7E6ya5zZowt3QqDRGqqB1E40Rp2QAyZXGgYekDzmVo7V7jwbLAMkdbiZTH285fOIUyZGrS5zsCg==}
+    peerDependencies:
+      '@remix-run/react': '>=2'
+      '@tanstack/react-router': ^1
+      next: '>=14.2.0'
+      react: '>=18.2.0 || ^19.0.0-0'
+      react-router: ^5 || ^6 || ^7 || ^8
+      react-router-dom: ^5 || ^6 || ^7
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@tanstack/react-router':
+        optional: true
+      next:
+        optional: true
+      react-router:
+        optional: true
+      react-router-dom:
+        optional: true
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      next: 15.5.23(react-dom@19.2.8)(react@19.2.8)
+      react: 19.2.8
+    dev: false
 
   /nypm@0.6.9:
     resolution: {integrity: sha512-zxlE2yvSWZWmHcNdT3+5zV2lrCogeE9YOklHrR3dFjqutq5wO7GFDYLFDRXLsYnJzwvy/im9fYoxePvS0VTW0w==}

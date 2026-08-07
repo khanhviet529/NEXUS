@@ -250,8 +250,10 @@ model TenantMembership {
   // Composite FK §6.4: membership của tenant A không trỏ được vào org unit của B
   orgUnit OrgUnit? @relation(fields: [tenantId, orgUnitId], references: [tenantId, id])
 
-  userRoles UserRole[]
-  sessions  Session[]
+  userRoles       UserRole[]
+  sessions        Session[]
+  userPreferences UserPreference[]
+  savedViews      SavedView[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id]) // đích cho composite FK từ bảng con
@@ -523,6 +525,104 @@ model OutboxEvent {
   // Partial index (status IN PENDING,PROCESSING) ở manual-ddl.sql
   @@index([status, availableAt])
   @@map("outbox_events")
+}
+
+/// Tenancy: TENANT · Base: Tenant · lưu theo MEMBERSHIP (ERD #1) · XOÁ CỨNG (§6.2)
+model UserPreference {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String @map("membership_id") @db.Uuid
+  key          String // locale | timezone | density | pageSize | theme…
+  value        Json
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+
+  @@unique([tenantId, membershipId, key])
+  @@map("user_preferences")
+}
+
+/// Tenancy: TENANT · Base: Tenant · XOÁ CỨNG, không soft delete (§6.1)
+model SavedView {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String  @map("membership_id") @db.Uuid
+  entity       String // EntityType — bảng nào
+  name         String
+  config       Json // filters, sort, columns, columnOrder, columnWidths, density, pageSize
+  isDefault    Boolean @default(false) @map("is_default")
+  isShared     Boolean @default(false) @map("is_shared") // chia sẻ trong đơn vị (§5C.2)
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+
+  @@index([tenantId, membershipId, entity])
+  @@map("saved_views")
+}
+
+/// [REF] Tenancy: TENANT · Base: Business · name JSONB đa ngôn ngữ (§3.10)
+model Customer {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code    String
+  name    Json // {"vi": "...", "en": "..."} — §3.10
+  taxCode String? @map("tax_code")
+  // Cột search chuẩn hoá Ở TẦNG ỨNG DỤNG — repository tính trên MỌI đường ghi
+  nameViSearch String? @map("name_vi_search")
+  nameEnSearch String? @map("name_en_search")
+
+  @@unique([tenantId, id]) // đích composite FK (orders GĐ5)
+  @@map("customers")
+}
+
+/// [REF] Tenancy: TENANT · Base: Business · tracking_type NONE|LOT|SERIAL (#58)
+model Product {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code         String
+  name         Json // đa ngôn ngữ (§3.10)
+  baseUom      String  @map("base_uom")
+  trackingType String  @default("NONE") @map("tracking_type") // NONE | LOT | SERIAL
+  costPrice    Decimal? @map("cost_price") @db.Decimal(18, 2) // field-level group cost
+  nameViSearch String? @map("name_vi_search")
+  nameEnSearch String? @map("name_en_search")
+
+  @@unique([tenantId, id]) // đích composite FK
+  @@map("products")
 }
 
 /// Tenancy: TENANT · PK ghép, không dùng base chuẩn (§6.1) · atomic UPSERT (§4.7)

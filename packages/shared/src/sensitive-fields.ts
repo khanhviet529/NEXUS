@@ -17,8 +17,10 @@ export const SENSITIVE_FIELDS: Record<string, Record<string, FieldGroup>> = {
     salary: 'hr',
     nationalId: 'pii',
   },
-  // [REF] GĐ5: Product.costPrice/OrderItem.costPrice/Order.margin → cost,
-  // Customer.creditLimit → finance (permission-matrix §4)
+  Product: {
+    costPrice: 'cost', // permission-matrix §4
+  },
+  // GĐ5: OrderItem.costPrice/Order.margin → cost, Customer.creditLimit → finance
 };
 
 const MASK = '«đã che»';

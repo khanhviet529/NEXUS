@@ -53,6 +53,16 @@ export const PERMISSIONS: readonly PermissionDef[] = [
   p('tenant', 'read'),
   p('tenant', 'update'),
 
+  // --- [REF] danh mục mẫu (GĐ4/5) ---
+  p('product', 'read'),
+  p('product', 'create'),
+  p('product', 'update'),
+  p('product', 'delete'),
+  p('customer', 'read'),
+  p('customer', 'create'),
+  p('customer', 'update'),
+  p('customer', 'delete'),
+
   // --- field-level serializer groups (spec §4.4c, permission-matrix §4) ---
   // Cột nhạy cảm gắn @Expose({ groups: ['hr'|'pii'|'cost'|'finance'] });
   // SerializeInterceptor mở group khi user có permission tương ứng.
