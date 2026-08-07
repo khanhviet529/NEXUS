@@ -327,7 +327,10 @@ const {mutation: mutationOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
-    export const productsControllerRemove = (
+    /**
+ * @summary Xoá — delete guard A2: đang được tham chiếu → 409 kèm nguồn
+ */
+export const productsControllerRemove = (
     id: string,
  ) => {
       
@@ -369,7 +372,10 @@ const {mutation: mutationOptions} = options ?
     
     export type ProductsControllerRemoveMutationError = unknown
 
-    export const useProductsControllerRemove = <TError = unknown,
+    /**
+ * @summary Xoá — delete guard A2: đang được tham chiếu → 409 kèm nguồn
+ */
+export const useProductsControllerRemove = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsControllerRemove>>, TError,{id: string}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof productsControllerRemove>>,
