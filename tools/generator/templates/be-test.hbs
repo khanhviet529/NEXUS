@@ -1,0 +1,43 @@
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { createTestApp, type TestHarness } from './setup/test-app';
+
+/**
+ * [GEN] Test khung cho {{dashCase name}}s — HOÀN THIỆN trước khi coi là xong:
+ * - Ma trận quyền (#8): thêm dòng vào permission-matrix.spec.ts
+ * - Đếm query (#12): endpoint list PHẢI có expectQueryCount
+ * - Fixture BẮT BUỘC 2 tenant (§8.3)
+ */
+describe('{{pascalCase name}}s — CRUD + cách ly tenant', () => {
+  let h: TestHarness;
+  const agent = () => request(h.app.getHttpServer());
+  let adminToken = '';
+  let adminBToken = '';
+
+  beforeAll(async () => {
+    h = await createTestApp();
+    adminToken = await h.login('admin@tenant-a.local');
+    adminBToken = await h.login('admin@tenant-b.local');
+  });
+  afterAll(async () => {
+    await h.close();
+  });
+
+  it('tạo + đọc trong tenant A; tenant B KHÔNG thấy (§8.2 #1)', async () => {
+    const create = await agent()
+      .post('/api/v1/{{dashCase name}}s')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ code: '{{constantCase name}}-T1', name: { vi: 'Bản ghi thử' } });
+    expect(create.status, JSON.stringify(create.body)).toBe(201);
+
+    const listA = await agent()
+      .get('/api/v1/{{dashCase name}}s')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(listA.body.data.map((r: { code: string }) => r.code)).toContain('{{constantCase name}}-T1');
+
+    const listB = await agent()
+      .get('/api/v1/{{dashCase name}}s')
+      .set('Authorization', `Bearer ${adminBToken}`);
+    expect(listB.body.data.map((r: { code: string }) => r.code)).not.toContain('{{constantCase name}}-T1');
+  });
+});

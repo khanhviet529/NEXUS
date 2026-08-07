@@ -1,0 +1,101 @@
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmptyObject, IsObject, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
+import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
+import { AppException } from '../../common/errors/app.exception';
+import { buildMeta } from '../../common/dto/paginated.dto';
+import { resolveLocalizedValue, type Locale, type LocalizedText } from '../../common/query/localized';
+import { RequestContextService } from '../../infra/cls/request-context';
+import { AuditRepository } from '../audit/audit.repository';
+import { {{pascalCase name}}sRepository } from './{{dashCase name}}s.repository';
+
+class Create{{pascalCase name}}Dto {
+  @ApiProperty({ example: '{{constantCase name}}-001' })
+  @IsString()
+  @MinLength(1)
+  code!: string;
+
+  @ApiProperty({ example: { vi: 'Tên tiếng Việt' } })
+  @IsObject()
+  @IsNotEmptyObject()
+  name!: LocalizedText;
+}
+
+class List{{pascalCase name}}sDto {
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number = 1;
+
+  @ApiPropertyOptional({ default: 20, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number = 20;
+}
+
+/**
+ * [GEN] {{pascalCase name}}s — khuôn [REF] orders: @RequirePermission MỌI route
+ * (check #5 quét), audit MỌI đường ghi (§4.9), locale resolve response (§3.10).
+ * TODO sau khi sinh: filter/sort whitelist qua QueryConfig (khuôn products).
+ */
+@ApiTags('{{dashCase name}}s')
+@Controller('{{dashCase name}}s')
+export class {{pascalCase name}}sController {
+  constructor(
+    private readonly repo: {{pascalCase name}}sRepository,
+    private readonly audit: AuditRepository,
+    private readonly ctx: RequestContextService,
+  ) {}
+
+  @Get()
+  @RequirePermission('{{dashCase name}}:read')
+  @ApiOperation({ summary: 'Danh sách — NHỚ viết test đếm query (#12)' })
+  async list(@Query() query: List{{pascalCase name}}sDto) {
+    const [data, total] = await this.repo.list(query.page, query.limit);
+    const locale = this.ctx.locale as Locale;
+    return {
+      data: data.map((row) => ({
+        id: row.id,
+        code: row.code,
+        name: resolveLocalizedValue(row.name, locale),
+        createdAt: row.createdAt,
+      })),
+      meta: buildMeta(query.page, query.limit, total),
+    };
+  }
+
+  @Get(':id')
+  @RequirePermission('{{dashCase name}}:read')
+  async detail(@Param('id', ParseUUIDPipe) id: string) {
+    const row = await this.repo.findById(id);
+    if (!row) throw new AppException('COMMON.NOT_FOUND');
+    return {
+      id: row.id,
+      code: row.code,
+      name: resolveLocalizedValue(row.name, this.ctx.locale as Locale),
+      createdAt: row.createdAt,
+    };
+  }
+
+  @Post()
+  @HttpCode(201)
+  @RequirePermission('{{dashCase name}}:create')
+  async create(@CurrentUser() user: AuthUser, @Body() dto: Create{{pascalCase name}}Dto) {
+    const row = await this.repo.create(user.tenantId, dto);
+    await this.audit.write({
+      tenantId: user.tenantId,
+      entity: '{{pascalCase name}}',
+      entityId: row.id,
+      action: 'CREATE',
+      after: { code: row.code },
+    });
+    return { id: row.id, code: row.code };
+  }
+}

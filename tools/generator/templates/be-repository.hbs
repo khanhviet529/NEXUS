@@ -1,0 +1,41 @@
+import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
+import { buildSearchColumns, type LocalizedText } from '../../common/query/localized';
+import { PrismaService } from '../../infra/prisma/prisma.service';
+
+/**
+ * [GEN] Repository {{pascalCase name}} — khuôn [REF] modules/orders.
+ * Mọi truy vấn qua PrismaService: extension tự inject tenant_id (§4.4b)
+ * + soft delete (§4.5). KHÔNG gọi Prisma client trần ngoài file này.
+ */
+@Injectable()
+export class {{pascalCase name}}sRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(page: number, limit: number) {
+    return Promise.all([
+      this.prisma.client.{{camelCase name}}.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.client.{{camelCase name}}.count(),
+    ]);
+  }
+
+  findById(id: string) {
+    return this.prisma.client.{{camelCase name}}.findFirst({ where: { id } });
+  }
+
+  create(tenantId: string, input: { code: string; name: LocalizedText }) {
+    return this.prisma.client.{{camelCase name}}.create({
+      data: {
+        tenantId,
+        code: input.code,
+        name: input.name as Prisma.InputJsonValue,
+        // Cột *_search chuẩn hoá Ở TẦNG ỨNG DỤNG (§3.10, quyết định #41)
+        ...buildSearchColumns('name', input.name),
+      },
+    });
+  }
+}

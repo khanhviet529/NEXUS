@@ -12,9 +12,11 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "gen:api": "turbo run gen:api",
+    "gen:module": "plop --plopfile tools/generator/plopfile.mjs module",
     "check:architecture": "node tools/checks/run-all.mjs"
   },
   "devDependencies": {
+    "plop": "^4.0.5",
     "turbo": "^2.10.8"
   }
 }

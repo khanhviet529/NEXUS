@@ -1,0 +1,69 @@
+'use client';
+
+import { Suspense, useMemo } from 'react';
+import { parseAsInteger, useQueryStates } from 'nuqs';
+import { useQuery } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { apiAxios } from '@nexus/api-client';
+import { DataTable, type DataTableMeta } from '@/components/common/data-table';
+
+interface {{pascalCase name}}Row {
+  id: string;
+  code: string;
+  name: string | null;
+  createdAt: string;
+}
+
+/** [GEN] Trang danh sách — URL là nguồn sự thật (§5.4). Sau `pnpm gen:api`
+ *  thay apiAxios bằng hook sinh tự động ({{camelCase name}}sControllerList). */
+function {{pascalCase name}}sPage() {
+  const [params, setParams] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    limit: parseAsInteger.withDefault(20),
+  });
+
+  const query = useQuery({
+    queryKey: ['{{dashCase name}}s', params],
+    queryFn: async () =>
+      (
+        await apiAxios.get<{ data: {{pascalCase name}}Row[]; meta: DataTableMeta }>(
+          '/api/v1/{{dashCase name}}s',
+          { params },
+        )
+      ).data,
+    placeholderData: (prev) => prev,
+  });
+
+  const columns = useMemo<ColumnDef<{{pascalCase name}}Row, unknown>[]>(
+    () => [
+      { id: 'code', header: 'Mã', cell: ({ row }) => row.original.code },
+      { id: 'name', header: 'Tên', cell: ({ row }) => row.original.name ?? '—' },
+    ],
+    [],
+  );
+
+  return (
+    <main className="mx-auto max-w-5xl space-y-4 p-6">
+      <h1 className="text-xl font-semibold">{{pascalCase name}}s</h1>
+      <DataTable
+        tableKey="{{dashCase name}}s"
+        columns={columns}
+        rows={query.data?.data ?? []}
+        meta={query.data?.meta}
+        state={params}
+        onStateChange={(patch) => void setParams({ ...params, ...patch })}
+        status={query.status}
+        onRetry={() => void query.refetch()}
+        getRowId={(r) => r.id}
+      />
+    </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <{{pascalCase name}}sPage />
+    </Suspense>
+  );
+}
