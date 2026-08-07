@@ -34,6 +34,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { FilesModule } from './modules/files/files.module';
 import { ExportsModule } from './modules/exports/exports.module';
+import { SearchModule } from './modules/search/search.module';
 import { S3Module } from './infra/s3/s3.module';
 import { HealthController } from './modules/health/health.controller';
 
@@ -97,6 +98,7 @@ import { HealthController } from './modules/health/health.controller';
     S3Module,
     FilesModule,
     ExportsModule,
+    SearchModule,
   ],
   controllers: [HealthController],
   providers: [

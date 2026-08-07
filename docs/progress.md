@@ -23,6 +23,7 @@
 | 6 | Export streaming keyset + backpressure; import batch/checkpoint/resume + lỗi từng dòng; bulk partial success | Claude | 🔍 chờ review | **#26-#28 ✅** (128/128) | GĐ7 nối file S3 presigned cho luồng upload import |
 | 6b | A1 Report framework: registry khai báo → tự sinh list/meta/run/export, scope trong WHERE, field-level nơi 3, cache theo (tenant, scope, user, locale, params), `resolveLocaleExpr` (#51) | Claude | 🔍 chờ review | **#10 nơi 3 ✅** (reports-gd6b 11 test, suite 143/143) | Scope seed `report:sales` chốt 2026-08-07 = soi gương `order:export` (matrix §3.2); saved_reports/schedule là OPT GĐ10 |
 | 7 | Audit timeline (GET /audit-logs, desc = actor trong cây); Files presigned S3/MinIO (@aws-sdk, đã hỏi-chốt) + attachments kế thừa quyền entity; Notifications đọc + preferences (membership); Business calendar + `addWorkingDays` + seed lễ VN (data, đã hỏi-chốt); export QUA QUEUE → S3 → notification; cron partition movements+audit_logs | Claude | 🔍 chờ review | **gd7 12 test + calendar unit 11 ✅** (suite 171/171) | MinIO vào Testcontainers; audit CRUD hiện ghi TƯỜNG MINH trong service — query-extension diff tự động (§4.9) chưa làm, cần quyết khi review; lễ âm 2027-2030 là data xấp xỉ, nghiệp vụ đối chiếu |
+| 8a | Global search (§5C.7): GET /search nhóm theo module, quyền động theo nhóm, scope nhúng WHERE, tìm không dấu trên cột *_search, kết quả CHỈ cột định danh | Claude | 🔍 chờ review | **#29 ✅** (search-gd8 5 test, suite 176/176) | recent/favorites làm ở GĐ10 cùng §5C.2 |
 
 ## Việc chặn (blocker)
 
