@@ -1,0 +1,27 @@
+{
+  "common": {
+    "loading": "Đang tải…",
+    "search": "Tìm kiếm",
+    "cancel": "Huỷ",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "noResults": "Không có kết quả",
+    "error": "Đã xảy ra lỗi",
+    "selected": "{count} đã chọn"
+  },
+  "palette": {
+    "placeholder": "Gõ lệnh hoặc tìm kiếm…",
+    "actions": "Hành động",
+    "results": "Kết quả tìm kiếm",
+    "hint": "Ctrl+K để mở"
+  },
+  "orders": {
+    "title": "Đơn hàng",
+    "submit": "Gửi duyệt",
+    "approve": "Duyệt đơn",
+    "reject": "Từ chối",
+    "cancel": "Huỷ đơn",
+    "export": "Xuất CSV",
+    "bulkApprove": "Duyệt hàng loạt"
+  }
+}

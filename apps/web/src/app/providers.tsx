@@ -3,6 +3,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { useState } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { OverlayProvider } from '@/providers/overlay';
+import { CommandPaletteProvider } from '@/providers/command-palette';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(
@@ -15,7 +18,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   return (
     <NuqsAdapter>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <TooltipProvider delayDuration={200}>
+          <OverlayProvider>
+            <CommandPaletteProvider>{children}</CommandPaletteProvider>
+          </OverlayProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
     </NuqsAdapter>
   );
 }

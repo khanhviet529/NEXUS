@@ -209,4 +209,9 @@ export class OrdersService {
   reject(user: AuthUser, orderId: string, version: number) {
     return this.doTransition(user, orderId, 'reject', 'order:approve', version);
   }
+
+  /** GĐ8b — máy trạng thái đã khai DRAFT→CANCELLED từ GĐ1, bổ sung wrapper */
+  cancel(user: AuthUser, orderId: string, version: number) {
+    return this.doTransition(user, orderId, 'cancel', 'order:update', version);
+  }
 }

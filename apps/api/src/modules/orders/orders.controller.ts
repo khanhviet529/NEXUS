@@ -326,4 +326,15 @@ export class OrdersController {
     const order = await this.orders.reject(user, id, dto.version);
     return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
   }
+
+  @Post(':id/cancel')
+  @RequirePermission('order:update')
+  async cancel(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TransitionDto,
+  ) {
+    const order = await this.orders.cancel(user, id, dto.version);
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+  }
 }

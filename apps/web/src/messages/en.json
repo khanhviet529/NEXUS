@@ -1,0 +1,27 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "search": "Search",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "noResults": "No results",
+    "error": "Something went wrong",
+    "selected": "{count} selected"
+  },
+  "palette": {
+    "placeholder": "Type a command or search…",
+    "actions": "Actions",
+    "results": "Search results",
+    "hint": "Ctrl+K to open"
+  },
+  "orders": {
+    "title": "Orders",
+    "submit": "Submit",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel order",
+    "export": "Export CSV",
+    "bulkApprove": "Bulk approve"
+  }
+}

@@ -627,4 +627,63 @@ const {mutation: mutationOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
+    export const ordersControllerCancel = (
+    id: string,
+    transitionDto: TransitionDto,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/orders/${id}/cancel`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: transitionDto, signal
+    },
+      );
+    }
+  
+
+
+export const getOrdersControllerCancelMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerCancel>>, TError,{id: string;data: TransitionDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof ordersControllerCancel>>, TError,{id: string;data: TransitionDto}, TContext> => {
+
+const mutationKey = ['ordersControllerCancel'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ordersControllerCancel>>, {id: string;data: TransitionDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  ordersControllerCancel(id,data,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OrdersControllerCancelMutationResult = NonNullable<Awaited<ReturnType<typeof ordersControllerCancel>>>
+    export type OrdersControllerCancelMutationBody = TransitionDto
+    export type OrdersControllerCancelMutationError = unknown
+
+    export const useOrdersControllerCancel = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerCancel>>, TError,{id: string;data: TransitionDto}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof ordersControllerCancel>>,
+        TError,
+        {id: string;data: TransitionDto},
+        TContext
+      > => {
+
+      const mutationOptions = getOrdersControllerCancelMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
     

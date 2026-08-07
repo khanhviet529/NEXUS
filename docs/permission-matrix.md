@@ -148,6 +148,7 @@ Mọi endpoint `/admin/*` **bắt buộc** `system:cross_tenant` + header `X-Tar
 | `POST /orders/:id/approve` | `order:approve` | ❌ | `desc` | `all` | ❌ |
 | `POST /orders/:id/reject` | `order:approve` | ❌ | `desc` | `all` | ❌ |
 | `POST /orders/bulk-approve` | `order:approve` | ❌ | `desc` | `all` | ❌ |
+| `POST /orders/:id/cancel` | `order:update` | `own` | `desc` | `all` | ❌ |
 | `POST /orders/export` | `order:export` | `own` | `desc` | `all` | `all` |
 | `POST /orders/import` | `order:import` | ❌ | `desc` | `all` | ❌ |
 

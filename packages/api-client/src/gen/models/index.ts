@@ -61,6 +61,7 @@ export * from './resetPasswordDto';
 export * from './rolePermissionInputDto';
 export * from './rolePermissionInputDtoScope';
 export * from './savedViewsControllerListParams';
+export * from './searchControllerSearchParams';
 export * from './sessionDto';
 export * from './setFeaturesDto';
 export * from './switchTenantDto';
