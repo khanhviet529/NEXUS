@@ -62,6 +62,9 @@ importers:
       ioredis:
         specifier: ^5.4.0
         version: 5.11.1
+      kysely:
+        specifier: ^0.28.0
+        version: 0.28.17
       nestjs-cls:
         specifier: ^6.0.0
         version: 6.2.1(@nestjs/common@11.1.28)(@nestjs/core@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -6628,6 +6631,11 @@ packages:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
     dependencies:
       json-buffer: 3.0.1
+
+  /kysely@0.28.17:
+    resolution: {integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==}
+    engines: {node: '>=20.0.0'}
+    dev: false
 
   /language-subtag-registry@0.3.23:
     resolution: {integrity: sha512-0K65Lea881pHotoGEa5gDlMxt3pctLi2RplBb7Ezh4rRdLEOtgi7n4EwK9lamnUCkKBqaeKRVebTq6BAxSkpXQ==}
