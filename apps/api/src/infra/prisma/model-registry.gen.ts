@@ -30,7 +30,10 @@ export const ALL_MODELS = [
   "SavedView",
   "Customer",
   "Product",
-  "DocumentSequence"
+  "DocumentSequence",
+  "Order",
+  "OrderItem",
+  "Notification"
 ] as const;
 
 /** Model có cột deletedAt — nguồn cho assertExhaustiveSoftDeletePolicy (§4.5) */
@@ -40,5 +43,6 @@ export const MODELS_WITH_DELETED_AT = [
   "OrgUnit",
   "Role",
   "Customer",
-  "Product"
+  "Product",
+  "Order"
 ] as const;

@@ -10,3 +10,4 @@ export * from './soft-delete-models';
 export * from './seed-roles';
 export * from './field-groups';
 export * from './sensitive-fields';
+export * from './money-calculator';

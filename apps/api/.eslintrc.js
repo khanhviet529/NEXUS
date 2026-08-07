@@ -9,6 +9,8 @@ module.exports = {
       excludedFiles: [
         'src/infra/prisma/**',
         'src/**/*.repository.ts',
+        // Consumer outbox là tầng ghi của event (tương đương repository) — §4.8
+        'src/modules/outbox/handlers/*.handler.ts',
       ],
       rules: {
         'no-restricted-imports': [

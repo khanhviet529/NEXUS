@@ -18,6 +18,7 @@
 | 3 | Users/Roles/OrgUnits CRUD + vòng đời tài khoản + Ability (own/dept/desc/all bằng ltree) + field-level | Claude | 🔍 chờ review | **#8-#11 ✅** | #10 phủ API + audit diff; export/report bổ sung ở GĐ6/6b |
 | 3b | Quản trị tenant (§5C.1) + DB trigger audit 7 bảng security-critical + provision tenant kèm seed | Claude | 🔍 chờ review | ✅ (79/79 toàn suite) | Suspend huỷ phiên NGAY; trigger che password_hash/salary |
 | 4 | FilterParser/SortParser (JSONB locale #51) + products/customers [REF] + saved_views + preferences + trang /users URL-sync | Claude | 🔍 chờ review | **#12-#14 ✅** (91/91) | DataTable §5.5 đầy đủ + form → GĐ8; FE hiện là bảng thô |
+| 5 | Orders [REF]: state machine, đánh số atomic, optimistic lock, delete guard A2, bộ tính tiền B1, idempotency 3 lớp, outbox claim + consumer idempotent | Claude | 🔍 chờ review | **#15-#20e ✅** (116/116) | Hạn mức duyệt (approval_authorities) là OPT GĐ10 |
 
 ## Việc chặn (blocker)
 

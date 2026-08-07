@@ -46,6 +46,9 @@ export const TENANCY_POLICY = {
     'SavedView',
     'Customer',
     'Product',
+    'Order',
+    'OrderItem',
+    'Notification',
   ],
 } as const;
 

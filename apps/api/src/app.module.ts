@@ -23,6 +23,10 @@ import { OrgUnitsModule } from './modules/org-units/org-units.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ProductsModule } from './modules/products/products.module';
 import { SavedViewsModule } from './modules/saved-views/saved-views.module';
+import { IdempotencyModule } from './modules/idempotency/idempotency.module';
+import { OutboxModule } from './modules/outbox/outbox.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { CustomersModule } from './modules/customers/customers.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -73,6 +77,10 @@ import { HealthController } from './modules/health/health.controller';
     AdminModule,
     ProductsModule,
     SavedViewsModule,
+    IdempotencyModule,
+    OutboxModule,
+    OrdersModule,
+    CustomersModule,
   ],
   controllers: [HealthController],
   providers: [

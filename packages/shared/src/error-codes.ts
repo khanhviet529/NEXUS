@@ -49,6 +49,17 @@ export const ERROR_CODES = {
     message: 'Không được dùng đồng thời cookie và Bearer token',
   },
 
+  // --- ORDER ([REF] — khuôn cho mọi chứng từ, permission-matrix §3.1) ---
+  'ORDER.NOT_EDITABLE': { status: 409, message: 'Chỉ sửa được đơn ở trạng thái nháp hoặc bị từ chối' },
+  'ORDER.NOT_DELETABLE': { status: 409, message: 'Chỉ xoá được đơn ở trạng thái nháp' },
+  'ORDER.INVALID_TRANSITION': { status: 409, message: 'Chuyển trạng thái không hợp lệ' },
+  'ORDER.ALREADY_APPROVED': { status: 409, message: 'Đơn hàng đã được duyệt, không thể sửa' },
+  'ORDER.SELF_APPROVAL': { status: 409, message: 'Không thể tự duyệt đơn mình tạo' },
+  'ORDER.EMPTY_ITEMS': { status: 422, message: 'Đơn hàng phải có ít nhất một dòng' },
+
+  // --- STOCK (GĐ5b) ---
+  'STOCK.INSUFFICIENT': { status: 409, message: 'Không đủ tồn kho khả dụng' },
+
   // --- TENANT ---
   'TENANT.SUSPENDED': { status: 403, message: 'Đơn vị đang bị tạm khoá' },
   'TENANT.NOT_FOUND': { status: 404, message: 'Không tìm thấy đơn vị' },

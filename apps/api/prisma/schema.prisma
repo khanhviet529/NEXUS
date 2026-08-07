@@ -254,6 +254,7 @@ model TenantMembership {
   sessions        Session[]
   userPreferences UserPreference[]
   savedViews      SavedView[]
+  notifications   Notification[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, id]) // đích cho composite FK từ bảng con
@@ -271,7 +272,7 @@ model TenantFeature {
   updatedById String?  @map("updated_by_id") @db.Uuid
   tenantId    String   @map("tenant_id") @db.Uuid
 
-  featureKey String @map("feature_key")
+  featureKey String  @map("feature_key")
   enabled    Boolean @default(true)
   quota      Json?
 
@@ -284,12 +285,12 @@ model TenantFeature {
 /// Tenancy: TENANT · Base: Business · Audit: ✓ · path ltree ở manual-ddl.sql
 model OrgUnit {
   // [TenantAuditedBase]
-  id          String   @id @default(uuid(7)) @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  createdById String?  @map("created_by_id") @db.Uuid
-  updatedById String?  @map("updated_by_id") @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
   // [BusinessEntityBase]
   orgUnitId   String?   @map("org_unit_id") @db.Uuid
   version     Int       @default(1)
@@ -316,12 +317,12 @@ model OrgUnit {
 /// Tenancy: TENANT · Base: Tenant +SoftDelete · Audit: trigger (nhóm security-critical §4.9)
 model Role {
   // [TenantAuditedBase]
-  id          String   @id @default(uuid(7)) @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  createdById String?  @map("created_by_id") @db.Uuid
-  updatedById String?  @map("updated_by_id") @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
   // [+SoftDelete]
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
 
@@ -488,13 +489,13 @@ model IdempotencyRequest {
 
   key            String
   operation      String
-  requestHash    String  @map("request_hash")
-  status         String  @default("PROCESSING") // PROCESSING | COMPLETED | FAILED
-  responseStatus Int?    @map("response_status")
-  responseBody   Json?   @map("response_body")
-  resourceType   String? @map("resource_type")
-  resourceId     String? @map("resource_id") @db.Uuid
-  attempts       Int     @default(1)
+  requestHash    String   @map("request_hash")
+  status         String   @default("PROCESSING") // PROCESSING | COMPLETED | FAILED
+  responseStatus Int?     @map("response_status")
+  responseBody   Json?    @map("response_body")
+  resourceType   String?  @map("resource_type")
+  resourceId     String?  @map("resource_id") @db.Uuid
+  attempts       Int      @default(1)
   expiresAt      DateTime @map("expires_at") @db.Timestamptz // mặc định +30 ngày, set ở repository
 
   @@unique([tenantId, key])
@@ -573,12 +574,12 @@ model SavedView {
 /// [REF] Tenancy: TENANT · Base: Business · name JSONB đa ngôn ngữ (§3.10)
 model Customer {
   // [TenantAuditedBase]
-  id          String   @id @default(uuid(7)) @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  createdById String?  @map("created_by_id") @db.Uuid
-  updatedById String?  @map("updated_by_id") @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
   // [BusinessEntityBase]
   orgUnitId   String?   @map("org_unit_id") @db.Uuid
   version     Int       @default(1)
@@ -586,9 +587,10 @@ model Customer {
   source      String?
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
 
-  code    String
-  name    Json // {"vi": "...", "en": "..."} — §3.10
-  taxCode String? @map("tax_code")
+  code         String
+  name         Json // {"vi": "...", "en": "..."} — §3.10
+  orders       Order[]
+  taxCode      String? @map("tax_code")
   // Cột search chuẩn hoá Ở TẦNG ỨNG DỤNG — repository tính trên MỌI đường ghi
   nameViSearch String? @map("name_vi_search")
   nameEnSearch String? @map("name_en_search")
@@ -600,12 +602,12 @@ model Customer {
 /// [REF] Tenancy: TENANT · Base: Business · tracking_type NONE|LOT|SERIAL (#58)
 model Product {
   // [TenantAuditedBase]
-  id          String   @id @default(uuid(7)) @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  createdById String?  @map("created_by_id") @db.Uuid
-  updatedById String?  @map("updated_by_id") @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
   // [BusinessEntityBase]
   orgUnitId   String?   @map("org_unit_id") @db.Uuid
   version     Int       @default(1)
@@ -615,11 +617,13 @@ model Product {
 
   code         String
   name         Json // đa ngôn ngữ (§3.10)
-  baseUom      String  @map("base_uom")
-  trackingType String  @default("NONE") @map("tracking_type") // NONE | LOT | SERIAL
+  baseUom      String   @map("base_uom")
+  trackingType String   @default("NONE") @map("tracking_type") // NONE | LOT | SERIAL
   costPrice    Decimal? @map("cost_price") @db.Decimal(18, 2) // field-level group cost
-  nameViSearch String? @map("name_vi_search")
-  nameEnSearch String? @map("name_en_search")
+  nameViSearch String?  @map("name_vi_search")
+  nameEnSearch String?  @map("name_en_search")
+
+  orderItems OrderItem[]
 
   @@unique([tenantId, id]) // đích composite FK
   @@map("products")
@@ -634,4 +638,100 @@ model DocumentSequence {
 
   @@id([tenantId, key, year])
   @@map("document_sequences")
+}
+
+/// [REF] Tenancy: TENANT · Base: Business · aggregate root — máy trạng thái §4.7
+model Order {
+  // [TenantAuditedBase]
+  id          String    @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code          String // ORD-2026-00001 — document_sequences (§4.7)
+  customerId    String    @map("customer_id") @db.Uuid
+  status        String    @default("DRAFT") // state machine (packages/shared)
+  currency      String    @default("VND")
+  // Tiền là DECIMAL, API trả CHUỖI (§3.7). Kết quả từ bộ tính tiền B1
+  subtotal      Decimal   @default(0) @db.Decimal(18, 2)
+  discountTotal Decimal   @default(0) @map("discount_total") @db.Decimal(18, 2)
+  taxTotal      Decimal   @default(0) @map("tax_total") @db.Decimal(18, 2)
+  total         Decimal   @default(0) @db.Decimal(18, 2)
+  margin        Decimal?  @db.Decimal(18, 2) // field-level group cost (matrix §4)
+  approvedAt    DateTime? @map("approved_at") @db.Timestamptz
+  approvedById  String?   @map("approved_by_id") @db.Uuid
+
+  // Composite FK §6.4 — order của tenant A không trỏ được customer của B
+  customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id])
+  items    OrderItem[]
+
+  @@unique([tenantId, id]) // đích composite FK cho items
+  @@index([tenantId, status])
+  @@index([tenantId, customerId])
+  @@index([tenantId, createdAt])
+  @@map("orders")
+}
+
+/// [REF] Tenancy: TENANT · CHILD của aggregate (#47): TenantAuditedBase,
+/// KHÔNG org_unit/version/external/soft-delete riêng — dùng orders.version;
+/// xoá cứng trong transaction sửa Order
+model OrderItem {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  orderId             String   @map("order_id") @db.Uuid
+  productId           String   @map("product_id") @db.Uuid
+  productNameSnapshot String   @map("product_name_snapshot") // chốt tên lúc phát sinh (§3.10 luật 2)
+  quantity            Decimal  @db.Decimal(18, 3)
+  uom                 String
+  uomFactorSnapshot   Decimal  @default(1) @map("uom_factor_snapshot") @db.Decimal(18, 6) // §5B.2/B2
+  unitPrice           Decimal  @map("unit_price") @db.Decimal(18, 2)
+  discountPercent     Decimal  @default(0) @map("discount_percent") @db.Decimal(5, 2)
+  taxRate             Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  amount              Decimal  @db.Decimal(18, 2) // thành tiền sau thuế — bộ tính tiền B1
+  costPrice           Decimal? @map("cost_price") @db.Decimal(18, 2) // group cost (matrix §4)
+  lineNo              Int      @map("line_no")
+
+  order   Order   @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+  product Product @relation(fields: [tenantId, productId], references: [tenantId, id])
+
+  @@index([tenantId, orderId])
+  @@index([tenantId, productId])
+  @@map("order_items")
+}
+
+/// Tenancy: TENANT · Base: Tenant · id = eventId khi sinh từ outbox
+/// (consumer idempotency #20c: cùng event ghi 2 lần → P2002 → bỏ qua)
+model Notification {
+  id          String   @id @db.Uuid // KHÔNG default — caller quyết định (eventId)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  membershipId String    @map("membership_id") @db.Uuid // ERD #1: theo membership
+  type         String
+  title        String
+  body         String?
+  data         Json?
+  readAt       DateTime? @map("read_at") @db.Timestamptz
+
+  membership TenantMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id])
+
+  @@index([tenantId, membershipId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
 }

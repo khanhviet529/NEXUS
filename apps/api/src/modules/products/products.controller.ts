@@ -258,7 +258,14 @@ export class ProductsController {
   @Delete(':id')
   @HttpCode(204)
   @RequirePermission('product:delete')
+  @ApiOperation({ summary: 'Xoá — delete guard A2: đang được tham chiếu → 409 kèm nguồn' })
   async remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    // A2 (§5B.1): đếm tham chiếu TRƯỚC, trả danh sách có link — không phải
+    // thông báo chung chung, càng không phải 500 foreign key violation
+    const references = await this.repo.countReferences(id);
+    if (references.length > 0) {
+      throw new AppException('COMMON.HAS_REFERENCES', { details: { references } });
+    }
     await this.repo.softDelete(id);
     await this.audit.write({
       tenantId: user.tenantId,

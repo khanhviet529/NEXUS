@@ -53,10 +53,22 @@ async function bootstrap(): Promise<void> {
     console.error(`[worker] mail job ${job?.id} failed:`, err.message);
   });
 
+  // Outbox dispatcher (§4.8): poll — claim SKIP LOCKED nên nhiều instance an toàn
+  const { OutboxWorkerService } = await import('./modules/outbox/outbox-worker.service');
+  const outbox = app.get(OutboxWorkerService);
+  const workerId = `worker-${process.pid}`;
+  const outboxTimer = setInterval(() => {
+    void outbox.runOnce(workerId).catch((e) => {
+      // eslint-disable-next-line no-console
+      console.error('[worker] outbox lỗi:', e instanceof Error ? e.message : e);
+    });
+  }, 2_000);
+
   // eslint-disable-next-line no-console
-  console.log(`[worker] đang nghe queue: ${JOB_NAMES.MAIL_SEND.queue}`);
+  console.log(`[worker] mail queue: ${JOB_NAMES.MAIL_SEND.queue} · outbox poll 2s`);
 
   const shutdown = async () => {
+    clearInterval(outboxTimer);
     await mailWorker.close();
     await connection.quit();
     await app.close();

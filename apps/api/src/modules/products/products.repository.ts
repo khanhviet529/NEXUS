@@ -80,4 +80,27 @@ export class ProductsRepository {
       data: { deletedAt: new Date() },
     });
   }
+
+  /**
+   * A2 Delete guard (§5B.1/A2): khai báo tham chiếu TẬP TRUNG.
+   * Generator GĐ9 sinh khối này cho module mới từ @References.
+   */
+  async countReferences(productId: string): Promise<
+    Array<{ label: string; count: number; link: string }>
+  > {
+    const orderItems = await this.prisma.client.orderItem.count({
+      where: { productId },
+    });
+    return [
+      ...(orderItems > 0
+        ? [
+            {
+              label: 'Chi tiết đơn hàng',
+              count: orderItems,
+              link: `/orders?filter[items.productId][eq]=${productId}`,
+            },
+          ]
+        : []),
+    ];
+  }
 }
