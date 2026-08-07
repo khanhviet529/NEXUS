@@ -17,3 +17,77 @@ export const SEED_ROLES = {
 } as const;
 
 export type SeedRole = (typeof SEED_ROLES)[keyof typeof SEED_ROLES];
+
+/**
+ * Quyền của bộ vai trò seed — rút từ docs/permission-matrix.md §2.
+ * Dùng ở HAI nơi: prisma/seed.ts và TenantProvisionService (tạo tenant mới
+ * kèm seed dữ liệu khởi tạo §5C.1). 'ALL' = mọi permission trong registry.
+ */
+export const SEED_ROLE_PERMISSIONS: Record<
+  SeedRole,
+  'ALL' | Array<{ code: string; scope: string }>
+> = {
+  [SEED_ROLES.SYSADMIN]: 'ALL',
+  [SEED_ROLES.TENANT_ADMIN]: [
+    { code: 'user:read', scope: 'all' },
+    { code: 'user:invite', scope: 'all' },
+    { code: 'user:update', scope: 'all' },
+    { code: 'user:disable', scope: 'all' },
+    { code: 'user:unlock', scope: 'all' },
+    { code: 'user:transfer', scope: 'all' },
+    { code: 'user:offboard', scope: 'all' },
+    { code: 'user:assign_role', scope: 'all' },
+    { code: 'user_session:read', scope: 'all' },
+    { code: 'user_session:revoke', scope: 'all' },
+    { code: 'role:read', scope: 'all' },
+    { code: 'role:create', scope: 'all' },
+    { code: 'role:update', scope: 'all' },
+    { code: 'role:delete', scope: 'all' },
+    { code: 'permission:read', scope: 'all' },
+    { code: 'org_unit:read', scope: 'all' },
+    { code: 'org_unit:create', scope: 'all' },
+    { code: 'org_unit:update', scope: 'all' },
+    { code: 'org_unit:delete', scope: 'all' },
+    { code: 'setting:read', scope: 'all' },
+    { code: 'setting:update', scope: 'all' },
+    { code: 'audit:read', scope: 'all' },
+    { code: 'file:upload', scope: 'all' },
+    { code: 'tenant:read', scope: 'all' },
+    { code: 'tenant:update', scope: 'all' },
+    { code: 'field:hr', scope: 'all' },
+    { code: 'field:pii', scope: 'all' },
+    { code: 'field:cost', scope: 'all' },
+    { code: 'field:finance', scope: 'all' },
+  ],
+  [SEED_ROLES.MANAGER]: [
+    { code: 'user:read', scope: 'descendants' },
+    { code: 'user:invite', scope: 'descendants' },
+    { code: 'user:update', scope: 'descendants' },
+    { code: 'user_session:read', scope: 'descendants' },
+    { code: 'role:read', scope: 'all' },
+    { code: 'permission:read', scope: 'all' },
+    { code: 'org_unit:read', scope: 'all' },
+    { code: 'setting:read', scope: 'all' },
+    { code: 'audit:read', scope: 'descendants' },
+    { code: 'file:upload', scope: 'descendants' },
+    { code: 'field:cost', scope: 'all' },
+    { code: 'field:finance', scope: 'all' },
+  ],
+  [SEED_ROLES.STAFF]: [
+    { code: 'user:read', scope: 'department' },
+    { code: 'user_session:read', scope: 'own' },
+    { code: 'user_session:revoke', scope: 'own' },
+    { code: 'org_unit:read', scope: 'all' },
+    { code: 'file:upload', scope: 'own' },
+  ],
+  [SEED_ROLES.VIEWER]: [
+    { code: 'user:read', scope: 'all' },
+    { code: 'role:read', scope: 'all' },
+    { code: 'permission:read', scope: 'all' },
+    { code: 'org_unit:read', scope: 'all' },
+    { code: 'setting:read', scope: 'all' },
+    { code: 'audit:read', scope: 'all' },
+    { code: 'field:cost', scope: 'all' },
+    { code: 'field:finance', scope: 'all' },
+  ],
+};

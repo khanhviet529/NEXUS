@@ -1,9 +1,9 @@
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+
 import { resolve } from 'node:path';
-import { Client } from 'pg';
+
 
 /**
  * [CORE] Hạ tầng test — spec §8.3: Testcontainers Postgres THẬT (partition,
@@ -27,22 +27,13 @@ export async function setup(): Promise<void> {
   process.env.JWT_SECRET = 'test-secret-0123456789-0123456789-abc';
   process.env.NODE_ENV = 'test';
 
-  // Áp schema
-  execSync('npx prisma db push --skip-generate --accept-data-loss', {
+  // Replay ĐÚNG lịch sử migration (gồm manual DDL + trigger audit) —
+  // test DB giống production, và mỗi lần chạy test là một lần kiểm chứng migration
+  execSync('npx prisma migrate deploy', {
     cwd: resolve(__dirname, '../..'),
     env: { ...process.env, DATABASE_URL: dbUrl },
     stdio: 'inherit',
   });
-
-  // Áp DDL thủ công — cùng file với migration thật, không lệch nhau
-  const ddl = readFileSync(resolve(__dirname, '../../prisma/sql/manual-ddl.sql'), 'utf8');
-  const client = new Client({ connectionString: dbUrl });
-  await client.connect();
-  try {
-    await client.query(ddl);
-  } finally {
-    await client.end();
-  }
 }
 
 export async function teardown(): Promise<void> {

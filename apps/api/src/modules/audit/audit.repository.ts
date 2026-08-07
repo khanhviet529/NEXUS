@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { maskSensitive } from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestContextService } from '../../infra/cls/request-context';
 
@@ -40,8 +41,10 @@ export class AuditRepository {
           actorId: entry.actorId ?? this.ctx.actorId ?? null,
           actorName: entry.actorName,
           onBehalfOfId: entry.onBehalfOfId,
-          before: entry.before,
-          after: entry.after,
+          // §4.4c nơi thứ 4: che GIÁ TRỊ nhạy cảm TRƯỚC KHI GHI —
+          // audit diff không bao giờ chứa lương/CCCD dạng rõ
+          before: maskSensitive(entry.entity, entry.before),
+          after: maskSensitive(entry.entity, entry.after),
           ip: entry.ip,
           userAgent: entry.userAgent,
           traceId: this.ctx.traceId,

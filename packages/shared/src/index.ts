@@ -9,3 +9,4 @@ export * from './tenancy-policy';
 export * from './soft-delete-models';
 export * from './seed-roles';
 export * from './field-groups';
+export * from './sensitive-fields';

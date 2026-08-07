@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { PERMISSIONS, SEED_ROLES } from '@nexus/shared';
+import { PERMISSIONS, SEED_ROLES, SEED_ROLE_PERMISSIONS } from '@nexus/shared';
 
 /**
  * [CORE] Seed — spec §8.3: fixture HAI TENANT dữ liệu giống nhau.
@@ -25,72 +25,15 @@ const PASSWORD = 'Passw0rd!';
 // Test import runSeed() với client của Testcontainers; CLI dùng client này
 let prisma: PrismaClient;
 
-/** Quyền theo vai trò seed — rút từ docs/permission-matrix.md §2 */
-const ROLE_PERMISSIONS: Record<string, Array<{ code: string; scope: string }>> = {
-  [SEED_ROLES.SYSADMIN]: PERMISSIONS.map((p) => ({ code: p.code, scope: 'all' })),
-  [SEED_ROLES.TENANT_ADMIN]: [
-    { code: 'user:read', scope: 'all' },
-    { code: 'user:invite', scope: 'all' },
-    { code: 'user:update', scope: 'all' },
-    { code: 'user:disable', scope: 'all' },
-    { code: 'user:unlock', scope: 'all' },
-    { code: 'user:transfer', scope: 'all' },
-    { code: 'user:offboard', scope: 'all' },
-    { code: 'user:assign_role', scope: 'all' },
-    { code: 'user_session:read', scope: 'all' },
-    { code: 'user_session:revoke', scope: 'all' },
-    { code: 'role:read', scope: 'all' },
-    { code: 'role:create', scope: 'all' },
-    { code: 'role:update', scope: 'all' },
-    { code: 'role:delete', scope: 'all' },
-    { code: 'permission:read', scope: 'all' },
-    { code: 'org_unit:read', scope: 'all' },
-    { code: 'org_unit:create', scope: 'all' },
-    { code: 'org_unit:update', scope: 'all' },
-    { code: 'org_unit:delete', scope: 'all' },
-    { code: 'setting:read', scope: 'all' },
-    { code: 'setting:update', scope: 'all' },
-    { code: 'audit:read', scope: 'all' },
-    { code: 'file:upload', scope: 'all' },
-    { code: 'tenant:read', scope: 'all' },
-    { code: 'tenant:update', scope: 'all' },
-    { code: 'field:hr', scope: 'all' },
-    { code: 'field:pii', scope: 'all' },
-    { code: 'field:cost', scope: 'all' },
-    { code: 'field:finance', scope: 'all' },
-  ],
-  [SEED_ROLES.MANAGER]: [
-    { code: 'user:read', scope: 'descendants' },
-    { code: 'user:invite', scope: 'descendants' },
-    { code: 'user:update', scope: 'descendants' },
-    { code: 'user_session:read', scope: 'descendants' },
-    { code: 'role:read', scope: 'all' },
-    { code: 'permission:read', scope: 'all' },
-    { code: 'org_unit:read', scope: 'all' },
-    { code: 'setting:read', scope: 'all' },
-    { code: 'audit:read', scope: 'descendants' },
-    { code: 'file:upload', scope: 'descendants' },
-    { code: 'field:cost', scope: 'all' },
-    { code: 'field:finance', scope: 'all' },
-  ],
-  [SEED_ROLES.STAFF]: [
-    { code: 'user:read', scope: 'department' },
-    { code: 'user_session:read', scope: 'own' },
-    { code: 'user_session:revoke', scope: 'own' },
-    { code: 'org_unit:read', scope: 'all' },
-    { code: 'file:upload', scope: 'own' },
-  ],
-  [SEED_ROLES.VIEWER]: [
-    { code: 'user:read', scope: 'all' },
-    { code: 'role:read', scope: 'all' },
-    { code: 'permission:read', scope: 'all' },
-    { code: 'org_unit:read', scope: 'all' },
-    { code: 'setting:read', scope: 'all' },
-    { code: 'audit:read', scope: 'all' },
-    { code: 'field:cost', scope: 'all' },
-    { code: 'field:finance', scope: 'all' },
-  ],
-};
+// Quyền theo vai trò seed: SEED_ROLE_PERMISSIONS (packages/shared) — dùng chung
+// với TenantProvisionService (§5C.1). 'ALL' = mọi permission trong registry.
+const ROLE_PERMISSIONS: Record<string, Array<{ code: string; scope: string }>> =
+  Object.fromEntries(
+    Object.entries(SEED_ROLE_PERMISSIONS).map(([role, perms]) => [
+      role,
+      perms === 'ALL' ? PERMISSIONS.map((p) => ({ code: p.code, scope: 'all' })) : perms,
+    ]),
+  );
 
 async function seedPermissions(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
@@ -113,7 +56,17 @@ async function seedPermissions(): Promise<Map<string, string>> {
 async function seedUser(email: string, fullName: string, passwordHash: string) {
   return prisma.user.upsert({
     where: { email },
-    create: { email, fullName, passwordHash, status: 'ACTIVE' },
+    create: {
+      email,
+      fullName,
+      passwordHash,
+      status: 'ACTIVE',
+      // Dữ liệu nhạy cảm cho test field-level #10 (§4.4c):
+      // phone = contact (ai cũng thấy) · nationalId = pii · salary = hr
+      phone: '0900000000',
+      nationalId: '079123456789',
+      salary: '12345678.00',
+    },
     update: {},
   });
 }

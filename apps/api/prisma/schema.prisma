@@ -50,6 +50,7 @@ model Tenant {
   defaultTimezone   String    @default("Asia/Ho_Chi_Minh") @map("default_timezone")
   dataRetentionDays Int?      @map("data_retention_days")
   suspendedAt       DateTime? @map("suspended_at") @db.Timestamptz
+  branding          Json? // logo, màu chủ đạo, tên hiển thị (§5C.1)
 
   domains     TenantDomain[]
   memberships TenantMembership[]
@@ -94,6 +95,12 @@ model User {
   fullName     String    @map("full_name")
   status       String    @default("ACTIVE") // ACTIVE | DISABLED | LOCKED
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
+  // Cột nhạy cảm — field-level permission (§4.4c, permission-matrix §4):
+  // phone: group contact (mọi vai trò seed đều xem được)
+  phone        String?
+  // nationalId: group pii · salary: group hr — CHỈ lộ khi có field:pii / field:hr
+  nationalId   String?   @map("national_id")
+  salary       Decimal?  @db.Decimal(18, 2)
 
   memberships         TenantMembership[]
   passwordResetTokens PasswordResetToken[]

@@ -18,6 +18,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { OrgUnitsModule } from './modules/org-units/org-units.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -63,6 +66,9 @@ import { HealthController } from './modules/health/health.controller';
     AuditModule,
     AuthModule,
     UsersModule,
+    RolesModule,
+    OrgUnitsModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

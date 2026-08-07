@@ -11,6 +11,8 @@ import { SessionService } from './session.service';
 import { RateLimitService } from './rate-limit.service';
 import { PasswordResetService } from './password-reset.service';
 import { InvitationService } from './invitation.service';
+import { AbilityService } from './ability.service';
+import { OrgTreeRepository } from './org-tree.repository';
 
 @Module({
   imports: [
@@ -33,7 +35,17 @@ import { InvitationService } from './invitation.service';
     RateLimitService,
     PasswordResetService,
     InvitationService,
+    AbilityService,
+    OrgTreeRepository,
   ],
-  exports: [PermissionResolverService, SessionService, InvitationService, PasswordResetService],
+  exports: [
+    PermissionResolverService,
+    SessionService,
+    InvitationService,
+    PasswordResetService,
+    AbilityService,
+    OrgTreeRepository,
+    AuthRepository,
+  ],
 })
 export class AuthModule {}
