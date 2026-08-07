@@ -878,6 +878,57 @@ model ReconciliationLog {
   @@map("reconciliation_logs")
 }
 
+/// Tenancy: TENANT · Base: Tenant · luồng 5 bước §4.7: transaction THEO BATCH
+/// + checkpoint last_processed_row — retry resume, không chạy lại từ đầu (#27)
+model ImportJob {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  entity           String // EntityType
+  fileId           String? @map("file_id") @db.Uuid // GĐ7 khi có S3; GĐ6 nhận rows trực tiếp
+  status           String  @default("PENDING") // PENDING|RUNNING|COMPLETED|FAILED|CANCELLED
+  templateVersion  String  @default("v1") @map("template_version")
+  mode             String  @default("partial-success") // all-or-nothing | partial-success
+  onDuplicate      String  @default("skip") @map("on_duplicate") // skip | replace | fill-empty-only
+  totalRows        Int     @default(0) @map("total_rows")
+  validRows        Int     @default(0) @map("valid_rows")
+  errorRows        Int     @default(0) @map("error_rows")
+  lastProcessedRow Int     @default(0) @map("last_processed_row") // CHECKPOINT (#27)
+  mapping          Json?
+
+  rows ImportRow[]
+
+  @@unique([tenantId, id])
+  @@map("import_jobs")
+}
+
+/// Tenancy: TENANT · Base: Tenant · lỗi TỪNG DÒNG (§4.7)
+model ImportRow {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  jobId     String @map("job_id") @db.Uuid
+  rowNumber Int    @map("row_number")
+  raw       Json
+  errors    Json?
+  status    String @default("PENDING") // PENDING | OK | ERROR | SKIPPED
+
+  job ImportJob @relation(fields: [tenantId, jobId], references: [tenantId, id], onDelete: Cascade)
+
+  @@unique([tenantId, jobId, rowNumber])
+  @@map("import_rows")
+}
+
 /// Tenancy: TENANT · Base: Tenant · id = eventId khi sinh từ outbox
 /// (consumer idempotency #20c: cùng event ghi 2 lần → P2002 → bỏ qua)
 model Notification {

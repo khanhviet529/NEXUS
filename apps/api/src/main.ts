@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 import { buildSwaggerDocument, configureApp } from './bootstrap';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const config = app.get(ConfigService);
 
   configureApp(app); // prefix + query parser extended + cookie + validation

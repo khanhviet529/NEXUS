@@ -27,8 +27,8 @@ export async function createTestApp(): Promise<TestHarness> {
   if (!seedCache) seedCache = await runSeed(rawPrisma);
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication();
-  configureApp(app); // giống hệt main.ts — gồm query parser extended (§3.5)
+  const app = moduleRef.createNestApplication({ bodyParser: false });
+  configureApp(app); // giống hệt main.ts — query parser extended + json 20mb
   await app.init();
 
   const login = async (email: string, tenantId?: string): Promise<string> => {

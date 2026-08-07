@@ -40,6 +40,8 @@ export const ALL_MODELS = [
   "StockBalance",
   "InventorySerial",
   "ReconciliationLog",
+  "ImportJob",
+  "ImportRow",
   "Notification"
 ] as const;
 

@@ -154,6 +154,45 @@ export class OrdersService {
     return this.repo.findById(orderId);
   }
 
+  /**
+   * Bulk framework §5C.3 — tập nhỏ ĐỒNG BỘ: HTTP 200 kể cả khi có dòng
+   * thất bại (thất bại từng dòng KHÔNG phải lỗi của request), lỗi theo
+   * từng dòng kèm code (#28).
+   */
+  async bulkApprove(user: AuthUser, orderIds: string[]) {
+    const results: Array<{
+      id: string;
+      success: boolean;
+      code?: string;
+      message?: string;
+    }> = [];
+    for (const orderId of orderIds) {
+      try {
+        const order = await this.getInScope(user, orderId, 'order:approve');
+        await this.doTransition(user, orderId, 'approve', 'order:approve', order.version);
+        results.push({ id: orderId, success: true });
+      } catch (e) {
+        if (e instanceof AppException) {
+          results.push({ id: orderId, success: false, code: e.code, message: e.message });
+        } else {
+          results.push({
+            id: orderId,
+            success: false,
+            code: 'COMMON.INTERNAL_ERROR',
+            message: 'Lỗi hệ thống',
+          });
+        }
+      }
+    }
+    const succeeded = results.filter((r) => r.success).length;
+    return {
+      total: orderIds.length,
+      succeeded,
+      failed: orderIds.length - succeeded,
+      results,
+    };
+  }
+
   submit(user: AuthUser, orderId: string, version: number) {
     return this.doTransition(user, orderId, 'submit', 'order:submit', version);
   }

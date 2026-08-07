@@ -2,11 +2,14 @@ import { ValidationPipe, UnprocessableEntityException, ValidationError } from '@
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { json, urlencoded } from 'express';
 
 /**
  * Cấu hình dùng chung main.ts + test — MỘT nơi, không lệch nhau.
- * Express 5 mặc định query parser 'simple' → filter[code][eq] thành key
- * phẳng, Filter DSL §3.5 vỡ. Bắt buộc 'extended'.
+ * - Express 5 mặc định query parser 'simple' → filter[code][eq] thành key
+ *   phẳng, Filter DSL §3.5 vỡ. Bắt buộc 'extended'.
+ * - body-parser mặc định 100kb — import theo lô (§4.7) cần lớn hơn.
+ *   App tạo với { bodyParser: false }, parser khai Ở ĐÂY.
  */
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api/v1'); // §3.1
@@ -14,6 +17,8 @@ export function configureApp(app: INestApplication): void {
     set(k: string, v: string): void;
   };
   express.set('query parser', 'extended');
+  app.use(json({ limit: '20mb' }));
+  app.use(urlencoded({ extended: true, limit: '20mb' }));
   app.use(cookieParser());
   app.useGlobalPipes(buildValidationPipe());
 }

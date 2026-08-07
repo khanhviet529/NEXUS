@@ -75,6 +75,8 @@ export const PERMISSIONS: readonly PermissionDef[] = [
   p('product', 'create'),
   p('product', 'update'),
   p('product', 'delete'),
+  p('product', 'import'),
+  p('product', 'export'),
   p('customer', 'read'),
   p('customer', 'create'),
   p('customer', 'update'),

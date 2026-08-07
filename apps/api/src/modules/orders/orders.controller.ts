@@ -115,6 +115,14 @@ class TransitionDto {
   version!: number;
 }
 
+class BulkApproveDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID(undefined, { each: true })
+  orderIds!: string[];
+}
+
 class ListOrdersQueryDto {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
@@ -275,6 +283,14 @@ export class OrdersController {
   @RequirePermission('order:delete')
   async remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.orders.remove(user, id);
+  }
+
+  @Post('bulk-approve')
+  @HttpCode(200) // 200 kể cả khi có dòng lỗi — thất bại từng dòng ≠ lỗi request (§5C.3)
+  @RequirePermission('order:approve')
+  @ApiOperation({ summary: 'Duyệt hàng loạt — partial success, lỗi theo từng dòng (#28)' })
+  async bulkApprove(@CurrentUser() user: AuthUser, @Body() dto: BulkApproveDto) {
+    return this.orders.bulkApprove(user, dto.orderIds);
   }
 
   // Hành động nghiệp vụ: động từ ở SUB-RESOURCE (§3.1)

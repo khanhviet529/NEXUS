@@ -109,8 +109,10 @@ describe('GĐ4 — parser + locale + soft delete (§8.2 #12, #13, #14)', () => {
   });
 
   it('#13 sort theo name (en): SP001 thiếu en vẫn xếp theo giá trị fallback vi, không chìm xuống NULL', async () => {
+    // filter[code][startsWith]=SP0: chỉ dữ liệu của FILE NÀY — file test khác
+    // có thể đã bơm hàng trăm nghìn sản phẩm cùng tenant (DB dùng chung)
     const res = await request(h.app.getHttpServer())
-      .get('/api/v1/products?sort=name&limit=50')
+      .get('/api/v1/products?filter[code][startsWith]=SP0&sort=name&limit=50')
       .set('X-Locale', 'en')
       .set('Authorization', `Bearer ${adminToken}`);
     expect(res.status).toBe(200);

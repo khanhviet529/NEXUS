@@ -56,6 +56,8 @@ export const TENANCY_POLICY = {
     'StockBalance',
     'InventorySerial',
     'ReconciliationLog',
+    'ImportJob',
+    'ImportRow',
   ],
 } as const;
 
