@@ -82,7 +82,10 @@ class CreateMaintenanceDto {
   @MinLength(1)
   message!: string;
 
-  @ApiPropertyOptional({ type: [String], description: 'Mã vai trò seed vẫn được vào (vd SYSADMIN)' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Mã vai trò vẫn được vào lúc bảo trì — là DATA client gửi, không hardcode',
+  })
   @IsOptional()
   @IsArray()
   allowRoles?: string[];
@@ -195,7 +198,9 @@ export class OpsController {
       startsAt: dto.startsAt,
       endsAt: dto.endsAt,
       message: dto.message,
-      allowRoles: dto.allowRoles ?? ['SYSADMIN'],
+      // Vai trò là DATA (§4.4 — check no-role-branching): không default mã
+      // vai trò trong code; rỗng = không ai được miễn trừ
+      allowRoles: dto.allowRoles ?? [],
     });
   }
 
