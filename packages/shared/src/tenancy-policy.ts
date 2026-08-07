@@ -49,6 +49,13 @@ export const TENANCY_POLICY = {
     'Order',
     'OrderItem',
     'Notification',
+    'Movement',
+    'MovementDedupKey',
+    'Warehouse',
+    'Lot',
+    'StockBalance',
+    'InventorySerial',
+    'ReconciliationLog',
   ],
 } as const;
 

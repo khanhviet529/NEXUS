@@ -63,6 +63,13 @@ export const PERMISSIONS: readonly PermissionDef[] = [
   p('order', 'export'),
   p('order', 'import'),
 
+  // --- [CORE nếu có kho] tồn kho (GĐ5b, §5B.2/B4) ---
+  p('stock', 'read'),
+  p('stock', 'receive'),
+  p('stock', 'issue'),
+  p('warehouse', 'read'),
+  p('warehouse', 'create'),
+
   // --- [REF] danh mục mẫu (GĐ4/5) ---
   p('product', 'read'),
   p('product', 'create'),

@@ -27,6 +27,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 import { HealthController } from './modules/health/health.controller';
 
 /**
@@ -81,6 +82,7 @@ import { HealthController } from './modules/health/health.controller';
     OutboxModule,
     OrdersModule,
     CustomersModule,
+    InventoryModule,
   ],
   controllers: [HealthController],
   providers: [

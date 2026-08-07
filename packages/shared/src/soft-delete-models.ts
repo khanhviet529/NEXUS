@@ -16,6 +16,9 @@ export const SOFT_DELETE_MODELS = [
   'Customer',
   'Product',
   'Order',
+  'Warehouse',
+  'Lot',
+  'InventorySerial',
 ] as const;
 
 export type SoftDeleteModel = (typeof SOFT_DELETE_MODELS)[number];

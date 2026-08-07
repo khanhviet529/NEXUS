@@ -713,6 +713,171 @@ model OrderItem {
   @@map("order_items")
 }
 
+// ===========================================================================
+// [CORE] Số dư — movement + snapshot (§5B.2/B4, quyết định #19/#28/#58/#59/#60)
+// movements PARTITION BY RANGE (created_at) — DDL tay trong migration
+// ===========================================================================
+
+/// Tenancy: TENANT · APPEND-ONLY: không UPDATE, không DELETE — sửa sai bằng
+/// bút toán đảo (reversal_of cặp 2 cột #30). PK (id, created_at) do partition
+model Movement {
+  id        String   @default(uuid(7)) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  tenantId  String   @map("tenant_id") @db.Uuid
+
+  accountType         String    @map("account_type") // STOCK | RECEIVABLE | CASH
+  accountKey          String    @map("account_key") // warehouseId:productId:lotId
+  movementType        String    @map("movement_type") // RECEIPT | ISSUE | ADJUST | REVERSAL
+  direction           Int       @db.SmallInt // +1 / -1
+  quantity            Decimal   @db.Decimal(18, 3)
+  amount              Decimal?  @db.Decimal(18, 2)
+  currency            String?
+  refType             String    @map("ref_type")
+  refId               String    @map("ref_id") @db.Uuid
+  reversalOfId        String?   @map("reversal_of_id") @db.Uuid
+  reversalOfCreatedAt DateTime? @map("reversal_of_created_at") @db.Timestamptz
+  createdById         String?   @map("created_by_id") @db.Uuid
+
+  @@id([id, createdAt])
+  @@index([tenantId, accountType, accountKey, createdAt])
+  @@map("movements")
+}
+
+/// Tenancy: TENANT · KHÔNG partition — nơi thực thi tính duy nhất của movement
+/// (unique trên bảng partition phải chứa khoá partition → bất khả thi, #28).
+/// KHÔNG BAO GIỜ prune trong cửa sổ retry (ADR-0003: giữ vĩnh viễn)
+model MovementDedupKey {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  refType           String   @map("ref_type")
+  refId             String   @map("ref_id") @db.Uuid
+  movementType      String   @map("movement_type")
+  movementId        String   @map("movement_id") @db.Uuid
+  movementCreatedAt DateTime @map("movement_created_at") @db.Timestamptz
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([tenantId, refType, refId, movementType])
+  @@map("movement_dedup_keys")
+}
+
+/// Tenancy: TENANT · Base: Business
+model Warehouse {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  code String
+  name String
+
+  @@unique([tenantId, id])
+  @@map("warehouses")
+}
+
+/// Tenancy: TENANT · Base: Business
+model Lot {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  productId  String    @map("product_id") @db.Uuid
+  lotNo      String    @map("lot_no")
+  mfgDate    DateTime? @map("mfg_date") @db.Date
+  expiryDate DateTime? @map("expiry_date") @db.Date
+
+  @@unique([tenantId, productId, lotNo])
+  @@unique([tenantId, id])
+  @@map("lots")
+}
+
+/// Tenancy: TENANT · ĐIỂM KIỂM SOÁT ĐỒNG THỜI cho CẢ BA loại tracking (#60).
+/// PK 4 cột — lot_id NOT NULL, tracking NONE dùng SENTINEL uuid 0 (#59):
+/// PK không nhận NULL; sentinel giữ hot path `lot_id = :lotId` (index hoàn hảo).
+/// Đánh đổi: KHÔNG FK lot_id → lots, service tự kiểm.
+model StockBalance {
+  tenantId       String   @map("tenant_id") @db.Uuid
+  warehouseId    String   @map("warehouse_id") @db.Uuid
+  productId      String   @map("product_id") @db.Uuid
+  lotId          String   @map("lot_id") @db.Uuid
+  onHand         Decimal  @default(0) @map("on_hand") @db.Decimal(18, 3)
+  reserved       Decimal  @default(0) @db.Decimal(18, 3)
+  available      Decimal  @default(0) @db.Decimal(18, 3)
+  inTransit      Decimal  @default(0) @map("in_transit") @db.Decimal(18, 3)
+  version        Int      @default(0)
+  lastMovementAt DateTime? @map("last_movement_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@id([tenantId, warehouseId, productId, lotId])
+  @@map("stock_balances")
+}
+
+/// Tenancy: TENANT · Base: Business · CHI TIẾT, không phải nguồn tồn (#60)
+model InventorySerial {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  // [BusinessEntityBase]
+  orgUnitId   String?   @map("org_unit_id") @db.Uuid
+  version     Int       @default(1)
+  externalId  String?   @map("external_id")
+  source      String?
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+
+  serialNo    String @map("serial_no")
+  productId   String @map("product_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  lotId       String @map("lot_id") @db.Uuid
+  status      String @default("IN_STOCK") // IN_STOCK|RESERVED|ISSUED|RETURNED|SCRAPPED
+  refType     String? @map("ref_type")
+  refId       String? @map("ref_id") @db.Uuid
+
+  @@unique([tenantId, productId, serialNo])
+  @@index([tenantId, warehouseId, productId, status])
+  @@map("inventory_serials")
+}
+
+/// Tenancy: TENANT · Base: Tenant · kết quả job đối soát (§5B.2/B4 luật 3)
+model ReconciliationLog {
+  // [TenantAuditedBase]
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  createdById String?  @map("created_by_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+
+  accountType String  @map("account_type")
+  accountKey  String  @map("account_key")
+  expected    Decimal @db.Decimal(18, 3) // tính lại từ movements
+  actual      Decimal @db.Decimal(18, 3) // snapshot đang lưu
+  diff        Decimal @db.Decimal(18, 3)
+  checkedAt   DateTime @default(now()) @map("checked_at") @db.Timestamptz
+
+  @@map("reconciliation_logs")
+}
+
 /// Tenancy: TENANT · Base: Tenant · id = eventId khi sinh từ outbox
 /// (consumer idempotency #20c: cùng event ghi 2 lần → P2002 → bỏ qua)
 model Notification {

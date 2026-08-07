@@ -33,6 +33,13 @@ export const ALL_MODELS = [
   "DocumentSequence",
   "Order",
   "OrderItem",
+  "Movement",
+  "MovementDedupKey",
+  "Warehouse",
+  "Lot",
+  "StockBalance",
+  "InventorySerial",
+  "ReconciliationLog",
   "Notification"
 ] as const;
 
@@ -44,5 +51,8 @@ export const MODELS_WITH_DELETED_AT = [
   "Role",
   "Customer",
   "Product",
-  "Order"
+  "Order",
+  "Warehouse",
+  "Lot",
+  "InventorySerial"
 ] as const;
