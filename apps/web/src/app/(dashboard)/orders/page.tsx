@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { CheckCircle, Command } from 'lucide-react';
 import { ordersControllerList, getApiError } from '@nexus/api-client';
+import type { OrderResponseDto } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,8 +21,7 @@ import {
 } from '@/lib/actions';
 import { useCommandPalette } from '@/providers/command-palette';
 import { useCurrentUser } from '@/lib/auth/use-can';
-import { orderActions, bulkApproveOrders } from '@/features/orders/actions';
-import type { OrderActionCtx, OrderListResponse, OrderRow } from '@/features/orders/types';
+import { orderActions, bulkApproveOrders, type OrderActionCtx } from '@/features/orders/actions';
 
 /**
  * GĐ8b — trang [REF] chứng minh tiêu chí §10: "một action khai báo một lần,
@@ -59,6 +59,7 @@ function OrdersPage() {
     q: parseAsString.withDefault(''),
   });
 
+  // Type sinh từ OpenAPI (§2.4) — hết cast `as unknown as` viết tay
   const orders = useQuery({
     queryKey: ['orders', params],
     queryFn: () =>
@@ -66,7 +67,7 @@ function OrdersPage() {
         page: params.page,
         limit: params.limit,
         q: params.q || undefined,
-      }) as unknown as Promise<OrderListResponse>,
+      }),
     placeholderData: (prev) => prev,
   });
 
@@ -80,7 +81,7 @@ function OrdersPage() {
   // Toolbar trang: action không gắn row cụ thể (export) — ctx record giả lập nhẹ
   const pageCtx = useMemo<OrderActionCtx>(
     () => ({
-      record: rows[0] ?? ({ id: '', code: '', status: 'DRAFT', version: 0 } as OrderRow),
+      record: rows[0] ?? ({ id: '', code: '', status: 'DRAFT', version: 0 } as OrderResponseDto),
       meId: me.data?.id,
     }),
     [rows, me.data?.id],

@@ -16,6 +16,7 @@ import { CurrentUser, type AuthUser } from '../../common/decorators/current-user
 import { buildMeta } from '../../common/dto/paginated.dto';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { resolveLocalizedValue, type Locale, type LocalizedText } from '../../common/query/localized';
+import { AuditRepository } from '../audit/audit.repository';
 import { CustomersRepository } from './customers.repository';
 
 class CreateCustomerDto {
@@ -59,6 +60,7 @@ export class CustomersController {
   constructor(
     private readonly repo: CustomersRepository,
     private readonly ctx: RequestContextService,
+    private readonly audit: AuditRepository,
   ) {}
 
   @Get()
@@ -85,6 +87,14 @@ export class CustomersController {
   @ApiOperation({ summary: 'Tạo khách hàng — name JSONB đa ngôn ngữ (§3.10)' })
   async create(@CurrentUser() user: AuthUser, @Body() dto: CreateCustomerDto) {
     const row = await this.repo.create(user.tenantId, dto);
+    // ADR-0004: audit tường minh mọi đường ghi (check-audit-coverage gác)
+    await this.audit.write({
+      tenantId: user.tenantId,
+      entity: 'Customer',
+      entityId: row.id,
+      action: 'CREATE',
+      after: { code: row.code },
+    });
     return {
       id: row.id,
       code: row.code,

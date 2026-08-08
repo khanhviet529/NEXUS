@@ -2511,7 +2511,7 @@ Tất cả các điểm dưới đây **đã được chốt**. Mọi thay đổ
 | 33 | `tenant_memberships` | ✅ Dùng `status`, **không** soft delete | §6.2 | Nhỏ |
 | 34 | Quên mật khẩu | ✅ Token hash trong DB, response và thời gian như nhau, reset thu hồi mọi session | §4.3c | Trung bình |
 | 35 | **Lưu trữ secret** | ✅ Mã hoá tầng ứng dụng, API không bao giờ trả secret, UI chỉ Replace/Rotate | §4.11 | Lớn |
-| 36 | **Prisma: extension, không middleware** | ✅ `$extends` query extension cho cả tenant lẫn audit. **Pin major version, ghi ADR** | §4.9 | Lớn |
+| 36 | **Prisma: extension, không middleware** | ✅ `$extends` query extension cho **tenancy + soft delete**; audit ghi **TƯỜNG MINH** qua `AuditRepository` + DB trigger + CI check `check-audit-coverage` (**ADR-0004** thu hẹp phạm vi so với bản đầu). **Pin major version, ghi ADR** | §4.9, ADR-0004 | Lớn |
 | 37 | **`TENANCY_POLICY`** | ✅ Ba nhóm GLOBAL/HYBRID/TENANT + `assertExhaustiveTenancyPolicy()` chặn khởi động | §4.4b | Lớn |
 | 38 | **Soft delete là capability** | ✅ `SoftDeleteFields` ghép được vào bất kỳ tầng base nào, không tạo thêm loại base | §6.2 | Trung bình |
 | 39 | Không khai lại cột base | ✅ Cột trong base **không bao giờ** viết lại trong schema | §6.2 | Nhỏ |

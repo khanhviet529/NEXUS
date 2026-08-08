@@ -37,12 +37,10 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Testcontainers (global-setup) TỰ set DATABASE_URL/REDIS_URL/JWT_SECRET —
+      # env ở đây là thừa và gây hiểu lầm rằng CI dùng DB ngoài
       - name: Test (unit + integration qua Testcontainers)
         run: pnpm test
-        env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: ci-only-secret-not-for-production-0000
 
       - name: Build
         run: pnpm build

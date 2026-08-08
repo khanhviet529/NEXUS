@@ -26,6 +26,8 @@ import type {
 import type {
   BulkApproveDto,
   CreateOrderDto,
+  OrderListResponseDto,
+  OrderResponseDto,
   OrdersControllerListParams,
   TransitionDto,
   UpdateOrderDto
@@ -42,7 +44,7 @@ export const ordersControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderListResponseDto>(
       {url: `/api/v1/orders`, method: 'GET',
         params, signal
     },
@@ -193,7 +195,7 @@ export const useOrdersControllerCreate = <TError = unknown,
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderResponseDto>(
       {url: `/api/v1/orders/${id}`, method: 'GET', signal
     },
       );
@@ -457,7 +459,7 @@ export const useOrdersControllerBulkApprove = <TError = unknown,
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderResponseDto>(
       {url: `/api/v1/orders/${id}/submit`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: transitionDto, signal
@@ -516,7 +518,7 @@ const {mutation: mutationOptions} = options ?
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderResponseDto>(
       {url: `/api/v1/orders/${id}/approve`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: transitionDto, signal
@@ -575,7 +577,7 @@ const {mutation: mutationOptions} = options ?
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderResponseDto>(
       {url: `/api/v1/orders/${id}/reject`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: transitionDto, signal
@@ -634,7 +636,7 @@ const {mutation: mutationOptions} = options ?
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrderResponseDto>(
       {url: `/api/v1/orders/${id}/cancel`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: transitionDto, signal

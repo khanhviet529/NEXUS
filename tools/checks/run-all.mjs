@@ -15,6 +15,7 @@ const checks = [
   'check-tenancy-policy.mjs',
   'check-matrix.mjs',
   'check-no-role-branching.mjs',
+  'check-audit-coverage.mjs', // ADR-0004: audit tường minh, CI gác chỗ quên
 ];
 
 let failed = false;
