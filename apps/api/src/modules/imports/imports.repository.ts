@@ -4,6 +4,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { buildSearchColumns, type LocalizedText } from '../../common/query/localized';
 import { AuditRepository } from '../audit/audit.repository';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 
 const BATCH_SIZE = 500; // §4.7: mỗi batch MỘT transaction, 500–1.000 dòng
 
@@ -215,7 +216,7 @@ export class ImportsRepository {
       tenantId: job.tenantId,
       entity: 'ImportJob',
       entityId: jobId,
-      action: 'IMPORT_COMPLETED',
+      action: AUDIT_ACTIONS.IMPORT_COMPLETED,
       after: { entityType: job.entity, affectedCount: ok, errorRows: errors, resumedFrom },
     });
     return { ok, errors, resumedFrom };

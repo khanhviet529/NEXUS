@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsString, IsUrl, MinLength } from 'class-validator';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { AppException } from '../../common/errors/app.exception';
@@ -49,7 +50,7 @@ export class WebhooksController {
       tenantId: user.tenantId,
       entity: 'WebhookEndpoint',
       entityId: created.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { url: dto.url }, // KHÔNG log secret
     });
     return created;
@@ -77,7 +78,7 @@ export class WebhooksController {
       tenantId: user.tenantId,
       entity: 'WebhookEndpoint',
       entityId: id,
-      action: 'SECRET_ROTATED',
+      action: AUDIT_ACTIONS.SECRET_ROTATED,
     });
     return rotated;
   }

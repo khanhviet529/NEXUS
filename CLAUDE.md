@@ -62,6 +62,8 @@ Không được bỏ bước nào, không được đảo thứ tự.
 |---|---|---|
 | `prisma.x.findMany()` ngoài repository | Gọi qua repository | Extension không inject tenant, audit không thấy (§4.9) |
 | `prisma.$use()` middleware | `$extends` query extension | Đã deprecated/bị bỏ (§4.9) |
+| Write nghiệp vụ mà **không** ghi audit | `AuditRepository.writeInTx(tx, …)` trong CÙNG transaction | Audit là tường minh (ADR-0004). CI `check-audit-coverage` chặn |
+| `action: 'CHUOI_TU_CHE'` | Hằng trong `audit-actions.ts` | Timeline §4.9 phải đọc được. Kiểu `AuditAction` + CI chặn |
 | `unaccent()` trong `CREATE INDEX` hoặc generated column | Cột `*_search` chuẩn hoá ở tầng ứng dụng | `unaccent` không IMMUTABLE → DDL lỗi (§3.10) |
 | `if (role === 'ACCOUNTANT')` | `can('invoice:approve')` | Vai trò là dữ liệu, không phải mã (§4.4). CI chặn |
 | `BaseCrudService<T>` generic | Copy module `orders` rồi sửa | §1.2 cấm trừu tượng hoá sớm |

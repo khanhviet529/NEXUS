@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { calculateMoney, DEFAULT_MONEY_CONFIG, type MoneyResult } from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { OutboxRepository, type TxClient } from '../outbox/outbox.repository';
+import { AuditRepository, type AuditEntry } from '../audit/audit.repository';
 
 export interface OrderItemInput {
   productId: string;
@@ -28,6 +29,7 @@ export class OrdersRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outbox: OutboxRepository,
+    private readonly audit: AuditRepository,
   ) {}
 
   /** §4.7 — ĐÃ CHỐT: atomic UPSERT, trong CÙNG transaction tạo chứng từ */
@@ -178,10 +180,13 @@ export class OrdersRepository {
     fromStatus: string;
     toStatus: string;
     actorId: string;
+    /** ADR-0004 đk2: audit ghi TRONG CÙNG tx — cùng sống cùng chết */
+    audit: AuditEntry;
     emitApprovedEvent?: boolean;
     orderCode?: string;
     createdById?: string | null;
     failAfterOutboxForTest?: boolean; // #20b: rollback sau khi ghi outbox
+    failAuditForTest?: boolean; // ADR-0004: lỗi SAU audit → phải rollback cả write
   }): Promise<'ok' | 'conflict'> {
     return this.prisma.client.$transaction(async (tx) => {
       const affected = await tx.order.updateMany({
@@ -195,6 +200,13 @@ export class OrdersRepository {
         },
       });
       if (affected.count === 0) return 'conflict';
+
+      // Audit TRONG transaction (ADR-0004 đk2) — trước outbox để mọi lỗi
+      // phía sau đều cuốn cả audit lẫn write nghiệp vụ về cùng trạng thái
+      await this.audit.writeInTx(tx, input.audit);
+      if (input.failAuditForTest) {
+        throw new Error('TEST_AUDIT_FAILURE');
+      }
 
       if (input.emitApprovedEvent) {
         await this.outbox.enqueueInTx(tx, {

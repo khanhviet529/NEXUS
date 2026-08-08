@@ -18,6 +18,7 @@ import { RequestContextService } from '../../infra/cls/request-context';
 import { resolveLocalizedValue, type Locale, type LocalizedText } from '../../common/query/localized';
 import { AuditRepository } from '../audit/audit.repository';
 import { CustomersRepository } from './customers.repository';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 
 class CreateCustomerDto {
   @ApiProperty({ example: 'KH001' })
@@ -92,7 +93,7 @@ export class CustomersController {
       tenantId: user.tenantId,
       entity: 'Customer',
       entityId: row.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { code: row.code },
     });
     return {

@@ -15,6 +15,7 @@ import { CurrentUser, type AuthUser } from '../../common/decorators/current-user
 import { AppException } from '../../common/errors/app.exception';
 import { AuditRepository } from '../audit/audit.repository';
 import { ApprovalAuthoritiesRepository } from './approval-authorities.repository';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 
 const MONEY_RE = /^\d+(\.\d{1,2})?$/;
 
@@ -152,7 +153,7 @@ export class ApprovalAuthoritiesController {
       tenantId: user.tenantId,
       entity: 'ApprovalAuthority',
       entityId: row.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { documentType: dto.documentType, maxAmount: dto.maxAmount ?? 'không giới hạn' },
     });
     return row;
@@ -167,7 +168,7 @@ export class ApprovalAuthoritiesController {
       tenantId: user.tenantId,
       entity: 'ApprovalAuthority',
       entityId: id,
-      action: 'DELETE',
+      action: AUDIT_ACTIONS.DELETE,
     });
     return { ok: true };
   }

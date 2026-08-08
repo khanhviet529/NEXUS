@@ -20,7 +20,7 @@ import {
   IsUUID,
   MinLength,
 } from 'class-validator';
-import { JOB_NAMES, type JobName } from '@nexus/shared';
+import { AUDIT_ACTIONS, JOB_NAMES, type JobName } from '@nexus/shared';
 import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
@@ -168,7 +168,7 @@ export class OpsController {
       tenantId: user.tenantId,
       entity: 'SystemQueue',
       entityId: user.tenantId,
-      action: 'QUEUE_RETRY_FAILED',
+      action: AUDIT_ACTIONS.QUEUE_RETRY_FAILED,
       after: { queue: name, retried: failed.length },
     });
     return { retried: failed.length };
@@ -221,7 +221,7 @@ export class OpsController {
       tenantId: user.tenantId,
       entity: 'Tenant',
       entityId: tenantId,
-      action: 'CACHE_CLEARED',
+      action: AUDIT_ACTIONS.CACHE_CLEARED,
       after: { cleared },
     });
     return { cleared };
