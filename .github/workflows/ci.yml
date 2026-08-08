@@ -72,9 +72,13 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # api-client sinh từ OpenAPI — FE import type từ đó
-      - name: Prisma generate (cho type của api-client)
-        run: pnpm --filter @nexus/api prisma:generate
+      # FE import type từ @nexus/shared (main → dist/) và @nexus/api-client
+      # (cần Prisma type). Thiếu bước này typecheck/build FE đỏ với
+      # "Cannot find module '@nexus/shared'" — job ci không lộ vì nó có `build`.
+      - name: Build shared + Prisma generate (điều kiện type của FE)
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
 
       - name: Typecheck web (app + file test)
         run: pnpm --filter @nexus/web typecheck
@@ -105,8 +109,13 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Prisma generate (cho type của api-client)
-        run: pnpm --filter @nexus/api prisma:generate
+      # FE import type từ @nexus/shared (main → dist/) và @nexus/api-client
+      # (cần Prisma type). Thiếu bước này typecheck/build FE đỏ với
+      # "Cannot find module '@nexus/shared'" — job ci không lộ vì nó có `build`.
+      - name: Build shared + Prisma generate (điều kiện type của FE)
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
 
       - name: Cài trình duyệt Playwright
         run: pnpm --filter @nexus/web e2e:install
