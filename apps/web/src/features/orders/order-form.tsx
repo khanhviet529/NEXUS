@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/common/form-field';
 import { AsyncSelect } from '@/components/form/async-select';
 import { MoneyInput } from '@/components/form/money-input';
-import { applyServerErrors, useCtrlS, useDirtyGuard } from '@/lib/form';
+import { applyServerErrors, useDirtyGuard } from '@/lib/form';
+import { useFormKeyboard, GRID_CELL_ATTR } from '@/lib/keyboard/use-form-keyboard';
 import { formatMoney } from '@/lib/format/money';
 import { orderSchema, type OrderFormValues } from './schema';
 
@@ -36,6 +37,7 @@ export function OrderFormDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const qc = useQueryClient();
+  const formRef = React.useRef<HTMLFormElement>(null);
   // Idempotency-Key theo PHIÊN NHẬP LIỆU: đổi khi mở form mới, giữ khi retry lỗi
   const idempotencyKey = React.useRef(crypto.randomUUID());
 
@@ -100,8 +102,27 @@ export function OrderFormDialog({
     }
   });
 
-  useCtrlS(() => {
-    if (open && !isSubmitting) void onSubmit();
+  const addRow = React.useCallback(
+    () =>
+      items.append({
+        productId: '',
+        quantity: '1',
+        unitPrice: '0',
+        discountPercent: '',
+        taxRate: '10',
+      }),
+    [items],
+  );
+
+  // profile 'data-entry' (§5.8): Enter đi ô kế / thêm dòng ở ô cuối —
+  // KHÔNG submit; Ctrl+Enter mới submit; Esc huỷ ô chứ không đóng form
+  useFormKeyboard({
+    profile: 'data-entry',
+    formRef,
+    onSubmit: () => {
+      if (open && !isSubmitting) void onSubmit();
+    },
+    onAddRow: addRow,
   });
 
   const fetchCustomers = async (q: string, page: number) => {
@@ -148,7 +169,7 @@ export function OrderFormDialog({
     >
       <DialogContent className="max-w-3xl">
         <DialogTitle>Tạo đơn hàng</DialogTitle>
-        <form className="mt-4 space-y-4" onSubmit={onSubmit}>
+        <form ref={formRef} className="mt-4 space-y-4" onSubmit={onSubmit}>
           <fieldset disabled={isSubmitting} className="space-y-4">
             <FormField label="Khách hàng" required error={errors.customerId?.message}>
               <AsyncSelect
@@ -202,6 +223,7 @@ export function OrderFormDialog({
                       </td>
                       <td className="px-2 py-1.5">
                         <MoneyInput
+                          {...{ [GRID_CELL_ATTR]: '' }}
                           value={form.watch(`items.${idx}.quantity`)}
                           onChange={(v) =>
                             form.setValue(`items.${idx}.quantity`, v, { shouldDirty: true })
@@ -210,6 +232,7 @@ export function OrderFormDialog({
                       </td>
                       <td className="px-2 py-1.5">
                         <MoneyInput
+                          {...{ [GRID_CELL_ATTR]: '' }}
                           value={form.watch(`items.${idx}.unitPrice`)}
                           onChange={(v) =>
                             form.setValue(`items.${idx}.unitPrice`, v, { shouldDirty: true })
@@ -220,6 +243,7 @@ export function OrderFormDialog({
                         <Input
                           className="text-right tnum"
                           inputMode="decimal"
+                          {...{ [GRID_CELL_ATTR]: '' }}
                           {...form.register(`items.${idx}.discountPercent`)}
                         />
                       </td>
@@ -227,6 +251,7 @@ export function OrderFormDialog({
                         <Input
                           className="text-right tnum"
                           inputMode="decimal"
+                          {...{ [GRID_CELL_ATTR]: '' }}
                           {...form.register(`items.${idx}.taxRate`)}
                         />
                       </td>
@@ -273,15 +298,7 @@ export function OrderFormDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() =>
-                items.append({
-                  productId: '',
-                  quantity: '1',
-                  unitPrice: '0',
-                  discountPercent: '',
-                  taxRate: '10',
-                })
-              }
+              onClick={addRow}
             >
               <Plus /> Thêm dòng
             </Button>
@@ -292,7 +309,7 @@ export function OrderFormDialog({
               Huỷ
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Đang lưu…' : 'Tạo đơn (Ctrl+S)'}
+              {isSubmitting ? 'Đang lưu…' : 'Tạo đơn (Ctrl+Enter)'}
             </Button>
           </div>
         </form>
