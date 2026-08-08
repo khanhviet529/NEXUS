@@ -1110,13 +1110,22 @@ COMMIT;
 
 Ghi lại: entity, entityId, action, actor, diff before/after (chỉ field thay đổi), IP, user-agent, traceId, thời điểm. Có UI tra cứu và timeline hiển thị trên trang chi tiết từng bản ghi.
 
-Cài đặt qua **Prisma Client query extension** (`$extends` + `$allOperations`), không phải `$use` middleware.
+**Cài đặt: ghi TƯỜNG MINH qua `AuditRepository` — KHÔNG dùng query extension tự động (ADR-0004).**
 
-> **Cảnh báo về phiên bản:** `$use` middleware đã bị Prisma đánh dấu deprecated từ khi Client Extensions GA, và có thông tin nó bị **loại bỏ hẳn ở Prisma ORM 7**. Tài liệu này không xác minh được tình trạng phiên bản mới nhất — **hãy kiểm tra tài liệu Prisma hiện hành trước khi code**, và **pin major version** trong `package.json` + ghi vào ADR. Dùng extension là lựa chọn đúng trong mọi trường hợp, đồng thời thống nhất với extension lọc tenant ở §4.4b (một cơ chế, hai extension).
+Bản đầu của tài liệu này định dùng `$extends` + `$allOperations` cho audit. **ADR-0004 đã thu hẹp:** extension chỉ lo **tenancy + soft delete** (§4.4b, §4.5); audit do service/repository gọi tay. Lý do đầy đủ ở ADR, tóm tắt hai ý quyết định:
 
-**Hai hạn chế của extension so với middleware cũ, phải tính từ đầu:**
-- Lấy trạng thái *before* để tạo diff cần **một truy vấn đọc thêm** — chỉ bật cho model có bật audit diff, không bật đại trà
-- Nested write khó chặn triệt để → càng củng cố luật "mọi write đi qua repository" ở cuối mục này
+- Extension **không bắt được 8 đường ghi** liệt kê ngay dưới đây (có cả conditional UPDATE của kho — câu ghi quan trọng nhất hệ thống). Chỗ nhạy cảm nhất kiểu gì cũng phải ghi tay → extension thành **cơ chế thứ hai** cho cùng một mối quan tâm, phải khử trùng lặp, và người review nhìn code không biết đường ghi đã được audit hay chưa
+- Extension thấy **operation** của Prisma, không thấy **ý định nghiệp vụ**. Timeline `UPDATE, UPDATE, UPDATE` vô dụng với người dùng — họ cần `Gửi duyệt`, `Duyệt`
+
+> **Cảnh báo về phiên bản (vẫn áp dụng cho extension tenancy):** `$use` middleware đã bị Prisma đánh dấu deprecated từ khi Client Extensions GA, và có thông tin nó bị **loại bỏ hẳn ở Prisma ORM 7**. **Pin major version** trong `package.json` (ADR-0001).
+
+**Ba luật của audit tường minh:**
+
+| Luật | Chi tiết |
+|---|---|
+| **Cùng transaction** | Có transaction nghiệp vụ → BẮT BUỘC `writeInTx(tx, entry)`. Ghi ngoài tx sinh hai kịch bản sai **âm thầm**: rollback mà vẫn có audit (timeline có hành động chưa từng xảy ra), hoặc commit mà audit lỗi (mất dấu vết). Kiểm bằng **test #31** |
+| **Action ngữ nghĩa** | `action` lấy từ registry `packages/shared/src/audit-actions.ts`, kiểu đóng `AuditAction`. Vòng đời chứng từ ghi `SUBMIT`/`APPROVE`/`REJECT`/`CANCEL`, **không** ghi `UPDATE` |
+| **Không quên** | CI check `check-audit-coverage`: module có endpoint ghi phải tham chiếu `AuditRepository`; allowlist phải kèm lý do theo ma trận §6.5 |
 
 ### Phạm vi audit — lỗ hở phải bịt
 
@@ -2374,6 +2383,7 @@ Cột **Tenancy** dùng đúng ba giá trị của `TENANCY_POLICY`: `GLOBAL` / 
 | 28 | Bulk partial success | 100 bản ghi, 8 lỗi → HTTP `200`, `results` liệt kê đúng 8 dòng lỗi | 6 |
 | 29 | Global search | Kết quả áp đúng row-level và field-level permission | 8 |
 | 30 | **Backup restore** | Restore thật vào môi trường sạch + smoke test. Chạy **trước mỗi lần go-live** | 9 |
+| 31 | **Audit nguyên tử** | Transaction nghiệp vụ rollback → **không** dòng audit nào; audit lỗi → write nghiệp vụ cũng rollback. Và action là **ngữ nghĩa** (`SUBMIT`/`APPROVE`), không phải `UPDATE` — timeline §4.9 phải đọc được (ADR-0004) | 10 |
 
 ### Ghi chú về ngữ nghĩa outbox
 

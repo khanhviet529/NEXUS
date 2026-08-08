@@ -68,16 +68,20 @@ Generator sinh ra BE (module, controller, service, repository, DTO, test) và FE
      ⚠️ chỉ đưa vào cột ĐÃ CÓ INDEX và người dùng ĐƯỢC PHÉP xem
 4. Khai state machine trong packages/shared/src/state-machines.ts (nếu có vòng đời)
 5. Khai @References cho delete guard (spec §5B.1/A2)
-6. Viết actions.ts theo Action Registry (công thức #6)
-7. Thêm vào sidebar config kèm permission
-8. pnpm gen:api    ← sinh lại api-client từ OpenAPI
-9. Viết test: ma trận quyền (#10) + đếm query (#11)
+6. Khai action audit ở packages/shared/src/audit-actions.ts (ADR-0004)
+     mọi write gọi audit.writeInTx(tx, …) TRONG CÙNG transaction nghiệp vụ;
+     action mang NGỮ NGHĨA (SUBMIT/APPROVE…), không dùng chuỗi tự do
+7. Viết actions.ts theo Action Registry (công thức #6)
+8. Thêm vào sidebar config kèm permission
+9. pnpm gen:api    ← sinh lại api-client từ OpenAPI
+10. Viết test: ma trận quyền (#10) + đếm query (#11) + audit nguyên tử (#31)
 ```
 
 **⚠️ Đừng quên**
 - Nếu chưa từng làm module nào: **copy `modules/orders`** và đọc kỹ, đó là module [REF] mẫu
 - Endpoint danh sách **bắt buộc** có test đếm query, nếu không CI đỏ
 - Mỗi endpoint phải có `@RequirePermission`, CI quét và chặn nếu thiếu
+- Module có endpoint ghi mà không tham chiếu `AuditRepository` → CI đỏ (ADR-0004)
 
 ---
 

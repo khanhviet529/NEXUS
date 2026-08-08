@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } fr
 import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsNotEmptyObject, IsObject, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { AppException } from '../../common/errors/app.exception';
@@ -89,11 +90,14 @@ export class {{pascalCase name}}sController {
   @RequirePermission('{{dashCase name}}:create')
   async create(@CurrentUser() user: AuthUser, @Body() dto: Create{{pascalCase name}}Dto) {
     const row = await this.repo.create(user.tenantId, dto);
+    // ADR-0004: action LẤY TỪ REGISTRY (không chuỗi tự do — timeline §4.9 phải
+    // đọc được). Có transaction nghiệp vụ → chuyển sang audit.writeInTx(tx, …)
+    // trong repository để audit cùng sống cùng chết với write (test #31).
     await this.audit.write({
       tenantId: user.tenantId,
       entity: '{{pascalCase name}}',
       entityId: row.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { code: row.code },
     });
     return { id: row.id, code: row.code };

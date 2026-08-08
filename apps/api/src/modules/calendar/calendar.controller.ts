@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query } from
 import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, IsString, Matches, MinLength } from 'class-validator';
-import { addWorkingDays, isWorkingDay, workingMinutesBetween } from '@nexus/shared';
+import { AUDIT_ACTIONS, addWorkingDays, isWorkingDay, workingMinutesBetween } from '@nexus/shared';
 import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
@@ -125,7 +125,7 @@ export class CalendarController {
       tenantId: user.tenantId,
       entity: 'CalendarHoliday',
       entityId: row.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { date: dto.date, name: dto.name },
     });
     return { id: row.id, date: dto.date, name: dto.name, isRecurring: dto.isRecurring ?? false };
@@ -141,7 +141,7 @@ export class CalendarController {
       tenantId: user.tenantId,
       entity: 'CalendarHoliday',
       entityId: id,
-      action: 'DELETE',
+      action: AUDIT_ACTIONS.DELETE,
     });
     return { ok: true };
   }

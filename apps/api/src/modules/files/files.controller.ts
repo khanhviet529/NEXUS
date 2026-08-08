@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/commo
 import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 import { v7 as uuidv7 } from 'uuid';
-import { ALL_ENTITY_TYPES } from '@nexus/shared';
+import { AUDIT_ACTIONS, ALL_ENTITY_TYPES } from '@nexus/shared';
 import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
@@ -123,7 +123,7 @@ export class FilesController {
       tenantId: user.tenantId,
       entity: 'File',
       entityId: file.id,
-      action: 'CREATE',
+      action: AUDIT_ACTIONS.CREATE,
       after: { filename: dto.filename, size: head.size, entity: dto.entity ?? null },
     });
     return { id: file.id, filename: file.filename, size: file.size, mime: file.mime };

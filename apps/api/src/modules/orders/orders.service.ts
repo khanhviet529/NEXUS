@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { AUDIT_ACTIONS, canTransition, ORDER_STATE_MACHINE } from '@nexus/shared';
+import {
+  AUDIT_ACTIONS,
+  canTransition,
+  ORDER_STATE_MACHINE,
+  type AuditAction,
+} from '@nexus/shared';
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { AbilityService } from '../auth/ability.service';
@@ -13,6 +18,14 @@ import { OrdersRepository, type OrderItemInput } from './orders.repository';
  *   approve: PENDING + KHÔNG TỰ DUYỆT (ORDER.SELF_APPROVAL)
  * Máy trạng thái khai ở packages/shared — không rải if(status) (§4.7).
  */
+/** ADR-0004: transition nghiệp vụ → action audit ĐỌC ĐƯỢC trên timeline (§4.9) */
+const TRANSITION_AUDIT_ACTION: Record<'submit' | 'approve' | 'reject' | 'cancel', AuditAction> = {
+  submit: AUDIT_ACTIONS.SUBMIT,
+  approve: AUDIT_ACTIONS.APPROVE,
+  reject: AUDIT_ACTIONS.REJECT,
+  cancel: AUDIT_ACTIONS.CANCEL,
+};
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -115,7 +128,7 @@ export class OrdersService {
     action: 'submit' | 'approve' | 'reject' | 'cancel',
     permission: string,
     version: number,
-    opts?: { failAfterOutboxForTest?: boolean },
+    opts?: { failAfterOutboxForTest?: boolean; failAuditForTest?: boolean },
   ) {
     const order = await this.getInScope(user, orderId, permission);
 
@@ -145,6 +158,9 @@ export class OrdersService {
       if (!authority.covered) throw new AppException('ORDER.EXCEEDS_LIMIT');
     }
 
+    // ADR-0004: action mang NGỮ NGHĨA NGHIỆP VỤ (SUBMIT/APPROVE/REJECT/CANCEL)
+    // — timeline §4.9 phải đọc được, không phải chuỗi UPDATE vô hồn; và audit
+    // ghi TRONG CÙNG tx với write nghiệp vụ (đk2), nên truyền vào repository.
     const result = await this.repo.transition({
       tenantId: user.tenantId,
       orderId,
@@ -152,21 +168,22 @@ export class OrdersService {
       fromStatus: transition.from,
       toStatus: transition.to,
       actorId: user.sub,
+      audit: {
+        tenantId: user.tenantId,
+        entity: 'Order',
+        entityId: orderId,
+        action: TRANSITION_AUDIT_ACTION[action],
+        before: { status: transition.from },
+        after: { status: transition.to },
+      },
       emitApprovedEvent: transition.to === 'APPROVED',
       orderCode: order.code,
       createdById: order.createdById,
       failAfterOutboxForTest: opts?.failAfterOutboxForTest,
+      failAuditForTest: opts?.failAuditForTest,
     });
     if (result === 'conflict') throw new AppException('COMMON.VERSION_CONFLICT');
 
-    await this.audit.write({
-      tenantId: user.tenantId,
-      entity: 'Order',
-      entityId: orderId,
-      action: AUDIT_ACTIONS.UPDATE,
-      before: { status: transition.from },
-      after: { status: transition.to, action },
-    });
     return this.repo.findById(orderId);
   }
 
@@ -217,7 +234,7 @@ export class OrdersService {
     user: AuthUser,
     orderId: string,
     version: number,
-    opts?: { failAfterOutboxForTest?: boolean },
+    opts?: { failAfterOutboxForTest?: boolean; failAuditForTest?: boolean },
   ) {
     return this.doTransition(user, orderId, 'approve', 'order:approve', version, opts);
   }

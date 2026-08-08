@@ -45,7 +45,7 @@ export class AdminService {
     input: { code: string; name: string; defaultLocale?: string; defaultTimezone?: string },
   ) {
     const tenant = await this.repo.provisionTenant(input);
-    await this.auditCrossTenant(user, tenant.id, { action: 'CREATE_TENANT', code: input.code });
+    await this.auditCrossTenant(user, tenant.id, { action: AUDIT_ACTIONS.CREATE_TENANT, code: input.code });
     return tenant;
   }
 
@@ -57,7 +57,7 @@ export class AdminService {
     const sessions = await this.repo.findActiveSessionsOfTenant(tenantId);
     for (const s of sessions) await this.sessions.revoke(s.id, tenantId);
     await this.auditCrossTenant(user, tenantId, {
-      action: 'SUSPEND_TENANT',
+      action: AUDIT_ACTIONS.SUSPEND_TENANT,
       revokedSessions: sessions.length,
     });
   }
@@ -66,7 +66,7 @@ export class AdminService {
     const tenant = await this.repo.findTenant(tenantId);
     if (!tenant) throw new AppException('TENANT.NOT_FOUND');
     await this.repo.updateTenantStatus(tenantId, 'ACTIVE', null);
-    await this.auditCrossTenant(user, tenantId, { action: 'ACTIVATE_TENANT' });
+    await this.auditCrossTenant(user, tenantId, { action: AUDIT_ACTIONS.ACTIVATE_TENANT });
   }
 
   async setFeatures(
@@ -77,7 +77,7 @@ export class AdminService {
     const tenant = await this.repo.findTenant(tenantId);
     if (!tenant) throw new AppException('TENANT.NOT_FOUND');
     await this.repo.upsertFeatures(tenantId, features);
-    await this.auditCrossTenant(user, tenantId, { action: 'SET_FEATURES', features });
+    await this.auditCrossTenant(user, tenantId, { action: AUDIT_ACTIONS.SET_FEATURES, features });
   }
 
   // ---- Tenant tự quản (không cross-tenant, dùng tenant trong token) ----
