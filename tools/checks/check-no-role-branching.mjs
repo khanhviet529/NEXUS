@@ -3,7 +3,10 @@
  * Check "cấm rẽ nhánh theo mã vai trò" — spec §4.4, permission-matrix §1.1.
  * Quét apps/api/src và apps/web/src tìm chuỗi literal mã vai trò seed.
  * Cho phép DUY NHẤT: prisma/seed.ts và packages/shared/src/seed-roles.ts.
- * (test/ không bị quét — ma trận quyền là fixture hợp lệ trong test.)
+ *
+ * FIXTURE TEST cũng được phép — cùng lý do file seed: đó là DỮ LIỆU mô tả bộ
+ * vai trò, không phải rẽ nhánh nghiệp vụ. BE để test ở apps/api/test (ngoài
+ * vùng quét), FE để cạnh code trong src/ nên phải loại theo TÊN FILE.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { resolve, dirname, relative, sep } from 'node:path';
@@ -19,7 +22,14 @@ function* walk(dir) {
     if (statSync(full).isDirectory()) {
       if (entry === 'node_modules' || entry === 'dist' || entry === '.next') continue;
       yield* walk(full);
-    } else if (/\.(ts|tsx)$/.test(entry) && !entry.endsWith('.gen.ts')) {
+    } else if (
+      /\.(ts|tsx)$/.test(entry) &&
+      !entry.endsWith('.gen.ts') &&
+      // fixture test/story/mock: dữ liệu, không phải rẽ nhánh nghiệp vụ
+      !/\.(spec|test|stories)\.tsx?$/.test(entry) &&
+      !full.split(sep).includes('mocks') &&
+      !full.split(sep).includes('test')
+    ) {
       yield full;
     }
   }

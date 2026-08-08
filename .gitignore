@@ -31,3 +31,10 @@ Thumbs.db
 
 # logs
 *.log
+
+# Test FE
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/storybook-static/
+apps/web/blob-report/
+apps/web/.storybook-out/

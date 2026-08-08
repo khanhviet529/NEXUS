@@ -8,5 +8,14 @@
     }
   },
   "include": ["next-env.d.ts", "src", ".next/types/**/*.ts", "next.config.ts"],
-  "exclude": ["node_modules"]
+  "//": "File test/story/mock KHÔNG thuộc bundle app — loại khỏi next build (nếu không, build production đi typecheck cả pretty-format của RTL và vỡ). Chúng vẫn được typecheck đầy đủ qua tsconfig.test.json.",
+  "exclude": [
+    "node_modules",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.stories.tsx",
+    "src/test/**",
+    "src/mocks/**",
+    "e2e/**"
+  ]
 }

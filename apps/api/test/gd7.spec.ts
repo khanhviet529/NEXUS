@@ -385,7 +385,10 @@ describe('GĐ7 — audit/notifications/files/calendar/export-queue/partition', (
       .set('Authorization', `Bearer ${staffToken}`);
     const csv2 = await (await fetch(dl2.body.url as string)).text();
     expect(csv2.split('\n')[0]).toContain('cost_price');
-  }, 60_000);
+    // Thời lượng test này phụ thuộc THỨ TỰ CHẠY: suite dùng chung một DB, và
+    // spec import (#27) bơm 5.000 sản phẩm — export sau đó phải stream toàn bộ.
+    // 60s từng vừa đủ rồi thỉnh thoảng đứt trên máy tải nặng.
+  }, 150_000);
 
   // ==================== §5B.3/C2 — cron partition ====================
 
