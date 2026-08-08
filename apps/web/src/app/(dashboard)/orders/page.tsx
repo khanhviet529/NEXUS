@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { CheckCircle, Command } from 'lucide-react';
+import { CheckCircle, Command, Plus } from 'lucide-react';
 import { ordersControllerList, getApiError } from '@nexus/api-client';
 import type { OrderResponseDto } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,9 @@ import {
   useBulkAction,
 } from '@/lib/actions';
 import { useCommandPalette } from '@/providers/command-palette';
-import { useCurrentUser } from '@/lib/auth/use-can';
+import { useCan, useCurrentUser } from '@/lib/auth/use-can';
 import { orderActions, bulkApproveOrders, type OrderActionCtx } from '@/features/orders/actions';
+import { OrderFormDialog } from '@/features/orders/order-form';
 
 /**
  * GĐ8b — trang [REF] chứng minh tiêu chí §10: "một action khai báo một lần,
@@ -50,8 +51,10 @@ function OrdersPage() {
   const tc = useTranslations('common');
   const router = useRouter();
   const me = useCurrentUser();
+  const can = useCan();
   const palette = useCommandPalette();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [openCreate, setOpenCreate] = useState(false);
 
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
@@ -99,6 +102,11 @@ function OrdersPage() {
       <header className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">{t('title')}</h1>
         <div className="flex items-center gap-2">
+          {can('order:create') && (
+            <Button size="sm" onClick={() => setOpenCreate(true)}>
+              <Plus /> Tạo đơn
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={palette.open}>
             <Command /> Ctrl+K
           </Button>
@@ -226,6 +234,9 @@ function OrdersPage() {
           </Button>
         </span>
       </footer>
+
+      {/* Form field array §5.8 — cùng bộ tính tiền với BE */}
+      <OrderFormDialog open={openCreate} onOpenChange={setOpenCreate} />
     </main>
   );
 }
