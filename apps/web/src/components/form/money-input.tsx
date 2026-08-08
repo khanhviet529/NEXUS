@@ -18,6 +18,8 @@ export function MoneyInput({
 }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
   value: string;
   onChange: (raw: string) => void;
+  /** Cho phép truyền data-grid-cell để hook bàn phím tìm được ô */
+  [dataAttr: `data-${string}`]: unknown;
 }) {
   const [focused, setFocused] = React.useState(false);
   return (

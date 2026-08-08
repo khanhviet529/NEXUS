@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/common/form-field';
-import { applyServerErrors, useCtrlS, useDirtyGuard } from '@/lib/form';
+import { applyServerErrors, useDirtyGuard } from '@/lib/form';
+import { useFormKeyboard } from '@/lib/keyboard/use-form-keyboard';
 import { customerSchema, type CustomerFormValues } from './schema';
 
 /**
@@ -31,6 +32,7 @@ export function CustomerFormDialog({
   defaultValues?: Partial<CustomerFormValues>;
 }) {
   const qc = useQueryClient();
+  const formRef = React.useRef<HTMLFormElement>(null);
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: { code: '', name: { vi: '', en: '' }, taxCode: '', ...defaultValues },
@@ -55,8 +57,14 @@ export function CustomerFormDialog({
     }
   });
 
-  useCtrlS(() => {
-    if (open && !readonly && !isSubmitting) void onSubmit();
+  // profile 'standard' (§5.8): form ngắn ≤5 field → Enter submit như thói
+  // quen web; Ctrl+Enter cũng submit để nhất quán với form nhập liệu
+  useFormKeyboard({
+    profile: 'standard',
+    formRef,
+    onSubmit: () => {
+      if (open && !readonly && !isSubmitting) void onSubmit();
+    },
   });
 
   return (
@@ -71,7 +79,7 @@ export function CustomerFormDialog({
     >
       <DialogContent>
         <DialogTitle>{readonly ? 'Khách hàng' : 'Tạo khách hàng'}</DialogTitle>
-        <form className="mt-4 space-y-4" onSubmit={onSubmit}>
+        <form ref={formRef} className="mt-4 space-y-4" onSubmit={onSubmit}>
           <fieldset disabled={readonly || isSubmitting} className="space-y-4">
             <FormField label="Mã khách hàng" required error={errors.code?.message}>
               <Input {...form.register('code')} placeholder="KH001" autoFocus />
@@ -93,7 +101,7 @@ export function CustomerFormDialog({
               </Button>
               {/* isSubmitting chặn double-submit (§5.8) */}
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Đang lưu…' : 'Lưu (Ctrl+S)'}
+                {isSubmitting ? 'Đang lưu…' : 'Lưu'}
               </Button>
             </div>
           )}

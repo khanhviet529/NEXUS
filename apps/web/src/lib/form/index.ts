@@ -38,7 +38,11 @@ export function useDirtyGuard(isDirty: boolean): void {
   }, [isDirty]);
 }
 
-/** Ctrl+S submit (§5.8) — chặn hành vi save trang của trình duyệt */
+/**
+ * Ctrl+S submit — GIỮ cho form đặc thù không dùng profile bàn phím.
+ * Form thường dùng `useFormKeyboard` ở lib/keyboard: hành vi Enter/Esc/submit
+ * theo PATTERN (data-entry | standard | search), không phải luật global.
+ */
 export function useCtrlS(submit: () => void): void {
   const cb = useCallback(
     (e: KeyboardEvent) => {
