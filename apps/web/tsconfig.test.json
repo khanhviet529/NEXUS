@@ -1,0 +1,24 @@
+{
+  "//": "Typecheck cho file test/story/mock — bị loại khỏi tsconfig.json để next build không đụng, nhưng VẪN phải type-safe. `pnpm typecheck` chạy cả hai.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    "playwright.config.ts",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.stories.tsx",
+    "src/test/**/*.ts",
+    "src/test/**/*.tsx",
+    "src/mocks/**/*.ts",
+    "e2e/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

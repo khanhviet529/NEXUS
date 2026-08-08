@@ -1,4 +1,8 @@
 # CI mỗi PR — spec §9: lint → typecheck → unit → integration → build → audit
+# Ba job SONG SONG, tách theo loại hạ tầng cần thiết:
+#   ci       — backend + check kiến trúc (cần Testcontainers: Postgres/Redis/MinIO)
+#   web-test — FE tầng 1→4 (jsdom + MSW + story), KHÔNG cần Docker → chạy nhanh
+#   web-e2e  — FE tầng 5 (Playwright trên build production, API mock ở route)
 name: CI
 
 on:
@@ -8,6 +12,7 @@ on:
 
 jobs:
   ci:
+    name: Backend + kiến trúc
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -25,7 +30,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Check kiến trúc (tenancy vét cạn, ma trận §6.5, cấm role branching)
+      - name: Check kiến trúc (tenancy vét cạn, ma trận §6.5, cấm role branching, audit coverage)
         run: node tools/checks/run-all.mjs
 
       - name: Prisma generate
@@ -39,11 +44,90 @@ jobs:
 
       # Testcontainers (global-setup) TỰ set DATABASE_URL/REDIS_URL/JWT_SECRET —
       # env ở đây là thừa và gây hiểu lầm rằng CI dùng DB ngoài
-      - name: Test (unit + integration qua Testcontainers)
-        run: pnpm test
+      - name: Test backend (unit + integration qua Testcontainers)
+        run: pnpm --filter @nexus/api test
 
       - name: Build
         run: pnpm build
 
       - name: Audit
         run: pnpm audit --audit-level high || true # cảnh báo, chưa chặn ở GĐ1
+
+  web-test:
+    name: FE tầng 1-4 (unit · component · MSW · story)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # FE import type từ @nexus/shared (main → dist/) và @nexus/api-client
+      # (cần Prisma type). Thiếu bước này typecheck/build FE đỏ với
+      # "Cannot find module '@nexus/shared'" — job ci không lộ vì nó có `build`.
+      - name: Build shared + Prisma generate (điều kiện type của FE)
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
+
+      - name: Typecheck web (app + file test)
+        run: pnpm --filter @nexus/web typecheck
+
+      - name: "Test FE (vitest — unit + component + MSW + story)"
+        run: pnpm --filter @nexus/web test
+
+      # Story build chứng minh MỌI story compile được với framework thật
+      - name: Build Storybook
+        run: pnpm --filter @nexus/web run build-storybook --quiet
+
+  web-e2e:
+    name: FE tầng 5 (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # FE import type từ @nexus/shared (main → dist/) và @nexus/api-client
+      # (cần Prisma type). Thiếu bước này typecheck/build FE đỏ với
+      # "Cannot find module '@nexus/shared'" — job ci không lộ vì nó có `build`.
+      - name: Build shared + Prisma generate (điều kiện type của FE)
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
+
+      - name: Cài trình duyệt Playwright
+        run: pnpm --filter @nexus/web e2e:install
+
+      # playwright.config tự chạy `pnpm build && pnpm start` (webServer)
+      - name: E2E (build production + API mock ở tầng route)
+        run: pnpm --filter @nexus/web e2e
+
+      - name: Lưu báo cáo khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
