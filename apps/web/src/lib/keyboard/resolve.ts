@@ -51,15 +51,21 @@ export type KeyAction =
 const isMod = (e: KeyEventDescriptor): boolean => e.ctrlKey || e.metaKey;
 
 /**
- * Quy tắc, theo đúng thứ tự ưu tiên:
- *  1. textarea nuốt Enter (xuống dòng) ở MỌI profile
- *  2. Ctrl/Cmd+Enter LUÔN là submit — lối thoát nhất quán cho mọi form
- *  3. Còn lại tuỳ profile
+ * Quy tắc, theo đúng thứ tự ưu tiên (fe-preset-system §7):
+ *  1. Ctrl/Cmd+S LUÔN là lưu, ở mọi profile
+ *  2. textarea nuốt Enter (xuống dòng) ở MỌI profile
+ *  3. Ctrl/Cmd+Enter LUÔN là submit — lối thoát nhất quán cho mọi form
+ *  4. Esc LUÔN là "huỷ ô đang sửa" khi ô có thay đổi chưa lưu — kể cả profile
+ *     standard. Chỉ khi KHÔNG có gì để huỷ thì Esc mới đóng overlay.
+ *  5. Còn lại tuỳ profile
  */
 export function resolveKeyAction(
   profile: KeyboardProfile,
   e: KeyEventDescriptor,
 ): KeyAction {
+  // §7: "Ctrl+S luôn lưu" — không phụ thuộc profile
+  if (e.key.toLowerCase() === 's' && isMod(e)) return { type: 'submit' };
+
   if (e.key === 'Enter') {
     if (e.target === 'textarea') return { type: 'none' };
     if (isMod(e)) return { type: 'submit' };
@@ -80,10 +86,10 @@ export function resolveKeyAction(
   }
 
   if (e.key === 'Escape') {
-    // data-entry: Esc là "huỷ ô", KHÔNG phải "đóng cả form đang nhập dở"
-    if (profile === 'data-entry' && e.inGrid && e.isDirtyCell) {
-      return { type: 'cancel-cell' };
-    }
+    // §7: Esc LUÔN là "huỷ ô đang sửa", không phải "đóng form đang nhập dở".
+    // Áp cho mọi profile — người dùng gõ nhầm một ô rồi Esc mà mất cả form là
+    // mất dữ liệu. Chỉ khi ô không có gì để huỷ thì mới đóng overlay.
+    if (e.isDirtyCell) return { type: 'cancel-cell' };
     return { type: 'close' };
   }
 

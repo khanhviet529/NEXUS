@@ -52,8 +52,12 @@ export function useFormKeyboard(opts: {
   const cells = useCallback((): HTMLElement[] => {
     const form = formRef.current;
     if (!form) return [];
+    // KHÔNG dùng offsetParent để đoán "đang hiển thị": jsdom không có layout
+    // nên luôn trả null → danh sách ô rỗng và mọi điều hướng chết lặng.
+    // Ô nằm trong form đã render thì mặc định là dùng được; chỉ loại ô bị
+    // vô hiệu hoá hoặc ẩn tường minh.
     return Array.from(form.querySelectorAll<HTMLElement>(`[${GRID_CELL_ATTR}]`)).filter(
-      (el) => !el.hasAttribute('disabled') && el.offsetParent !== null,
+      (el) => !el.hasAttribute('disabled') && !el.hidden,
     );
   }, [formRef]);
 
