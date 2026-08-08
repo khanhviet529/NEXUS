@@ -7,6 +7,7 @@ import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { AppException } from '../../common/errors/app.exception';
+import { AuditRepository } from '../audit/audit.repository';
 import { CalendarRepository } from './calendar.repository';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -56,7 +57,10 @@ class AddHolidayDto {
 @ApiTags('business-calendar')
 @Controller('business-calendar')
 export class CalendarController {
-  constructor(private readonly repo: CalendarRepository) {}
+  constructor(
+    private readonly repo: CalendarRepository,
+    private readonly audit: AuditRepository,
+  ) {}
 
   @AllowAuthenticated()
   @Get()
@@ -116,15 +120,29 @@ export class CalendarController {
       dto.name,
       dto.isRecurring ?? false,
     );
+    // ADR-0004: audit tường minh — lịch nghỉ ảnh hưởng hạn thanh toán/SLA
+    await this.audit.write({
+      tenantId: user.tenantId,
+      entity: 'CalendarHoliday',
+      entityId: row.id,
+      action: 'CREATE',
+      after: { date: dto.date, name: dto.name },
+    });
     return { id: row.id, date: dto.date, name: dto.name, isRecurring: dto.isRecurring ?? false };
   }
 
   @Delete('holidays/:id')
   @RequirePermission('setting:update')
   @ApiOperation({ summary: 'Xoá ngày nghỉ' })
-  async removeHoliday(@Param('id', ParseUUIDPipe) id: string) {
+  async removeHoliday(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const count = await this.repo.removeHoliday(id);
     if (count === 0) throw new AppException('COMMON.NOT_FOUND');
+    await this.audit.write({
+      tenantId: user.tenantId,
+      entity: 'CalendarHoliday',
+      entityId: id,
+      action: 'DELETE',
+    });
     return { ok: true };
   }
 }

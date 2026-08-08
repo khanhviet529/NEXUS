@@ -7,8 +7,14 @@ import {
   ordersControllerBulkApprove,
   exportsControllerExportProducts,
 } from '@nexus/api-client';
+import type { OrderResponseDto } from '@nexus/api-client';
 import type { ActionDef, BulkActionDef, BulkResult } from '@/lib/actions';
-import type { OrderActionCtx, OrderRow } from './types';
+
+/** Ctx cho Action Registry — record là DTO SINH TỪ OpenAPI (§2.4, không khai tay) */
+export interface OrderActionCtx {
+  record: OrderResponseDto;
+  meId: string | undefined;
+}
 
 /**
  * [REF] features/orders/actions.ts — khuôn Action Registry (§5.9).
@@ -105,14 +111,14 @@ export const orderActions: ActionDef<OrderActionCtx>[] = [
 ];
 
 /** Bulk approve — BE partial success (§5C.3), lỗi TỪNG DÒNG */
-export const bulkApproveOrders: BulkActionDef<OrderRow> = {
+export const bulkApproveOrders: BulkActionDef<OrderResponseDto> = {
   id: 'order.bulk-approve',
   label: 'Duyệt hàng loạt',
   icon: CheckCircle,
   permission: 'order:approve',
   eligible: (rows) => {
-    const ok: OrderRow[] = [];
-    const skipped: Array<{ row: OrderRow; reason: string }> = [];
+    const ok: OrderResponseDto[] = [];
+    const skipped: Array<{ row: OrderResponseDto; reason: string }> = [];
     for (const row of rows) {
       if (row.status === 'PENDING') ok.push(row);
       else skipped.push({ row, reason: `Trạng thái ${row.status} — chỉ duyệt đơn PENDING` });

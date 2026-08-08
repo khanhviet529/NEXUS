@@ -13,7 +13,14 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import {
+  ApiHeader,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
@@ -30,7 +37,7 @@ import {
 import type { Request, Response } from 'express';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
-import { buildMeta } from '../../common/dto/paginated.dto';
+import { buildMeta, PaginationMetaDto } from '../../common/dto/paginated.dto';
 import { FilterParser, parseSort } from '../../common/query/filter-parser';
 import type { QueryConfig } from '../../common/query/query-config';
 import type { Locale } from '../../common/query/localized';
@@ -155,6 +162,58 @@ class ListOrdersQueryDto {
   filter?: Record<string, unknown>;
 }
 
+/**
+ * DTO response cho Swagger → orval sinh type cho FE (§2.4) — FE KHÔNG tự khai
+ * kiểu tay (nợ GĐ8b đã trả). Shape khớp toOrderResponse bên dưới.
+ */
+class OrderItemResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() productId!: string;
+  @ApiProperty({ type: Object, description: 'Snapshot tên JSONB tại thời điểm tạo (§3.10)' })
+  productNameSnapshot!: Record<string, string>;
+  @ApiProperty({ description: 'Số lượng — CHUỖI (§3.7)' }) quantity!: string;
+  @ApiProperty() uom!: string;
+  @ApiProperty() unitPrice!: string;
+  @ApiProperty() discountPercent!: string;
+  @ApiProperty() taxRate!: string;
+  @ApiProperty() amount!: string;
+  @ApiProperty() lineNo!: number;
+  @ApiPropertyOptional({ nullable: true, description: 'CHỈ khi có field:cost (§4.4c)' })
+  costPrice?: string | null;
+}
+
+class OrderCustomerDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() code!: string;
+  @ApiProperty({ type: Object }) name!: Record<string, string>;
+}
+
+class OrderResponseDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() code!: string;
+  @ApiProperty({ enum: ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] })
+  status!: string;
+  @ApiProperty() currency!: string;
+  @ApiPropertyOptional({ type: OrderCustomerDto, nullable: true })
+  customer?: OrderCustomerDto | null;
+  @ApiProperty({ description: 'Tiền là CHUỖI (§3.7)' }) subtotal!: string;
+  @ApiProperty() discountTotal!: string;
+  @ApiProperty() taxTotal!: string;
+  @ApiProperty() total!: string;
+  @ApiPropertyOptional({ nullable: true, description: 'CHỈ khi có field:cost (§4.4c)' })
+  margin?: string | null;
+  @ApiProperty({ description: 'Optimistic lock (§12 #17)' }) version!: number;
+  @ApiPropertyOptional({ nullable: true }) approvedAt?: string | null;
+  @ApiPropertyOptional({ nullable: true }) createdById?: string | null;
+  @ApiProperty() createdAt!: string;
+  @ApiProperty({ type: [OrderItemResponseDto] }) items!: OrderItemResponseDto[];
+}
+
+class OrderListResponseDto {
+  @ApiProperty({ type: [OrderResponseDto] }) data!: OrderResponseDto[];
+  @ApiProperty({ type: PaginationMetaDto }) meta!: PaginationMetaDto;
+}
+
 /** Serialize order → response (tiền là CHUỖI §3.7; margin/costPrice cần field:cost) */
 function toOrderResponse(order: Record<string, unknown>, showCost: boolean) {
   const items = (order['items'] as Array<Record<string, unknown>>).map((i) => ({
@@ -206,6 +265,7 @@ export class OrdersController {
 
   @Get()
   @RequirePermission('order:read')
+  @ApiOkResponse({ type: OrderListResponseDto })
   async list(@CurrentUser() user: AuthUser, @Query() query: ListOrdersQueryDto, @Req() req: Request) {
     const locale = this.ctx.locale as Locale;
     const where = new FilterParser(ORDER_QUERY, locale).parse(
@@ -227,6 +287,7 @@ export class OrdersController {
 
   @Get(':id')
   @RequirePermission('order:read')
+  @ApiOkResponse({ type: OrderResponseDto })
   async detail(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const order = await this.orders.detail(user, id);
     return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
@@ -295,6 +356,7 @@ export class OrdersController {
 
   // Hành động nghiệp vụ: động từ ở SUB-RESOURCE (§3.1)
   @Post(':id/submit')
+  @ApiOkResponse({ type: OrderResponseDto })
   @RequirePermission('order:submit')
   async submit(
     @CurrentUser() user: AuthUser,
@@ -306,6 +368,7 @@ export class OrdersController {
   }
 
   @Post(':id/approve')
+  @ApiOkResponse({ type: OrderResponseDto })
   @RequirePermission('order:approve')
   async approve(
     @CurrentUser() user: AuthUser,
@@ -317,6 +380,7 @@ export class OrdersController {
   }
 
   @Post(':id/reject')
+  @ApiOkResponse({ type: OrderResponseDto })
   @RequirePermission('order:approve')
   async reject(
     @CurrentUser() user: AuthUser,
@@ -328,6 +392,7 @@ export class OrdersController {
   }
 
   @Post(':id/cancel')
+  @ApiOkResponse({ type: OrderResponseDto })
   @RequirePermission('order:update')
   async cancel(
     @CurrentUser() user: AuthUser,

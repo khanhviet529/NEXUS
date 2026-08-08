@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { buildSearchColumns, type LocalizedText } from '../../common/query/localized';
+import { AuditRepository } from '../audit/audit.repository';
 
 const BATCH_SIZE = 500; // §4.7: mỗi batch MỘT transaction, 500–1.000 dòng
 
@@ -23,6 +24,7 @@ export class ImportsRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ctx: RequestContextService,
+    private readonly audit: AuditRepository,
   ) {}
 
   async createJob(input: {
@@ -206,6 +208,15 @@ export class ImportsRepository {
     await this.prisma.client.importJob.update({
       where: { id: jobId },
       data: { status: 'COMPLETED', validRows: ok, errorRows: errors },
+    });
+    // §4.9 (ADR-0004): bulk/import ghi MỘT bản audit cho CẢ LÔ + affectedCount,
+    // không ghi 10.000 dòng
+    await this.audit.write({
+      tenantId: job.tenantId,
+      entity: 'ImportJob',
+      entityId: jobId,
+      action: 'IMPORT_COMPLETED',
+      after: { entityType: job.entity, affectedCount: ok, errorRows: errors, resumedFrom },
     });
     return { ok, errors, resumedFrom };
   }
