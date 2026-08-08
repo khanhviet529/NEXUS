@@ -16,6 +16,7 @@ const checks = [
   'check-matrix.mjs',
   'check-no-role-branching.mjs',
   'check-audit-coverage.mjs', // ADR-0004: audit tường minh, CI gác chỗ quên
+  'check-fe-test-coverage.mjs', // §7.2: chạm apps/web phải kèm test/story
 ];
 
 let failed = false;
