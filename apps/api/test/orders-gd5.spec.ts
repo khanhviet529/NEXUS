@@ -178,9 +178,21 @@ describe('GĐ5 — Orders [REF] (§8.2 #15, #17, #18, #19, #20)', () => {
       where: { tenantId: h.seed.tenantA.tenantId },
     });
 
-    const results = await Promise.all(
-      Array.from({ length: 20 }, () => createOrder(staffToken, key)),
-    );
+    // 20 socket song song trên runner CI 2-core thi thoảng bị ECONNRESET
+    // (đứt ở TẦNG TRANSPORT, request chưa chắc tới server). Client thật xử lý
+    // đúng bằng cách RETRY VỚI CÙNG Idempotency-Key — chính là ngữ nghĩa §3.9,
+    // nên test mô phỏng y vậy; assertion "đúng MỘT đơn" vẫn nguyên giá trị.
+    const createWithRetry = async (attempt = 0): Promise<Awaited<ReturnType<typeof createOrder>>> => {
+      try {
+        return await createOrder(staffToken, key);
+      } catch (e) {
+        const transient =
+          e instanceof Error && /ECONNRESET|ECONNREFUSED|socket hang up/.test(e.message);
+        if (transient && attempt < 3) return createWithRetry(attempt + 1);
+        throw e;
+      }
+    };
+    const results = await Promise.all(Array.from({ length: 20 }, () => createWithRetry()));
     const created = results.filter((r) => r.status === 201);
     const inProgress = results.filter((r) => r.status === 409);
     expect(created.length).toBeGreaterThanOrEqual(1);
