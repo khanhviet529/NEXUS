@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -56,8 +56,10 @@ export function OrderFormDialog({
     if (open) idempotencyKey.current = crypto.randomUUID();
   }, [open]);
 
-  // Preview tiền — watch toàn bộ items, tính bằng bộ B1 dùng chung
-  const watched = form.watch('items');
+  // Preview tiền — dùng useWatch (KHÔNG dùng form.watch): form.watch('items')
+  // trả về CÙNG reference sau mỗi setValue, nên useMemo không tính lại và
+  // dòng tổng đứng yên trong khi ô nhập vẫn đổi. useWatch tạo giá trị mới.
+  const watched = useWatch({ control: form.control, name: 'items' }) ?? [];
   const preview = React.useMemo(() => {
     try {
       // KHÔNG filter — giữ lines[idx] thẳng hàng với dòng form; dòng gõ dở = 0
