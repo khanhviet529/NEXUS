@@ -20,6 +20,12 @@ export interface StateMachineDef {
 
 export const ORDER_STATES = ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
 
+/**
+ * Enum trạng thái là NGHIỆP VỤ nên ở shared; còn MÀU của trạng thái là quyết
+ * định trình bày, nằm ở apps/web/src/design-system/state-tones.ts (§9.1).
+ */
+export type OrderState = (typeof ORDER_STATES)[number];
+
 export const ORDER_STATE_MACHINE: StateMachineDef = {
   entity: 'Order',
   initial: 'DRAFT',

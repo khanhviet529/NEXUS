@@ -17,6 +17,11 @@ const config: StorybookConfig = {
     viteConfig.resolve.alias = {
       ...viteConfig.resolve.alias,
       '@': resolve(dir, '../src'),
+      // Gói workspace build ra CommonJS (__exportStar) — Rollup không phân
+      // giải được named export qua đó. Next né bằng transpilePackages; ở đây
+      // trỏ thẳng vào SOURCE để Storybook cũng biên dịch từ TS như Next.
+      '@nexus/shared': resolve(dir, '../../../packages/shared/src'),
+      '@nexus/api-client': resolve(dir, '../../../packages/api-client/src'),
     };
     return viteConfig;
   },
