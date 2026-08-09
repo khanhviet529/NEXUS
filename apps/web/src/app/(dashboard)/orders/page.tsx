@@ -25,6 +25,7 @@ import { useCommandPalette } from '@/providers/command-palette';
 import { useCan, useCurrentUser } from '@/lib/auth/use-can';
 import { orderActions, bulkApproveOrders, type OrderActionCtx } from '@/features/orders/actions';
 import { OrderFormDialog } from '@/features/orders/order-form';
+import { SavedViewsBar } from '@/features/saved-views/saved-views-bar';
 
 /**
  * GĐ8b — trang [REF] chứng minh tiêu chí §10: "một action khai báo một lần,
@@ -116,6 +117,9 @@ function OrdersPage() {
           <ActionToolbar actions={pageActions} ctx={pageCtx} />
         </div>
       </header>
+
+      {/* Saved views §5.5 — lưu bộ lọc hiện tại thành view đặt tên */}
+      <SavedViewsBar entity="Order" membershipId={me.data?.membershipId} />
 
       <Input
         placeholder={tc('search')}
