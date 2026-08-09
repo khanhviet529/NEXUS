@@ -215,8 +215,12 @@ export function DataTable<TRow>({
     return <ArrowUpDown className="size-3.5 opacity-40" />;
   };
 
+  // PHẢI gồm cả `state.limit` đang dùng: nếu giá trị hiện tại không có trong
+  // danh sách, trình duyệt hiện tuỳ chọn ĐẦU TIÊN và người dùng đọc sai số bản
+  // ghi mỗi trang. Xảy ra thật khi saved view lưu limit lạ hoặc preset đổi
+  // defaultPageSize.
   const pageSizes = Array.from(
-    new Set([10, 20, ui.behavior.table.defaultPageSize, 100]),
+    new Set([10, 20, ui.behavior.table.defaultPageSize, 100, state.limit]),
   ).sort((a, b) => a - b);
 
   return (

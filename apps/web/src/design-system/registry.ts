@@ -10,8 +10,15 @@
  * và agent tưởng được phép dùng.
  */
 
-/** CHỈ shell ĐÃ implement. GĐ B thêm 'hybrid' TRONG CÙNG PR với HybridShell (§5.2). */
-export type ShellId = 'sidebar';
+import { SHELL_IDS } from './shell-ids';
+
+/**
+ * CHỈ shell ĐÃ implement (§5.2 luật 1). Mở rộng union và thêm entry vào
+ * `SHELLS` phải nằm TRONG CÙNG PR với phần implement — nếu không thì
+ * `overrides.shell = 'x'` biên dịch được rồi chết lúc chạy.
+ * `top-nav` và `workspace` CHƯA có ở đây, đúng chủ ý (§11.3).
+ */
+export type ShellId = (typeof SHELL_IDS)[number];
 export type Density = 'compact' | 'comfortable';
 export type ContentWidth = 'fluid' | { max: number };
 export type ListDisplayType = 'table' | 'card-grid' | 'compact-list';
@@ -119,9 +126,11 @@ export interface VisualPreset {
 }
 
 import { enterprise } from './presets/enterprise';
+import { operations } from './presets/operations';
 
 export const PRESETS = {
   enterprise,
+  operations,
 } satisfies Record<string, VisualPreset>;
 
 /**

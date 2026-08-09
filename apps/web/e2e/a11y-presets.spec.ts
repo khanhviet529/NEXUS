@@ -23,7 +23,7 @@ for (const preset of PRESET_IDS) {
     test(`${preset}/${theme} đạt WCAG 2 AA trên mọi màn`, async ({ page }) => {
       for (const screen of SCREENS) {
         await page.goto(
-          `/design-system/preview?preset=${preset}&screen=${screen}&theme=${theme}&density=compact`,
+          `/design-system/preview?preset=${preset}&screen=${screen}&theme=${theme}`,
         );
         await expect(page.locator(`[data-screen="${screen}"]`)).toBeVisible();
         // Chờ theme ĐÃ áp trước khi quét. Phần tử hiện ra KHÔNG có nghĩa là

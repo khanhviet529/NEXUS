@@ -2,6 +2,7 @@
 
 import { useProjectUI } from '../use-project-ui';
 import type { ShellId } from '../registry';
+import { HybridShell } from './hybrid-shell';
 import { SidebarShell } from './sidebar-shell';
 import type { ShellComponent, ShellProps } from './types';
 
@@ -18,6 +19,7 @@ import type { ShellComponent, ShellProps } from './types';
  */
 const SHELLS = {
   sidebar: SidebarShell,
+  hybrid: HybridShell,
 } satisfies Record<ShellId, ShellComponent>;
 
 export function AppShell(props: ShellProps) {

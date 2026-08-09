@@ -6,7 +6,7 @@ import { PROJECT_UI } from '@/config/project-ui';
 import { resolveProjectUI } from '@/design-system/resolve-project-ui';
 import { uiToCssVars } from '@/design-system/derive-tokens';
 import { ProjectUIProvider } from '@/design-system/use-project-ui';
-import { PRESETS, type Density, type PresetId } from '@/design-system/registry';
+import { PRESETS, type Density, type PresetId, type ShellId } from '@/design-system/registry';
 import { PreviewScreenView, isPreviewScreen } from './screens';
 
 /**
@@ -25,12 +25,30 @@ export function PreviewClient() {
   const presetParam = params.get('preset');
   const preset: PresetId =
     presetParam && presetParam in PRESETS ? (presetParam as PresetId) : PROJECT_UI.preset;
-  const density: Density = params.get('density') === 'comfortable' ? 'comfortable' : 'compact';
+  /**
+   * KHÔNG mặc định 'compact'. Mật độ là trục phân biệt NẶNG NHẤT giữa các
+   * preset (§1.1: "số dòng bảng thấy được/màn"); ép compact cho mọi preset là
+   * tự bịt mắt mình ở đúng chỗ phép thử §1.3 nhìn vào.
+   * Thiếu `?density=` → dùng mật độ RIÊNG của preset.
+   */
+  const densityParam = params.get('density');
+  const density: Density | undefined =
+    densityParam === 'comfortable' || densityParam === 'compact' ? densityParam : undefined;
   const theme = params.get('theme') === 'dark' ? 'dark' : 'light';
   const screenParam = params.get('screen');
   const screen = isPreviewScreen(screenParam) ? screenParam : 'list';
 
-  const ui = resolveProjectUI({ ...PROJECT_UI, preset }, { density });
+  // `?shell=` đi qua ĐÚNG đường overrides của cấp dự án (§2.3), không phải một
+  // lối tắt riêng của trang preview — nếu không thì ảnh baseline chứng minh
+  // cho một chuỗi phân giải mà production không dùng.
+  const shellParam = params.get('shell');
+  const shell: ShellId | undefined =
+    shellParam === 'sidebar' || shellParam === 'hybrid' ? shellParam : undefined;
+
+  const ui = resolveProjectUI(
+    { ...PROJECT_UI, preset, ...(shell ? { overrides: { shell } } : {}) },
+    density ? { density } : undefined,
+  );
 
   /**
    * `data-theme` PHẢI nằm trên <html>, không phải trên div bọc.
@@ -63,7 +81,12 @@ export function PreviewClient() {
         data-preset={ui.preset}
         data-density={ui.behavior.density}
         data-screen={screen}
+        data-shell={ui.behavior.shell}
         style={{
+          // Lưu ý: trong tập này, `--brand-h`/`--brand-c-preset` KHÔNG có tác
+          // dụng vì `--brand-400` được tính ở `:root`. Script inline ở page.tsx
+          // mới là nơi đặt chúng lên <html>. Giữ ở đây cho khớp production
+          // (app thật đặt qua root layout, cũng trên <html>).
           ...(uiToCssVars(ui) as React.CSSProperties),
           background: 'var(--surface-page)',
           color: 'var(--text-body)',
