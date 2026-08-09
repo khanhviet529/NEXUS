@@ -24,15 +24,15 @@ const cellsOfRow = (idx: number) => ({
 describe('OrderFormDialog — field array (nợ test PR#4)', () => {
   it('thêm/xoá dòng: nút xoá bị chặn khi chỉ còn MỘT dòng', async () => {
     openForm();
-    expect(screen.getAllByLabelText('Xoá dòng')).toHaveLength(1);
-    expect(screen.getByLabelText('Xoá dòng')).toBeDisabled();
+    expect(screen.getAllByLabelText(/^Xoá dòng /)).toHaveLength(1);
+    expect(screen.getAllByLabelText(/^Xoá dòng /)[0]!).toBeDisabled();
 
     await userEvent.click(screen.getByRole('button', { name: /Thêm dòng/ }));
-    await waitFor(() => expect(screen.getAllByLabelText('Xoá dòng')).toHaveLength(2));
-    expect(screen.getAllByLabelText('Xoá dòng')[0]).toBeEnabled();
+    await waitFor(() => expect(screen.getAllByLabelText(/^Xoá dòng /)).toHaveLength(2));
+    expect(screen.getAllByLabelText(/^Xoá dòng /)[0]).toBeEnabled();
 
-    await userEvent.click(screen.getAllByLabelText('Xoá dòng')[0]!);
-    await waitFor(() => expect(screen.getAllByLabelText('Xoá dòng')).toHaveLength(1));
+    await userEvent.click(screen.getAllByLabelText(/^Xoá dòng /)[0]!);
+    await waitFor(() => expect(screen.getAllByLabelText(/^Xoá dòng /)).toHaveLength(1));
   });
 
   it('dòng TỔNG dùng chung calculateMoney với BE: 2 × 100.000 + VAT 10% = 220.000', async () => {
@@ -110,7 +110,7 @@ describe('OrderFormDialog — field array (nợ test PR#4)', () => {
     inputs.at(-1)!.focus(); // ô cuối cùng của dòng cuối
     await userEvent.keyboard('{Enter}');
 
-    await waitFor(() => expect(screen.getAllByLabelText('Xoá dòng')).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByLabelText(/^Xoá dòng /)).toHaveLength(2));
     expect(onPost).not.toHaveBeenCalled();
   });
 });
