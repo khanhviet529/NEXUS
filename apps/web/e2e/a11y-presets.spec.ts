@@ -26,12 +26,22 @@ for (const preset of PRESET_IDS) {
           `/design-system/preview?preset=${preset}&screen=${screen}&theme=${theme}&density=compact`,
         );
         await expect(page.locator(`[data-screen="${screen}"]`)).toBeVisible();
+        // Chờ theme ĐÃ áp trước khi quét. Phần tử hiện ra KHÔNG có nghĩa là
+        // theme đã đúng: nếu quét lúc đang lật, axe đọc màu chữ của theme này
+        // với màu nền của theme kia và báo vi phạm không có thật.
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
         const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
 
         // Báo lỗi kèm TÊN MÀN và selector: "có 3 vi phạm" không giúp ai sửa.
         expect(
-          result.violations.map((v) => `${screen}: ${v.id} @ ${v.nodes[0]?.target.join(' ')}`),
+          // Kèm mô tả đầy đủ của axe (màu chữ, màu nền, tỉ số đo được) — thiếu
+          // nó thì người đọc CI chỉ biết "có vi phạm" mà không biết sửa gì.
+          result.violations.map(
+            (v) =>
+              `${screen}: ${v.id} @ ${v.nodes[0]?.target.join(' ')} — ` +
+              `${v.nodes[0]?.failureSummary?.replace(/\s+/g, ' ')}`,
+          ),
           `Vi phạm a11y ở ${preset}/${theme}/${screen}`,
         ).toEqual([]);
       }

@@ -62,6 +62,10 @@
 
 | ⚠️ Check chạy RỖNG | `check-fe-test-coverage` (check #6, dựng ở B2) **tự bỏ qua ở MỌI PR** kể từ khi ra đời | Claude | 🔍 chờ review | log CI làm bằng | `actions/checkout@v4` mặc định clone NÔNG → không có `origin/main` → check tự thoát 0 với dòng "CI luôn có" (sai). Sửa: `fetch-depth: 0` + fetch nhánh gốc + truyền `BASE_REF`; và check nay **ĐỎ** thay vì bỏ qua khi thiếu mốc so sánh trong CI. Bài học: check tự tắt ở đúng nơi cần chạy còn tệ hơn không có check |
 
+| ⚠️ Nhiễu đã sửa | **Bộ a11y đỏ ngẫu nhiên ~1/4 lượt** ở dark mode, mỗi lần một màn khác nhau (`detail`, `states`…), luôn là `color-contrast @ .bg-primary` | Claude | 🔍 chờ review | **16/16 lượt xanh** sau khi sửa | Đua trạng thái: `[data-screen]` có mặt ở ms=0 với `data-theme="light"`, `useLayoutEffect` chỉ lật sang `dark` SAU hydrate. axe quét đúng cửa sổ đó đọc màu CHỮ theme này với màu NỀN theme kia → 2,54:1. Sửa gốc: script inline đặt theme lúc phân tích HTML; thêm lớp phòng thủ: test khẳng định `html[data-theme]` trước khi quét |
+
+| 🐛 NỢ mới (PR riêng) | **Dark mode KHÔNG giảm chroma như §3.3 mô tả** — `--brand-c` vẫn là 0,15 thay vì 0,13 | Claude | ⏳ chưa làm | đo được: `brandC=0.15` khi `theme=dark` | `uiToCssVars` ghi `--brand-c` bằng inline style trên `<html>`, mà inline THẮNG rule `[data-theme='dark']` trong stylesheet. Cách sửa: đổi thành `--brand-c-preset` rồi `--brand-c: var(--brand-c-preset)` ở light và `calc(... - 0.02)` ở dark. **Tách PR riêng** vì đổi màu → phải chụp lại toàn bộ ảnh baseline |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):

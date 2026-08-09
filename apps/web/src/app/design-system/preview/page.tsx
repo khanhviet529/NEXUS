@@ -21,8 +21,28 @@ export default function DesignSystemPreviewPage() {
   if (!enabled) notFound();
 
   return (
-    <Suspense fallback={null}>
-      <PreviewClient />
-    </Suspense>
+    <>
+      {/*
+        Đặt data-theme NGAY khi trình duyệt phân tích HTML, trước khi vẽ và
+        trước khi hydrate.
+
+        Vì sao không để useLayoutEffect làm: nó chỉ chạy SAU hydrate, nên có
+        một cửa sổ mà phần tử đã hiện còn <html> vẫn mang theme của SSR. axe
+        quét đúng cửa sổ đó sẽ đọc màu CHỮ của theme này với màu NỀN của theme
+        kia — ra 2,54:1 và báo vi phạm không có thật. Lỗi này đã làm CI đỏ ngẫu
+        nhiên ở một màn khác nhau mỗi lần, khoảng 1/4 số lượt.
+
+        Script đọc thẳng URL nên không phụ thuộc React. Đây cũng là khuôn mẫu
+        chống "nháy theme" tiêu chuẩn.
+      */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){try{var t=new URL(location.href).searchParams.get('theme');document.documentElement.dataset.theme=t==='dark'?'dark':'light';}catch(e){}})();`,
+        }}
+      />
+      <Suspense fallback={null}>
+        <PreviewClient />
+      </Suspense>
+    </>
   );
 }
