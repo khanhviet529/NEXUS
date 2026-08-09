@@ -163,3 +163,48 @@ jobs:
             apps/web/playwright-report/
             apps/web/test-results/
           retention-days: 7
+
+  generator:
+    name: Test #37 — generator gen:module
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # fetch-depth: 0 để `git diff --exit-code` ở bước cuối so được với gốc
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared + Prisma generate
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
+
+      # Test này SỬA repo rồi dọn lại: sinh module, chèn model, khai registry,
+      # chạy test sinh kèm. Chạy job riêng để một lần đỏ giữa chừng không để
+      # lại rác cho job khác.
+      - name: Test #37 (4 khẳng định)
+        run: node tools/test-generator.mjs
+
+      # Kiểm chính HÀM DỌN DẸP của test: dọn sót thì đỏ ở đây.
+      # Không có bước này thì test có thể "xanh" mà để lại model tạm trong
+      # schema, và PR sau sẽ mang theo rác không ai để ý.
+      - name: Dọn dẹp có sạch không
+        run: |
+          git status --porcelain
+          git diff --exit-code
+          test -z "$(git status --porcelain)" || {
+            echo "::error::Test #37 để lại file thừa — sửa hàm cleanup() trong tools/test-generator.mjs"
+            exit 1
+          }

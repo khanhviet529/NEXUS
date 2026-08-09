@@ -80,6 +80,14 @@
 
 | ✅ N1.3 | `check-pr-size` vượt ngưỡng → **ĐỎ**, trừ khi mô tả PR có dòng `PR-SIZE-OK: <lý do ≥30 ký tự>` | Claude | 🔍 chờ review | 6 nhánh đều kiểm | Cảnh báo không ai phải trả lời sẽ bị lờ sau ba lần. Vẫn không chặn cứng theo con số: chặn cứng đẻ ra thói quen tách PR theo SỐ DÒNG thay vì theo Ý NGHĨA |
 
+| ✅ **PHÉP THỬ §1.3 — ĐẠT** | Người dùng xem hai ảnh cùng một màn (Enterprise `sidebar` vs Operations `hybrid`) và xác nhận: *"người ngoài sẽ nói đây là hai sản phẩm khác nhau, không phải hai theme của cùng một app"* | Người dùng | ✅ **ĐÓNG GĐ B** | 2 ảnh, 2026-08-10 | Điểm quan trọng nhất trong nhận xét: **che 60px trên cùng thì bảng bên dưới VẪN phân biệt được** — badge nền đặc/nhạt, zebra, chiều cao dòng. Khác biệt KHÔNG dồn hết vào shell. Đó là rủi ro lớn nhất của hệ preset và nó đã được loại |
+
+| ✅ Test #37 | Generator `gen:module` — 4 khẳng định (sinh 7 file · check PHẢI ĐỎ · khai registry → xanh + migrate + typecheck · **test sinh kèm chạy và xanh**) | Claude | 🔍 chờ review | **8/8 khẳng định ✅** | Số hiệu #37 vì #31 đã bị audit-atomicity của ADR-0004 chiếm. ⚠️ `docs/test-a-b.md` **vẫn không có trong repo** (đã tìm mọi ref, mọi nhánh, cả trên đĩa) — dựng theo bốn khẳng định nêu trong yêu cầu. Job CI riêng, bước cuối `git diff --exit-code` kiểm chính hàm dọn dẹp |
+
+| 🔎 Test #37 bắt được | **Lưới phòng vệ của generator KHÔNG tồn tại**: `plopfile.mjs` viết "check kiến trúc sẽ ĐỎ nếu quên", nhưng ngay sau `gen:module` thì `run-all.mjs` VẪN XANH | Claude | đã vá | check #10 mới | Các check hiện có đều quét SCHEMA (model → policy → ma trận); module mới CHƯA có model thì không vi phạm cái nào. Thêm `check-module-registry.mjs` đi HƯỚNG NGƯỢC: từ `prisma.client.<model>` trong repository về `TENANCY_POLICY`. **Cơ chế phòng vệ hỏng nguy hiểm hơn generator hỏng** — nó khiến người ta tin là mình không quên gì |
+
+| 🔎 CHECKLIST generator thiếu 3 bước | Làm ĐÚNG 8 bước checklist vẫn KHÔNG chạy được | Claude | ⏳ chưa vá (ghi sổ) | dựng lại được bằng test #37 | (a) **Không nhắc build lại `@nexus/shared`** — sửa `tenancy-policy.ts` mà không build thì app chết lúc khởi động "Model CHƯA phân loại tenancy", trong khi check kiến trúc (đọc SOURCE) vẫn xanh. (b) **Không nhắc gán quyền cho vai trò** trong `seed-roles.ts` — quyền có trong registry mà không vai trò nào có thì mọi request 403. (c) Bước 1 nói "copy khuôn Customer" nhưng **không liệt kê cột `*_search`** mà repository sinh ra BẮT BUỘC ghi; thiếu chúng thì **typecheck XANH mà runtime 500**, vì `buildSearchColumns` trả kiểu lỏng |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):

@@ -35,6 +35,7 @@ const checks = [
   'check-fe-test-coverage.mjs', // §7.2: chạm apps/web phải kèm test/story
   'check-token-layers.mjs', // fe-preset-system §3.4: kỷ luật ba tầng token
   'check-raw-sql.mjs', // test-catalog §3B: AR3/AR4/AR14 — AR14 gác bảng HYBRID
+  'check-module-registry.mjs', // test #37: module mới phải khai model, đi ngược từ code về registry
 ];
 
 /**
