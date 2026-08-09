@@ -47,6 +47,8 @@ export function uiToCssVars(ui: ResolvedUI): Record<string, string> {
     ...deriveTokens(ui.behavior),
     ...appearanceToCssVars(ui.appearance),
     '--brand-h': String(ui.brandHue),
-    '--brand-c': String(ui.appearance.brandChroma),
+    // `-preset`, KHÔNG phải `--brand-c`: xem chú thích ở primitive.css. Ghi
+    // thẳng --brand-c sẽ vô hiệu hoá phần giảm chroma của dark mode.
+    '--brand-c-preset': String(ui.appearance.brandChroma),
   };
 }

@@ -83,6 +83,10 @@ describe('appearanceToCssVars + uiToCssVars', () => {
     const vars = uiToCssVars(ui);
     expect(vars['--card-radius']).toBe('99px');
     expect(vars['--brand-h']).toBe('200');
-    expect(vars['--brand-c']).toBe(String(PRESETS.enterprise.appearance.brandChroma));
+    // PHẢI là `--brand-c-preset`. Ghi thẳng `--brand-c` sẽ đè lên rule
+    // `[data-theme='dark']` (inline thắng stylesheet) và dark mode mất phần
+    // giảm chroma của §3.3 mà không có gì báo.
+    expect(vars['--brand-c-preset']).toBe(String(PRESETS.enterprise.appearance.brandChroma));
+    expect(vars['--brand-c'], 'không được ghi trực tiếp --brand-c').toBeUndefined();
   });
 });

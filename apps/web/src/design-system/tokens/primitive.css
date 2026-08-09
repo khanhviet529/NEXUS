@@ -16,7 +16,16 @@
   /* Tham số palette — SSR ghi đè bằng inline style ở app/layout.tsx.
      Giá trị dưới đây chỉ là dự phòng khi chạy ngoài SSR (Storybook đơn lẻ). */
   --brand-h: 255;
-  --brand-c: 0.15;
+
+  /* HAI biến, không phải một — và đây là chỗ đã có bug:
+     `uiToCssVars` ghi tham số của preset bằng INLINE STYLE trên <html>, mà
+     inline THẮNG mọi rule trong stylesheet. Nếu preset ghi thẳng `--brand-c`
+     thì dòng `[data-theme='dark'] { --brand-c: … }` ở semantic.css KHÔNG bao
+     giờ có tác dụng — dark mode mất phần giảm chroma mà §3.3 mô tả, im lặng.
+     Nay preset ghi `--brand-c-preset`, còn `--brand-c` là giá trị ĐÃ áp theme,
+     nên dark mode dẫn xuất được từ nó. */
+  --brand-c-preset: 0.15;
+  --brand-c: var(--brand-c-preset);
 
   /* Thang theo L của OKLCH — L xấp xỉ độ sáng cảm nhận nên đổi hue cho kết
      quả dự đoán được hơn HSL.
