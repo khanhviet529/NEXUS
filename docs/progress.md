@@ -58,6 +58,10 @@
 
 | TC-3 | **test-catalog tầng 1** — route inventory (ModulesContainer, không `_router.stack`) + U1–U5 trên 110 route có bảo vệ | Claude | 🔍 chờ review | **8 ca ✅** | Bắt lỗi thật: §3.1c ghi "X-Request-Id LUÔN trả lại" nhưng **không ai đặt header** — 110 route thiếu. Đã sửa bằng middleware trong `configureApp`. **NỢ: U6** (id tenant khác → 404) cần fixture factory theo catalog §2.3 |
 
+| ⚠️ Nợ quy trình | **PR #12 vi phạm working-agreement §6**: 115 file · +7.760/−529 · 16 commit — gấp ~19 lần ngưỡng 400 dòng, và chứa `tenancy.extension.ts` là file nguy hiểm nhất repo | Claude | ghi nhận, KHÔNG chặn | — | Tách ngược lại tốn hơn được. Đã review riêng 72 dòng phần tenancy. Để lần này không thành bình thường: thêm **check #9 `check-pr-size`** cảnh báo (không chặn) khi phần cần review vượt 400/800 dòng |
+
+| ⚠️ Check chạy RỖNG | `check-fe-test-coverage` (check #6, dựng ở B2) **tự bỏ qua ở MỌI PR** kể từ khi ra đời | Claude | 🔍 chờ review | log CI làm bằng | `actions/checkout@v4` mặc định clone NÔNG → không có `origin/main` → check tự thoát 0 với dòng "CI luôn có" (sai). Sửa: `fetch-depth: 0` + fetch nhánh gốc + truyền `BASE_REF`; và check nay **ĐỎ** thay vì bỏ qua khi thiếu mốc so sánh trong CI. Bài học: check tự tắt ở đúng nơi cần chạy còn tệ hơn không có check |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):

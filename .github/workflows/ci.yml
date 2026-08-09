@@ -16,7 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # fetch-depth: 0 là BẮT BUỘC, không phải tối ưu.
+      # Clone nông không có `origin/main`, và check nào so diff với nhánh gốc
+      # (check-fe-test-coverage, check-pr-size) sẽ TỰ BỎ QUA — chúng đã chạy
+      # rỗng ở mọi PR trước khi dòng này tồn tại.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -30,8 +36,25 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Check kiến trúc (tenancy vét cạn, ma trận §6.5, cấm role branching, audit coverage)
+      # Nhánh gốc phải có mặt dưới dạng origin/<base> để check diff có mốc so.
+      # PR: github.base_ref; push lên main: chính main.
+      - name: Nạp nhánh gốc cho check diff
+        run: |
+          BASE="${{ github.base_ref || 'main' }}"
+          git fetch --no-tags --prune origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+          git rev-parse --verify "origin/$BASE"
+
+      - name: Check kiến trúc (tenancy vét cạn, ma trận §6.5, cấm role branching, audit coverage, token 3 tầng, SQL thô)
+        env:
+          BASE_REF: origin/${{ github.base_ref || 'main' }}
         run: node tools/checks/run-all.mjs
+
+      # Tư vấn, KHÔNG chặn — xem chú thích đầu check-pr-size.mjs
+      - name: Kích thước PR so với working-agreement §6
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref || 'main' }}
+        run: node tools/checks/check-pr-size.mjs
 
       - name: Prisma generate
         run: pnpm --filter @nexus/api prisma:generate

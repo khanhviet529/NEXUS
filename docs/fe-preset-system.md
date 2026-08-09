@@ -947,12 +947,58 @@ chỗ. Ghi lại ở đây để bản v2 không "sửa ngược" về chỗ cũ
 liệt kê đúng ba token đó trong danh sách phụ thuộc mật độ **và** sinh chúng
 trong `deriveTokens`. Một token không thể vừa free vừa derived.
 
-**Chọn theo §4.1b.** §4.1b là mục sửa lỗi của bản trước, và luật *"user đổi
-density → MỌI component phụ thuộc mật độ đổi đồng bộ"* mạnh hơn quyền tuỳ biến
-của preset. Preset muốn đổi chiều cao header thì đổi qua `density`, không đổi
-qua token rời.
+**Chọn theo §4.1b — và đây KHÔNG phải một lựa chọn giữa hai hướng.**
 
-`DERIVED_TOKENS` cuối cùng có 12 phần tử; `FreeToken` có 16. Test
+Có hai cách giải mâu thuẫn:
+
+| | Cách | Hệ quả |
+|---|---|---|
+| (a) | Chuyển ba token sang `DERIVED` | Preset mất quyền đặt chúng |
+| (b) | Bỏ chúng khỏi `deriveTokens()` | Đổi density **không** đổi `card-padding` |
+
+(b) vi phạm §4.1b, vốn là luật **cấp cơ chế**: *"user đổi density → MỌI
+component phụ thuộc mật độ đổi đồng bộ"*. Nếu `card-padding` là FREE và một
+preset ghim `12px` thì bật comfortable sẽ giãn `input-h`, `sidebar-w` mà không
+giãn padding của card — đúng cái bug §4.1b sinh ra để chặn.
+
+Nên (a) là hướng DUY NHẤT thoả một luật đã có. Đó là sửa lỗi biên tập, không
+phải đổi quyết định, nên không cần ADR.
+
+## 14.1b Năm chỗ lệch, không phải ba
+
+Kiểm lại toàn bộ ba danh sách của §4 cho ra **năm** chỗ, không phải ba:
+
+```
+deriveTokens() ở §4.1b sinh 12 token
+DERIVED_TOKENS ở §4.1  khai   7
+FreeToken      ở §4.1  khai  15
+
+Nằm ở CẢ HAI list  → table-font-size · header-h · card-padding
+Nằm ở KHÔNG list nào → button-h · toolbar-h
+```
+
+Hai token cuối nguy hiểm hơn ba token đầu: token không khai ở đâu thì
+`check-token-layers` **không kiểm được nó**, nên preset ghi đè lên nó cũng
+không ai biết. Cả năm đã vào `DERIVED_TOKENS` trong code.
+
+Bất biến này có test khoá — `derive-tokens.spec.ts` khẳng định `deriveTokens()`
+phát ra ĐÚNG tập `DERIVED_TOKENS`, không thừa không thiếu. Thêm token vào một
+chỗ mà quên chỗ kia là đỏ ngay.
+
+## 14.1c Cái giá đã biết trước — đừng sửa bây giờ
+
+Sau (a), Enterprise và Modern có CÙNG `card-padding` ở cùng density. Mà Modern
+được định nghĩa là "thoáng", chủ yếu là chuyện padding. Nên nhiều khả năng GĐ D
+sẽ cần:
+
+```ts
+tokens: Partial<Record<FreeToken, string | DensityScale<string>>>
+```
+
+Token vừa do preset đặt, vừa nhận biết density. **Đó mới là đổi cơ chế và cần
+ADR** — chỉ làm khi GĐ B/D chứng minh cần, không làm trước.
+
+`DERIVED_TOKENS` cuối cùng có 12 phần tử; `FreeToken` có 16 (xem §14.1b). Test
 `derive-tokens.spec.ts` khoá hai tập này rời nhau và khoá `deriveTokens` phát
 ra ĐÚNG tập `DERIVED_TOKENS`.
 
