@@ -1,0 +1,59 @@
+/* ============================================================
+ * TẦNG 3 — COMPONENT (fe-preset-system §3)
+ *
+ * PRESET CHỈ ĐÈ TẦNG NÀY. Đây là mặc định khi preset không nói gì.
+ *
+ * ⚠ File này CHỈ chứa token TỰ DO (`FreeToken`, registry.ts §4.1).
+ * Token DERIVED (--table-row-h, --input-h, --header-h, --card-padding…)
+ * KHÔNG được viết tay ở đây: chúng sinh từ `behavior` qua deriveTokens()
+ * và ghi bằng inline style lúc SSR (§4.2). Viết tay là tạo nguồn sự thật
+ * thứ hai — đúng thứ §4.1 tồn tại để chặn.
+ *
+ * Ngoại lệ có kiểm soát: khối `@layer` cuối file đặt dự phòng cho môi
+ * trường KHÔNG có SSR (Storybook chạy component lẻ). Độ ưu tiên thấp hơn
+ * inline style nên không bao giờ thắng ở app thật.
+ * ============================================================ */
+
+:root {
+  --table-header-bg: var(--surface-sunken);
+  --table-row-hover: oklch(from var(--surface-page) calc(l - 0.02) c h);
+  --table-row-selected: oklch(from var(--color-primary) l c h / 0.08);
+  --table-viewport-h: 70vh;
+
+  --sidebar-bg: var(--gray-800);
+  --sidebar-fg: oklch(0.94 0.005 250);
+  --sidebar-item-hover: oklch(0.3 0.02 258);
+  --sidebar-item-active: var(--color-primary);
+
+  --header-bg: var(--surface-raised);
+
+  --card-radius: 4px;
+  --card-shadow: var(--shadow-none);
+  --card-border: 1px solid var(--border-default);
+
+  --dialog-radius: 6px;
+  --dialog-shadow: var(--shadow-md);
+
+  --badge-radius: 3px;
+
+  --form-label-w: 180px;
+}
+
+/* Dự phòng cho môi trường không SSR. Ở app thật, deriveTokens() ghi inline
+   style trên <html> nên luôn thắng khối này (inline > stylesheet). */
+@layer base {
+  :root {
+    --table-row-h: 32px;
+    --table-font-size: var(--text-sm);
+    --table-zebra: transparent;
+    --sidebar-w: 240px;
+    --header-h: 52px;
+    --toolbar-h: 40px;
+    --input-h: 32px;
+    --button-h: 32px;
+    --form-row-gap: var(--space-2);
+    --card-padding: var(--space-3);
+    --badge-font-size: var(--text-xs);
+    --badge-padding: 2px 6px;
+  }
+}

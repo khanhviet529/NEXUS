@@ -1,0 +1,92 @@
+/* ============================================================
+ * TẦNG 2 — SEMANTIC (fe-preset-system §3)
+ *
+ * Ngữ nghĩa dùng chung. Component dùng được tầng này.
+ * KHÔNG PRESET NÀO ĐƯỢC ĐÈ TẦNG NÀY (luật 2, §3.1) — đè tầng 2 là đổi
+ * nghĩa của `primary` theo từng preset, và mọi component vỡ theo cách
+ * không đoán được. Preset cần ghi tầng 2 nghĩa là TẦNG 3 THIẾU TOKEN.
+ *
+ * Tên cũ (--background, --foreground, --card…) giữ lại làm ALIAS trong
+ * suốt di trú §10 bước 2. Xoá alias ở bước 5 khi không còn ai dùng.
+ * ============================================================ */
+
+:root {
+  --color-primary: var(--brand-600);
+  --color-primary-fg: oklch(0.98 0 0);
+  --color-danger: var(--red-600);
+  --color-danger-fg: oklch(0.985 0.002 250);
+  --color-success: var(--green-600);
+  --color-warning: var(--amber-500);
+  --color-info: var(--sky-600);
+
+  --surface-page: var(--gray-50);
+  --surface-raised: var(--gray-0);
+  --surface-sunken: var(--gray-100);
+  --border-default: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --focus-ring: var(--brand-500);
+
+  --text-body: var(--gray-900);
+  --text-muted: var(--gray-500);
+
+  /* Trạng thái chứng từ — map từ design-system/state-tones.ts (§9.1) */
+  --tone-neutral: var(--text-muted);
+  --tone-warning: var(--color-warning);
+  --tone-success: var(--color-success);
+  --tone-danger: var(--color-danger);
+  --tone-info: var(--color-info);
+  --tone-muted: var(--gray-400);
+
+  --radius: 0.5rem;
+
+  /* z-index (§5.7) — THÊM tầng mới vào đây, không viết số trong component */
+  --z-sticky: 20;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-popover: 70;
+  --z-toast: 80;
+
+  /* ---- Alias tên cũ (§10 bước 2). Hai tên cùng tồn tại, chưa sửa component ---- */
+  --background: var(--surface-page);
+  --foreground: var(--text-body);
+  --card: var(--surface-raised);
+  --card-foreground: var(--text-body);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-muted);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--focus-ring);
+  /* Bốn alias này trỏ THẲNG vào tầng 1, KHÔNG trỏ vào --color-* của tầng 2.
+     Lý do: namespace theme của Tailwind v4 cũng là --color-*, nên
+     `--primary: var(--color-primary)` cộng với `@theme { --color-primary:
+     var(--primary) }` tạo vòng lặp biến và màu rơi về mặc định trình duyệt.
+     Trùng lặp ở đây là cố ý và tạm thời — xoá cùng alias ở §10 bước 5. */
+  --primary: var(--brand-600);
+  --primary-foreground: oklch(0.98 0 0);
+  --destructive: var(--red-600);
+  --destructive-foreground: oklch(0.985 0.002 250);
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--text-body);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-body);
+}
+
+/* Dark mode: đè TẦNG 2, cộng ngoại lệ có chủ đích ở tham số palette (§3.3).
+   Không component nào biết dark mode tồn tại. Không preset nào đè khối này. */
+[data-theme='dark'] {
+  --brand-c: 0.13; /* giảm chroma cho nền tối — tham số palette, §3.3 */
+  --color-primary: var(--brand-400); /* sáng hơn để nổi trên nền tối */
+  --primary: var(--brand-400); /* alias phải đổi cùng — xem ghi chú ở :root */
+
+  --surface-page: oklch(0.19 0.015 255);
+  --surface-raised: oklch(0.23 0.015 255);
+  --surface-sunken: oklch(0.27 0.015 255);
+  --border-default: oklch(0.32 0.015 255);
+  --border-strong: oklch(0.4 0.015 255);
+  --text-body: oklch(0.93 0.005 250);
+  --text-muted: oklch(0.68 0.01 250);
+  --tone-muted: oklch(0.55 0.01 250);
+
+  --accent: oklch(0.29 0.02 255);
+}

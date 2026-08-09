@@ -31,14 +31,35 @@ export const ORDER_STATE_LABEL = {
 } as const satisfies Record<OrderState, string>;
 
 /**
- * Lớp CSS theo tone — dùng token §5.7, KHÔNG màu rời rạc.
- * Giữ ở đây (không rải trong component) để đổi bảng màu là sửa một chỗ.
+ * Tone → token màu TẦNG 2. Trả về TÊN TOKEN, không phải class hay màu.
+ *
+ * Trước đây map này trả class Tailwind arbitrary
+ * (`bg-[color-mix(in_oklch,var(--color-primary)_12%…)]`) và cả `warning` lẫn
+ * `success` đều lấy từ `--color-primary` — hai trạng thái đối lập ra gần như
+ * cùng một màu. Trả token để nơi dùng tự pha nền/chữ, và để preset đổi bảng
+ * màu ở đúng một chỗ.
  */
-export const TONE_CLASS: Record<Tone, string> = {
-  neutral: 'bg-muted text-muted-foreground',
-  warning: 'bg-[color-mix(in_oklch,var(--color-primary)_12%,transparent)] text-foreground',
-  success: 'bg-[color-mix(in_oklch,var(--color-primary)_18%,transparent)] text-primary',
-  danger: 'bg-[color-mix(in_oklch,var(--color-destructive)_15%,transparent)] text-destructive',
-  info: 'bg-accent text-accent-foreground',
-  muted: 'bg-muted text-muted-foreground line-through',
+export const TONE_VAR: Record<Tone, string> = {
+  neutral: 'var(--tone-neutral)',
+  warning: 'var(--tone-warning)',
+  success: 'var(--tone-success)',
+  danger: 'var(--tone-danger)',
+  info: 'var(--tone-info)',
+  muted: 'var(--tone-muted)',
+};
+
+/**
+ * Ký hiệu chữ đi kèm màu — §8.4 mục 2, mục quan trọng nhất của checklist a11y.
+ *
+ * 8% nam giới mù màu đỏ-lục: badge "Đã duyệt" xanh và "Từ chối" đỏ mà không có
+ * dấu hiệu thứ hai thì họ KHÔNG phân biệt được. Đây là lý do màu không bao giờ
+ * được là dấu hiệu duy nhất.
+ */
+export const TONE_SYMBOL: Record<Tone, string> = {
+  neutral: '○',
+  warning: '◐',
+  success: '●',
+  danger: '✕',
+  info: 'ℹ',
+  muted: '⊘',
 };

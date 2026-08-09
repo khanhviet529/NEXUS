@@ -34,18 +34,19 @@ export const MoiTrangThaiDonHang: Story = {
   },
 };
 
-export const BaMucNhanManh: Story = {
-  name: 'Ba mức nhấn mạnh (preset sẽ chọn)',
+export const HaiMucNhanManh: Story = {
+  name: 'Hai mức nhấn mạnh (preset chọn)',
   args: { tone: 'neutral', label: '' },
   render: () => (
     <div className="flex items-center gap-3">
+      {/* Enterprise dùng 'subtle' (bảng 30 dòng không bị loang màu);
+          Operations dùng 'strong' (đọc được từ xa ở màn hình kho). */}
       <OrderStatusBadge status="PENDING" emphasis="subtle" />
-      <OrderStatusBadge status="PENDING" emphasis="normal" />
       <OrderStatusBadge status="PENDING" emphasis="strong" />
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByText('Chờ duyệt')).toHaveLength(3);
+    await expect(canvas.getAllByText('Chờ duyệt')).toHaveLength(2);
   },
 };
