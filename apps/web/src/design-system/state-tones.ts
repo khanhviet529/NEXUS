@@ -49,6 +49,23 @@ export const TONE_VAR: Record<Tone, string> = {
 };
 
 /**
+ * Màu CHỮ của tone. Tách khỏi màu nền vì một màu không làm được cả hai việc:
+ * amber ở L=0.75 là nền cảnh báo tốt nhưng làm chữ trên nền sáng chỉ đạt
+ * ~2,4:1 — axe bắt đúng lỗi này ở e2e/a11y-presets.spec.ts.
+ *
+ * Dark mode đổi các token này thành bản SÁNG (semantic.css), nên component
+ * dùng chúng mà không cần biết đang ở theme nào.
+ */
+export const TONE_FG_VAR: Record<Tone, string> = {
+  neutral: 'var(--tone-neutral-fg)',
+  warning: 'var(--tone-warning-fg)',
+  success: 'var(--tone-success-fg)',
+  danger: 'var(--tone-danger-fg)',
+  info: 'var(--tone-info-fg)',
+  muted: 'var(--tone-muted-fg)',
+};
+
+/**
  * Ký hiệu chữ đi kèm màu — §8.4 mục 2, mục quan trọng nhất của checklist a11y.
  *
  * 8% nam giới mù màu đỏ-lục: badge "Đã duyệt" xanh và "Từ chối" đỏ mà không có

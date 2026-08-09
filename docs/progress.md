@@ -26,13 +26,31 @@
 | 8a | Global search (§5C.7): GET /search nhóm theo module, quyền động theo nhóm, scope nhúng WHERE, tìm không dấu trên cột *_search, kết quả CHỈ cột định danh | Claude | 🔍 chờ review | **#29 ✅** (search-gd8 5 test, suite 176/176) | recent/favorites làm ở GĐ10 cùng §5C.2 |
 | 8b | Action Registry (§5.9 theo docs/action-registry.tsx) + overlay manager (confirm promise: typeToConfirm/reason/options + bulk result dialog) + Cmd+K (cmdk + global search debounce) + nền FE: tokens §5.7 (--z-* duy nhất), next-intl vi/en (cookie), ui primitives shadcn, trang /orders demo 4 nơi; BE thêm POST /orders/:id/cancel (máy trạng thái có sẵn) | Claude | 🔍 chờ review | web build + tsc + lint xanh; orders+matrix 54/54 | Deps FE theo uỷ quyền 2026-08-07 (bộ đầy đủ); orders list Swagger chưa khai ApiOkResponse → orval sinh void, FE tự khai OrderRow (nợ BE); DataTable §5.5 + Form §5.8 ở lát FE tổng thể |
 | 9 | `pnpm gen:module <tên>` (plop): sinh BE (module/controller/repository theo khuôn orders — tenant qua extension, locale JSONB+search, audit, @RequirePermission) + FE (schema/actions/page DataTable) + test skeleton 2 tenant + CHECKLIST 8 bước (generator không tự sửa registry — check kiến trúc đỏ nếu quên); System operations §5C.8: /admin/ops health(DB/Redis/S3/migration/build/backup)+queues+retry-failed+announcements(target tenant)+maintenance+clear cache tenant, /announcements/active | Claude | 🔍 chờ review | **#30 ✅ pg_dump→restore DB sạch→smoke THẬT** (ops 5 + backup 1 test) | pg_dump/pg_restore chạy qua container postgres:16-alpine dùng-1-lần (không cần client local); đã thử `gen:module invoice` end-to-end rồi xoá |
-| FE | DataTable §5.5 + Form §5.8 [REF] customers + layout (dashboard) — xem PR #4 | Claude | 🔄 đang làm | **0 test, 0 story** | NỢ: build+tsc+lint KHÔNG phải test (CLAUDE.md §7.2). Chưa có job CI cho apps/web; order-form.tsx 302 dòng không xử lý bàn phím (Enter ở ô cuối → submit đơn 1 dòng). Trả nợ theo B1→B4 |
+| FE | DataTable §5.5 + Form §5.8 [REF] customers + layout (dashboard) — xem PR #4 | Claude | 🔍 chờ review | **154 vitest + 9 e2e ✅** | Nợ test của PR #4 đã trả ở B4 (bắt 2 bug tiền thật); bàn phím ở B3; DataTable đầy đủ + preset ở GĐ A |
 
 | 10 | Hạn mức duyệt §5C.12 (bảng riêng #62, resolve cụ-thể-thắng-chung→priority→max, FAIL-CLOSED vào orders.approve, seed MANAGER/ADMIN unlimited, endpoint /check "ai đủ thẩm quyền"); Webhook §5C.5 (secret AES-256-GCM §4.11 + CryptoService mới, HMAC t/v1/v1prev — rotation 2 secret song song, fan-out QUA OUTBOX dedup UNIQUE, retry backoff + tự tắt sau 10 lỗi + replay); recent/favorites §5C.2 theo membership | Claude | 🔍 chờ review | **gd10 6 test ✅** | CẮT theo nhãn spec + uỷ quyền 2026-08-08: approval_flows/steps/requests (workflow engine — làm khi có yêu cầu thật), SLA engine (§5B.4 cảnh báo), report scheduling §5C.11, comments §5C.6, grid entry, SSO/2FA (§11: tắt ENV, cần IdP thật); đa tiền tệ hạn mức fail-closed khi khác currency (chưa có bảng tỷ giá — B3 OPT) |
 
 | ADR-0004 | Chốt audit TƯỜNG MINH (thu hẹp §12 #36): `writeInTx` vào CÙNG transaction nghiệp vụ, action ngữ nghĩa SUBMIT/APPROVE từ registry đóng, CI `check-audit-coverage` kiểm cả coverage lẫn tên action; đồng bộ §4.9 + CLAUDE.md §3 + cookbook §2 | Claude | 🔍 chờ review | **#31 ✅** (audit-atomicity 4 test, có negative control) | Review chỉ ra 3 khuyết tật thật: 3 module quên audit (đã vá PR #1), audit ngoài tx, action ghi UPDATE làm timeline vô nghĩa |
 
 | B1 | Hạ tầng test FE 5 tầng: Vitest+RTL (jsdom) · MSW chặn tầng network · Storybook + play function chạy lại bằng composeStories · Playwright trên BUILD production; 3 job CI song song (ci · web-test · web-e2e); tách tsconfig app/test | Claude | 🔍 chờ review | **11 vitest + 2 e2e ✅** | Node local nâng 20→22 cho khớp engines/CI; jsdom/vite/plugin-react phải ghim đúng cặp; composeStories dùng renderer @storybook/react (bug đường dẫn Windows của nextjs-vite) |
+
+| B2 | Check thứ SÁU `check-fe-test-coverage`: chạm `apps/web/src` mà không kèm `.spec`/`.stories` → CI đỏ; miễn trừ khai tường minh kèm lý do | Claude | 🔍 chờ review | negative control ✅ | Sinh ra vì §7.2 vừa bị lách đúng một lần ở PR #4 |
+
+| B3 | `keyboardProfile` theo PATTERN (`resolveKeyAction` hàm thuần + `useFormKeyboard` bind DOM): Enter đi ô kế / thêm dòng ở ô cuối, Ctrl+Enter submit, Esc huỷ ô | Claude | 🔍 chờ review | **15 test ✅** | Test đi CÙNG PR, không hẹn sau |
+
+| B4 | Trả nợ test PR #4: MoneyInput, AsyncSelect, UploadDropzone, order-form | Claude | 🔍 chờ review | **PR #9, CI 3/3 ✅** | Bắt HAI bug tiền thật: MoneyInput hiện giá trị thô khi focus làm `100000,50` thành `10000050`; `form.watch` trả cùng reference nên dòng tổng đứng yên |
+
+| B5 | `state-tones` chuyển sang `apps/web/src/design-system` + StatusBadge | Claude | 🔍 chờ review | **PR #10, CI 3/3 ✅** | Màu trạng thái là quyết định trình bày, BE không cần biết |
+
+| B6 | `nextActionCode` ngữ nghĩa ở BE + FE quyết nhãn và đích đến | Claude | 🔍 chờ review | **PR #11, CI 3/3 ✅** | Lỗi cụt để người dùng bế tắc; có lối đi tiếp thì họ tự xử lý |
+
+| B7 | Saved views UI (áp view = `router.replace` URL) | Claude | ⏳ chưa mở PR | **6 test ✅** | Nhánh `feat/saved-views-b7` đã push; `gh` không còn trên máy nên chưa mở được PR |
+
+| B8 | CD pipeline có rollback (guard → build image → migrate → rolling → health → rollback) + Sentry redact hai phía + `/health` kiểm THẬT db/redis (503 khi hỏng) | Claude | ⏳ chưa mở PR | **health 2 + redact 4 + FE sentry 5 ✅** | Nhánh `feat/cd-sentry-b8` đã push. `deploy/*.sh` gọi `DEPLOY_HOOK` thay vì lệnh ECS/K8s: repo là boilerplate, chưa chọn hạ tầng. `rollback.sh` KHÔNG hạ cấp schema → mọi migration phải tương thích ngược |
+
+| GĐ A | Hệ preset FE (`docs/fe-preset-system.md`): ba tầng token · `registry.ts` 1 preset · ba cấp cấu hình + `resolveProjectUI` · `ShellProps` + `SidebarShell` bỏ `useQuery` · check thứ BẢY `check-token-layers` · DataTable resize/ghim/đổi thứ tự cột · DetailLayout · FilterBar · GridEntry · Import/Export UI · trang preview · **6 ảnh baseline** · **a11y 2 tổ hợp** | Claude | 🔍 chờ review | **154 vitest + 9 e2e ✅**, 7/7 check | Bộ a11y bắt BỐN lỗi tương phản thật, gồm một lỗi production: dark mode nút primary chỉ 2,54:1. Ba chỗ lệch spec có chủ đích, ghi ở §14 của fe-preset-system.md. Ảnh baseline commit cả bản `-linux` (khớp CI) lẫn `-win32` (dev máy Windows) |
+
+| **Phép thử §1.3** | Render cùng một màn bằng 4 preset, người ngoài phải phân biệt được | — | ⏳ chưa làm được | — | Cần ≥2 preset. Điều kiện đóng GĐ B, không phải GĐ A |
 
 ## Việc chặn (blocker)
 

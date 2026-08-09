@@ -5,6 +5,7 @@ import type { OrderState } from '@nexus/shared';
 import {
   ORDER_STATE_LABEL,
   ORDER_STATE_TONE,
+  TONE_FG_VAR,
   TONE_SYMBOL,
   TONE_VAR,
   type Tone,
@@ -40,7 +41,8 @@ export function StatusBadge({
 }) {
   const ui = useProjectUI();
   const strong = (emphasis ?? ui.behavior.statusEmphasis) === 'strong';
-  const color = TONE_VAR[tone];
+  const fill = TONE_VAR[tone];
+  const fg = TONE_FG_VAR[tone];
 
   return (
     <span
@@ -50,10 +52,14 @@ export function StatusBadge({
       data-emphasis={strong ? 'strong' : 'subtle'}
       className={cn('inline-flex items-center gap-1 font-medium whitespace-nowrap', className)}
       style={{
-        // 'strong' tô nền đậm hơn để đọc được từ xa (màn hình kho, quầy);
-        // 'subtle' giữ nền nhạt cho bảng dày 30 dòng không bị loang màu.
-        background: `color-mix(in oklch, ${color} ${strong ? '85%' : '14%'}, transparent)`,
-        color: strong ? 'var(--color-primary-fg)' : color,
+        // 'strong' đọc được từ xa (màn hình kho, quầy); 'subtle' giữ nền nhạt
+        // cho bảng dày 30 dòng không bị loang màu.
+        //
+        // 'strong' dùng --tone-x-fg LÀM NỀN chứ không dùng --tone-x: chỉ token
+        // -fg mới bảo đảm tương phản với chữ ở CẢ hai theme (nó tối ở light,
+        // sáng ở dark, còn --surface-raised đi ngược lại).
+        background: strong ? fg : `color-mix(in oklch, ${fill} 16%, transparent)`,
+        color: strong ? 'var(--surface-raised)' : fg,
         fontSize: 'var(--badge-font-size)',
         padding: 'var(--badge-padding)',
         borderRadius: 'var(--badge-radius)',

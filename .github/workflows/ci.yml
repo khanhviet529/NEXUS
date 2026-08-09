@@ -120,14 +120,21 @@ jobs:
       - name: Cài trình duyệt Playwright
         run: pnpm --filter @nexus/web e2e:install
 
-      # playwright.config tự chạy `pnpm build && pnpm start` (webServer)
-      - name: E2E (build production + API mock ở tầng route)
+      # playwright.config tự chạy `pnpm build && pnpm start` (webServer).
+      # Gồm cả visual regression theo preset (fe-preset-system §8.2) và a11y
+      # theo preset (§8.3) — ảnh baseline commit kèm là bản chụp trên LINUX
+      # (hậu tố -chromium-linux), khớp runner này.
+      - name: E2E + visual regression + a11y theo preset
         run: pnpm --filter @nexus/web e2e
 
-      - name: Lưu báo cáo khi đỏ
+      # Ảnh diff là thứ DUY NHẤT giải thích được vì sao visual regression đỏ;
+      # không tải lên thì người xem CI chỉ thấy "1 test failed".
+      - name: Lưu báo cáo và ảnh diff khi đỏ
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: apps/web/playwright-report/
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
           retention-days: 7

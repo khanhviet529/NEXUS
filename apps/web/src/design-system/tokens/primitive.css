@@ -18,14 +18,17 @@
   --brand-h: 255;
   --brand-c: 0.15;
 
-  /* Thang theo L của OKLCH — L xấp xỉ độ sáng cảm nhận nên đổi hue cho
-     kết quả dự đoán được. LƯU Ý §3.2: OKLCH KHÔNG bảo đảm giữ tỉ số
-     tương phản WCAG khi đổi hue → mỗi dự án phải chạy test:a11y sau khi
-     đặt brandHue riêng. */
-  --brand-400: oklch(0.68 var(--brand-c) var(--brand-h));
-  --brand-500: oklch(0.6 var(--brand-c) var(--brand-h));
-  --brand-600: oklch(0.55 var(--brand-c) var(--brand-h));
-  --brand-700: oklch(0.48 var(--brand-c) var(--brand-h));
+  /* Thang theo L của OKLCH — L xấp xỉ độ sáng cảm nhận nên đổi hue cho kết
+     quả dự đoán được hơn HSL.
+     Thang này đã HẠ so với bản nháp §3.2 (0.68/0.60/0.55/0.48). Lý do là kết
+     quả ĐO chứ không phải khẩu vị: ở L=0.55, chữ near-white trên nút primary
+     chỉ đạt ~4,3:1 và e2e/a11y-presets.spec.ts đỏ ở luật color-contrast.
+     Đây đúng là điều §3.2 cảnh báo: OKLCH KHÔNG bảo đảm WCAG. Mỗi dự án đổi
+     `brandHue` phải chạy lại `pnpm test:a11y`. */
+  --brand-400: oklch(0.7 var(--brand-c) var(--brand-h));
+  --brand-500: oklch(0.58 var(--brand-c) var(--brand-h));
+  --brand-600: oklch(0.5 var(--brand-c) var(--brand-h));
+  --brand-700: oklch(0.42 var(--brand-c) var(--brand-h));
 
   --red-600: oklch(0.55 0.2 25);
   --green-600: oklch(0.58 0.15 150);

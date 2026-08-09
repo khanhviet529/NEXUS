@@ -1,0 +1,40 @@
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { PRESET_IDS } from '../src/design-system/registry';
+
+/**
+ * [CORE] A11y regression theo preset — fe-preset-system §8.3.
+ *
+ * Mỗi preset mới là một cơ hội tự phá accessibility: đổi `brandChroma`, đổi
+ * nền sidebar, tăng mật độ — cả ba đều động vào tỉ số tương phản.
+ *
+ * GĐ A: 1 preset × 2 theme = 2 tổ hợp. GĐ B: 4. GĐ D: 8.
+ *
+ * ⚠ Đây là PRESET regression, chạy với `brandHue` mặc định của boilerplate.
+ * Nó KHÔNG thay cho BRAND regression: OKLCH dự đoán được hơn HSL nhưng không
+ * bảo đảm giữ tỉ số tương phản WCAG khi đổi hue — WCAG tính từ relative
+ * luminance, không phải từ L của OKLCH. Dự án đặt `brandHue` riêng (nhất là
+ * vùng vàng-lục ~70) BẮT BUỘC chạy lại bộ này với hue của mình (§3.2).
+ */
+const SCREENS = ['list', 'detail', 'form', 'grid-entry', 'login', 'states'] as const;
+
+for (const preset of PRESET_IDS) {
+  for (const theme of ['light', 'dark'] as const) {
+    test(`${preset}/${theme} đạt WCAG 2 AA trên mọi màn`, async ({ page }) => {
+      for (const screen of SCREENS) {
+        await page.goto(
+          `/design-system/preview?preset=${preset}&screen=${screen}&theme=${theme}&density=compact`,
+        );
+        await expect(page.locator(`[data-screen="${screen}"]`)).toBeVisible();
+
+        const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+
+        // Báo lỗi kèm TÊN MÀN và selector: "có 3 vi phạm" không giúp ai sửa.
+        expect(
+          result.violations.map((v) => `${screen}: ${v.id} @ ${v.nodes[0]?.target.join(' ')}`),
+          `Vi phạm a11y ở ${preset}/${theme}/${screen}`,
+        ).toEqual([]);
+      }
+    });
+  }
+}
