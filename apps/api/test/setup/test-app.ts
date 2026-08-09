@@ -1,6 +1,8 @@
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
@@ -16,6 +18,9 @@ export interface TestHarness {
   /** Client Prisma TRẦN — chỉ cho test #3b/#2 (chứng minh DB tự chặn) */
   rawPrisma: PrismaClient;
   login(email: string, tenantId?: string): Promise<string>;
+  /** Access token HỢP LỆ VỀ CHỮ KÝ nhưng đã hết hạn — U2 cần phân biệt
+   *  "hết hạn" với "chưa đăng nhập" (test-catalog §2.2). */
+  expiredToken(email: string, tenantId?: string): Promise<string>;
   close(): Promise<void>;
 }
 
@@ -48,6 +53,20 @@ export async function createTestApp(): Promise<TestHarness> {
     seed: seedCache,
     rawPrisma,
     login,
+    expiredToken: async (email: string, tenantId?: string): Promise<string> => {
+      // Ký lại payload THẬT với exp trong quá khứ: token giả kiểu 'abc' chỉ
+      // cho ra INVALID_TOKEN, không phải TOKEN_EXPIRED — hai nhánh khác nhau.
+      const jwt = app.get(JwtService);
+      const config = app.get(ConfigService);
+      const valid = await login(email, tenantId);
+      const payload = jwt.decode(valid) as Record<string, unknown>;
+      delete payload.exp;
+      delete payload.iat;
+      return jwt.sign(payload, {
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        expiresIn: '-1s',
+      });
+    },
     close: async () => {
       await app.close();
       await rawPrisma.$disconnect();
