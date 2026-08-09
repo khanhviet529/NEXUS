@@ -24,6 +24,7 @@ export function getApiError(error: unknown): ApiErrorBody & { status: number } {
       code: body.code ?? 'COMMON.INTERNAL_ERROR',
       message: body.message ?? 'Đã xảy ra lỗi',
       details: body.details ?? null,
+      nextAction: body.nextAction, // §3.6 — mã việc nên làm tiếp
       traceId: body.traceId ?? 'no-trace',
       timestamp: body.timestamp ?? new Date().toISOString(),
       status: error.response.status,
