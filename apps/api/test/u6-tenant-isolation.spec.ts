@@ -104,8 +104,11 @@ describe('U6 — cách ly tenant theo id (test-catalog §2.3)', () => {
       url = url.replace(/:(\w+)/g, 'x');
 
       const method = r.method.toLowerCase() as 'get' | 'post' | 'patch' | 'put' | 'delete';
-      const res = await request(h.app.getHttpServer())
-        [method](url)
+      // Tách `agent` ra biến: viết `request(...)\n[method](url)` là bẫy ASI —
+      // JS đọc thành truy cập chỉ số của giá trị dòng trên. ESLint chặn bằng
+      // luật no-unexpected-multiline.
+      const agent = request(h.app.getHttpServer());
+      const res = await agent[method](url)
         .set('Authorization', `Bearer ${tokens[fx.actor ?? 'admin']}`)
         .send(fx.body ? (fx.body(entity) as object) : undefined);
 
