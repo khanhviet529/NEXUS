@@ -27,7 +27,10 @@ export function MoneyInput({
       {...props}
       inputMode="decimal"
       className={cn('text-right tnum', className)}
-      value={focused ? value : formatMoney(value)}
+      // Khi focus vẫn dùng quy ước VN (',' là dấu thập phân) — nếu hiện giá
+      // trị thô '1234567.5' thì lần gõ kế tiếp parseMoneyInput coi '.' là
+      // phân cách nghìn và XOÁ nó: 100000,50 thành 10000050, sai 100 lần.
+      value={focused ? value.replace('.', ',') : formatMoney(value)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       onChange={(e) => onChange(parseMoneyInput(e.target.value))}
