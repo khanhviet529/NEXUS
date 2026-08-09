@@ -74,6 +74,10 @@
 
 | 🐛 NỢ mới (PR riêng) | **Image API nặng 1,17 GB** — `/app/node_modules` chiếm 712 MB vì chép cả store `.pnpm` gồm devDependency | Claude | ⏳ chưa làm | đo bằng `du -sh` trong image | Cần `pnpm deploy --prod` hoặc bước prune ở tầng runtime. Không gộp vào PR sửa lỗi để giữ PR nhỏ |
 
+| ✅ N2.1 — U6 | Fixture factory cho MỌI route có `:id` (45 route) + ca "id tenant B → 404" | Claude | 🔍 chờ review | **5 ca ✅**, bắt **5 lỗi thật** | Ba lưới tự canh: route thiếu fixture → đỏ · fixture khai thừa → đỏ · `ownership` khác `tenant` mà không nêu lý do → đỏ. Lỗi tìm ra: `files/by-entity` trả **403** (tiết lộ tồn tại) · `DELETE /products/:id` trả **500** (ca D3, thứ 14 trong "28 ca dễ hỏng nhất") · `webhooks/…/subscriptions` trả **500** (vỡ FK) · `PATCH /products/:id` trả **409** thay vì 404 (thiếu bước `getInScope` mà module [REF] orders có) · `import-jobs/:id/errors` trả **200 []** trong khi `/import-jobs/:id` cùng id trả 404 |
+
+| ✅ N2.2 — L16 | Ngân sách query cho 13 endpoint danh sách: `queryCount(1 dòng) == queryCount(100 dòng)` | Claude | 🔍 chờ review | **3 ca ✅**, có negative control | Không dùng số cố định: `expectQueryCount(3)` chọn sai là vô nghĩa và refactor hợp lệ làm đỏ oan. Negative control: cài N+1 vào `GET /products` → `1 dòng: 3 query · 100 dòng: 32 query`, đỏ đúng chỗ. Kèm lưới bắt GET mới chưa phân loại vào LIST_PATHS hay KNOWN_SINGLETONS |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):

@@ -60,11 +60,15 @@ export class WebhooksController {
   @HttpCode(201)
   @RequirePermission('webhook:manage')
   @ApiOperation({ summary: 'Đăng ký loại sự kiện cho endpoint' })
-  subscribe(
+  async subscribe(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SubscribeDto,
   ) {
+    // Endpoint của tenant khác: `upsert` sẽ vỡ ở composite FK → 500. §3.6 đòi
+    // 404 (không tồn tại và ngoài phạm vi không phân biệt được). Test U6 bắt.
+    const endpoint = await this.repo.findEndpoint(id);
+    if (!endpoint) throw new AppException('COMMON.NOT_FOUND');
     return this.repo.subscribe(user.tenantId, id, dto.eventType);
   }
 
