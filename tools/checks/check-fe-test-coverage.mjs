@@ -7,7 +7,14 @@
  * thì CI không quên.
  *
  * Cách chạy: so diff với nhánh gốc (mặc định origin/main, đổi bằng BASE_REF).
- * Chạy ở local không có origin/main thì check TỰ BỎ QUA — CI luôn có.
+ *
+ * ⚠ Ở LOCAL, không có nhánh gốc thì bỏ qua. Ở CI thì KHÔNG: thiếu mốc so sánh
+ * là lỗi CẤU HÌNH và phải đỏ.
+ *
+ * Bài học đắt: bản đầu ghi "CI luôn có" rồi bỏ qua im lặng — nhưng
+ * actions/checkout@v4 mặc định clone NÔNG nên origin/main không tồn tại, và
+ * check này đã chạy rỗng ở MỌI PR kể từ khi nó ra đời. Một check tự tắt ở đúng
+ * nơi nó cần chạy còn tệ hơn không có check: nó tạo cảm giác đã được canh.
  *
  * Luật:
  *   Có file .tsx/.ts NGHIỆP VỤ bị thêm/sửa trong apps/web/src
@@ -26,7 +33,13 @@ function changedFiles() {
   try {
     execFileSync('git', ['rev-parse', '--verify', BASE], { stdio: 'ignore' });
   } catch {
-    console.log(`⏭️  check-fe-test-coverage: không có ${BASE} — bỏ qua (CI luôn có)`);
+    if (process.env.GITHUB_ACTIONS) {
+      console.error(`❌ check-fe-test-coverage: KHÔNG có ${BASE} trong CI.`);
+      console.error('   Nguyên nhân thường gặp: actions/checkout thiếu `fetch-depth: 0`,');
+      console.error('   hoặc chưa fetch nhánh gốc. Sửa workflow, đừng nới check.');
+      process.exit(1);
+    }
+    console.log(`⏭️  check-fe-test-coverage: không có ${BASE} — bỏ qua (chỉ ở local)`);
     process.exit(0);
   }
   const merge = execFileSync('git', ['merge-base', 'HEAD', BASE], { encoding: 'utf8' }).trim();

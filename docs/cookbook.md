@@ -306,6 +306,37 @@ Chín trên mười lần nguyên nhân nằm ở bước 2, 3 hoặc 4.
 
 ---
 
+# 14. Sinh lại ảnh baseline visual regression
+
+Chạy khi bạn CỐ Ý đổi hình thức (token, bố cục, preset mới). Diff ảnh bất ngờ
+thì ĐỌC ảnh diff trước, đừng update mù — nó có thể là lỗi thật.
+
+```bash
+# 1. Baseline cho máy phát triển (Windows/macOS của bạn)
+pnpm --filter @nexus/web e2e:update-snapshots
+
+# 2. Baseline cho CI (ubuntu). CI chạy Linux nên tên ảnh khác;
+#    thiếu bản này CI đỏ "snapshot doesn't exist".
+#    Next chạy trên máy host, trình duyệt chạy trong container.
+cd apps/web
+ENABLE_DESIGN_PREVIEW=1 npx next build
+ENABLE_DESIGN_PREVIEW=1 npx next start --port 3100 --hostname 0.0.0.0 &
+
+MSYS_NO_PATHCONV=1 docker run --rm --add-host=host.docker.internal:host-gateway   -v "E:/NEXUS:/work" -w /work/apps/web   -e PW_EXTERNAL_SERVER=1 -e PW_BASE_URL=http://host.docker.internal:3100 -e CI=1   -e NODE_PATH=/usr/lib/node_modules   mcr.microsoft.com/playwright:v1.62.1-noble   sh -c "npm i -g --silent @playwright/test@1.62.1 @axe-core/playwright;          playwright test visual-presets --update-snapshots"
+```
+
+Phiên bản trong tên image PHẢI khớp `@playwright/test` của repo — lệch phiên
+bản là lệch bản dựng Chromium, và mọi ảnh đỏ.
+
+Sau khi đổi `brandHue` ở `config/project-ui.ts` thì **bắt buộc** chạy thêm:
+
+```bash
+pnpm --filter @nexus/web test:a11y
+```
+
+OKLCH không bảo đảm giữ tỉ số tương phản WCAG khi đổi hue
+(fe-preset-system §3.2, §14.3).
+
 # Khi công thức không có ở đây
 
 1. Tra `boilerplate-spec.md` — mục lục ở đầu file

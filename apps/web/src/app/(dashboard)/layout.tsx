@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -15,23 +14,25 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import {
-  notificationsControllerUnreadCount,
-  useAuthControllerLogout,
-} from '@nexus/api-client';
+import { notificationsControllerUnreadCount, useAuthControllerLogout } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
+import { AppShell } from '@/design-system/layouts/app-shell';
+import type { NavItem } from '@/design-system/layouts/types';
 import { useCommandPalette } from '@/providers/command-palette';
-import { useCurrentUser } from '@/lib/auth/use-can';
-import { cn } from '@/lib/utils';
+import { useCan, useCurrentUser } from '@/lib/auth/use-can';
 
 /**
- * Layout dashboard (§5.1): sidebar + header (chuông unread GĐ7, Cmd+K,
- * dark mode + đổi ngôn ngữ qua cookie — server đọc lại ở root layout).
+ * Layout dashboard (§5.1).
+ *
+ * Đây là nơi DUY NHẤT gọi dữ liệu cho khung app: số thông báo chưa đọc, người
+ * dùng hiện tại, quyền. Shell chỉ nhận ReactNode đã dựng sẵn qua `headerSlots`
+ * (fe-preset-system §5.1) — nhờ vậy thêm HybridShell ở GĐ B không phải chép
+ * lại một dòng logic nào.
  */
-const NAV = [
-  { href: '/orders', label: 'Đơn hàng', icon: ShoppingCart },
-  { href: '/customers', label: 'Khách hàng', icon: Users },
-  { href: '/users', label: 'Người dùng', icon: User },
+const NAV: (NavItem & { permission?: string })[] = [
+  { href: '/orders', label: 'Đơn hàng', icon: ShoppingCart, permission: 'order:read' },
+  { href: '/customers', label: 'Khách hàng', icon: Users, permission: 'customer:read' },
+  { href: '/users', label: 'Người dùng', icon: User, permission: 'user:read' },
 ];
 
 function setCookie(name: string, value: string): void {
@@ -43,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const palette = useCommandPalette();
   const me = useCurrentUser();
+  const can = useCan();
   const logout = useAuthControllerLogout();
 
   const unread = useQuery({
@@ -52,9 +54,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     enabled: !!me.data,
   });
 
+  // Lọc quyền TRƯỚC khi đưa vào shell — shell không biết can() là gì (§5.1)
+  const nav = React.useMemo(
+    () => NAV.filter((i) => !i.permission || can(i.permission)).map(({ ...item }) => item),
+    [can],
+  );
+
+  const breadcrumb = React.useMemo(() => {
+    const item = NAV.find((i) => pathname.startsWith(i.href));
+    return item ? [{ label: item.label, href: item.href }] : [];
+  }, [pathname]);
+
   const toggleTheme = () => {
-    const next =
-      document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     setCookie('theme', next);
     document.documentElement.setAttribute('data-theme', next);
   };
@@ -65,65 +77,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-52 shrink-0 border-r border-border bg-card p-3">
-        <Link href="/" className="mb-6 block px-2 text-lg font-bold">
-          Nexus
-        </Link>
-        <nav className="space-y-1">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                pathname.startsWith(item.href) && 'bg-accent font-medium',
-              )}
-            >
-              <item.icon className="size-4" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header
-          className="sticky top-0 flex h-14 items-center justify-end gap-1 border-b border-border bg-background px-4"
-          style={{ zIndex: 'var(--z-sticky)' as never }}
-        >
+    <AppShell
+      nav={nav}
+      breadcrumb={breadcrumb}
+      pageMode="normal"
+      headerSlots={{
+        search: (
           <Button variant="ghost" size="sm" onClick={palette.open}>
             <Command /> Ctrl+K
           </Button>
+        ),
+        notifications: (
           <Button variant="ghost" size="icon" aria-label="Thông báo" className="relative">
             <Bell />
             {(unread.data?.count ?? 0) > 0 && (
-              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground">
+              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
                 {Math.min(unread.data!.count, 99)}
               </span>
             )}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Đổi giao diện" onClick={toggleTheme}>
-            <Sun className="block dark:hidden" />
-            <Moon className="hidden dark:block" />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Đổi ngôn ngữ" onClick={toggleLocale}>
-            <Languages />
-          </Button>
-          <span className="mx-2 text-sm text-muted-foreground">{me.data?.fullName}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Đăng xuất"
-            onClick={() =>
-              logout.mutate(undefined, { onSuccess: () => router.replace('/login') })
-            }
-          >
-            <LogOut />
-          </Button>
-        </header>
-        {children}
-      </div>
-    </div>
+        ),
+        user: (
+          <>
+            <Button variant="ghost" size="icon" aria-label="Đổi giao diện" onClick={toggleTheme}>
+              <Sun className="block dark:hidden" />
+              <Moon className="hidden dark:block" />
+            </Button>
+            <Button variant="ghost" size="icon" aria-label="Đổi ngôn ngữ" onClick={toggleLocale}>
+              <Languages />
+            </Button>
+            <span className="mx-2 text-sm text-muted-foreground">{me.data?.fullName}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Đăng xuất"
+              onClick={() => logout.mutate(undefined, { onSuccess: () => router.replace('/login') })}
+            >
+              <LogOut />
+            </Button>
+          </>
+        ),
+      }}
+    >
+      {children}
+    </AppShell>
   );
 }

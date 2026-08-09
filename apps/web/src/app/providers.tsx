@@ -6,8 +6,10 @@ import { useState } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OverlayProvider } from '@/providers/overlay';
 import { CommandPaletteProvider } from '@/providers/command-palette';
+import { ProjectUIProvider } from '@/design-system/use-project-ui';
+import type { ResolvedUI } from '@/design-system/registry';
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, ui }: { children: React.ReactNode; ui: ResolvedUI }) {
   const [client] = useState(
     () =>
       new QueryClient({
@@ -19,11 +21,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <NuqsAdapter>
       <QueryClientProvider client={client}>
-        <TooltipProvider delayDuration={200}>
-          <OverlayProvider>
-            <CommandPaletteProvider>{children}</CommandPaletteProvider>
-          </OverlayProvider>
-        </TooltipProvider>
+        <ProjectUIProvider value={ui}>
+          <TooltipProvider delayDuration={200}>
+            <OverlayProvider>
+              <CommandPaletteProvider>{children}</CommandPaletteProvider>
+            </OverlayProvider>
+          </TooltipProvider>
+        </ProjectUIProvider>
       </QueryClientProvider>
     </NuqsAdapter>
   );

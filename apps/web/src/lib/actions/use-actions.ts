@@ -4,6 +4,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiError } from '@nexus/api-client';
+import { resolveNextAction } from '@/lib/api/next-action';
+import { reportApiError } from '@/lib/observability/sentry';
 import { useCan } from '@/lib/auth/use-can';
 import { useConfirm, useBulkResultDialog } from '@/providers/overlay';
 import type { ActionDef, BulkActionDef, ConfirmResult, ResolvedAction } from './types';
@@ -52,13 +54,32 @@ export function useActions<TCtx>(defs: ActionDef<TCtx>[], ctx: TCtx): ResolvedAc
       } catch (e) {
         // Lỗi tập trung — FE xử lý theo code/status, không theo message (§3.6)
         const err = getApiError(e);
+        // §9: lỗi hệ thống gửi Sentry kèm traceId để tra chéo FE ↔ BE
+        if (err.status >= 500) reportApiError(err);
+        // §3.6: BE trả MÃ việc nên làm tiếp; FE quyết nhãn + đích đến.
+        // Lỗi cụt ("không đủ tồn kho") để người dùng bế tắc; có lối đi tiếp
+        // thì họ tự xử lý được.
+        const next = resolveNextAction(err.nextAction);
+        const action = next
+          ? {
+              label: next.label,
+              onClick: () => {
+                if (next.kind === 'reload') {
+                  def.invalidates?.(ctx).forEach((k) => void qc.invalidateQueries({ queryKey: k }));
+                } else if (next.kind === 'navigate' && next.href) {
+                  window.location.assign(next.href);
+                }
+              },
+            }
+          : undefined;
+
         if (err.status === 403) {
-          toast.error('Bạn không có quyền thực hiện thao tác này');
+          toast.error('Bạn không có quyền thực hiện thao tác này', { action });
         } else if (err.status === 409) {
-          toast.error('Dữ liệu đã thay đổi, vui lòng tải lại'); // optimistic lock (§12 #17)
+          toast.error(err.message, { action }); // optimistic lock (§12 #17)
           def.invalidates?.(ctx).forEach((k) => void qc.invalidateQueries({ queryKey: k }));
         } else if (err.code !== 'COMMON.INTERNAL_ERROR') {
-          toast.error(err.message); // lỗi nghiệp vụ có code từ BE
+          toast.error(err.message, { action }); // lỗi nghiệp vụ có code từ BE
         } else {
           toast.error('Đã xảy ra lỗi', {
             description: `Mã tra cứu: ${err.traceId}`,

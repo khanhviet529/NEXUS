@@ -933,3 +933,134 @@ Hai là số nhỏ nhất chứng minh cơ chế chạy. Một preset thì regis
 14. `SHELLS` **khớp đúng** `ShellId`; `AppShell` đọc **`ui.behavior.shell`**, không đọc `preset.shell`
 15. **Không có `themes/*.css`** — preset là TypeScript
 16. OKLCH dự đoán được hơn HSL nhưng **không bảo đảm WCAG** — mỗi `brandHue` dự án phải chạy `test:a11y`
+
+---
+
+# 14. Ghi chú triển khai GĐ A — ba chỗ lệch đặc tả, có chủ đích
+
+Đặc tả trên là bản v1 viết TRƯỚC khi có code. GĐ A triển khai xong và lệch ba
+chỗ. Ghi lại ở đây để bản v2 không "sửa ngược" về chỗ cũ.
+
+## 14.1 `table-font-size` · `header-h` · `card-padding` là DERIVED, không FREE
+
+**Mâu thuẫn trong đặc tả.** §4.1 xếp ba token này vào `FreeToken`; §4.1b lại
+liệt kê đúng ba token đó trong danh sách phụ thuộc mật độ **và** sinh chúng
+trong `deriveTokens`. Một token không thể vừa free vừa derived.
+
+**Chọn theo §4.1b — và đây KHÔNG phải một lựa chọn giữa hai hướng.**
+
+Có hai cách giải mâu thuẫn:
+
+| | Cách | Hệ quả |
+|---|---|---|
+| (a) | Chuyển ba token sang `DERIVED` | Preset mất quyền đặt chúng |
+| (b) | Bỏ chúng khỏi `deriveTokens()` | Đổi density **không** đổi `card-padding` |
+
+(b) vi phạm §4.1b, vốn là luật **cấp cơ chế**: *"user đổi density → MỌI
+component phụ thuộc mật độ đổi đồng bộ"*. Nếu `card-padding` là FREE và một
+preset ghim `12px` thì bật comfortable sẽ giãn `input-h`, `sidebar-w` mà không
+giãn padding của card — đúng cái bug §4.1b sinh ra để chặn.
+
+Nên (a) là hướng DUY NHẤT thoả một luật đã có. Đó là sửa lỗi biên tập, không
+phải đổi quyết định, nên không cần ADR.
+
+## 14.1b Năm chỗ lệch, không phải ba
+
+Kiểm lại toàn bộ ba danh sách của §4 cho ra **năm** chỗ, không phải ba:
+
+```
+deriveTokens() ở §4.1b sinh 12 token
+DERIVED_TOKENS ở §4.1  khai   7
+FreeToken      ở §4.1  khai  15
+
+Nằm ở CẢ HAI list  → table-font-size · header-h · card-padding
+Nằm ở KHÔNG list nào → button-h · toolbar-h
+```
+
+Hai token cuối nguy hiểm hơn ba token đầu: token không khai ở đâu thì
+`check-token-layers` **không kiểm được nó**, nên preset ghi đè lên nó cũng
+không ai biết. Cả năm đã vào `DERIVED_TOKENS` trong code.
+
+Bất biến này có test khoá — `derive-tokens.spec.ts` khẳng định `deriveTokens()`
+phát ra ĐÚNG tập `DERIVED_TOKENS`, không thừa không thiếu. Thêm token vào một
+chỗ mà quên chỗ kia là đỏ ngay.
+
+## 14.1c Cái giá đã biết trước — đừng sửa bây giờ
+
+Sau (a), Enterprise và Modern có CÙNG `card-padding` ở cùng density. Mà Modern
+được định nghĩa là "thoáng", chủ yếu là chuyện padding. Nên nhiều khả năng GĐ D
+sẽ cần:
+
+```ts
+tokens: Partial<Record<FreeToken, string | DensityScale<string>>>
+```
+
+Token vừa do preset đặt, vừa nhận biết density. **Đó mới là đổi cơ chế và cần
+ADR** — chỉ làm khi GĐ B/D chứng minh cần, không làm trước.
+
+`DERIVED_TOKENS` cuối cùng có 12 phần tử; `FreeToken` có 16 (xem §14.1b). Test
+`derive-tokens.spec.ts` khoá hai tập này rời nhau và khoá `deriveTokens` phát
+ra ĐÚNG tập `DERIVED_TOKENS`.
+
+## 14.2 Màn preview thứ sáu là `states`, không phải `dashboard`
+
+§8.1 liệt kê `dashboard` trong danh sách màn preview, nhưng §6 xếp page pattern
+`dashboard` vào nhóm "chỉ khai ID, ném lỗi khi dùng".
+
+Chụp baseline cho một dashboard giả sẽ làm nó **trông như đã có** — đúng thứ §6
+gọi là "backlog trá hình". Thay bằng `states`: bốn trạng thái của DataTable
+(đang tải / rỗng / không khớp lọc / lỗi). Đó là bề mặt CÓ THẬT, dễ vỡ khi đổi
+token, và chưa có gì canh.
+
+Đổi lại thành `dashboard` khi pattern đó được implement ở GĐ D.
+
+## 14.3 Thang `--brand-*` hạ so với §3.2, và dark mode phải lật màu chữ
+
+§3.2 cho thang `0.68 / 0.60 / 0.55 / 0.48`. Chạy `pnpm test:a11y` lần đầu thì
+axe đỏ ngay:
+
+| Chỗ | Trước | Sau |
+|---|---|---|
+| Nút primary, light (`--brand-600` L=0.55) | **4,3:1** ❌ | L=0.50 → **5,75:1** ✅ |
+| Nút primary, dark (`--brand-400` + chữ near-white) | **2,54:1** ❌ | chữ lật thành tối → **6,5:1** ✅ |
+| Chữ lỗi, dark (`--red-600` L=0.55 trên nền L=0.19) | **3,47:1** ❌ | L=0.70 → **6,38:1** ✅ |
+| Badge trạng thái subtle (amber L=0.75 làm màu CHỮ) | **~2,4:1** ❌ | tách `--tone-*-fg` → **7,2:1** ✅ |
+
+Thang mới: `0.70 / 0.58 / 0.50 / 0.42`.
+
+**Bài học đắt nhất, và nó khẳng định đúng §3.2:** OKLCH dự đoán được hơn HSL
+nhưng **không** bảo đảm WCAG. Ba trong bốn lỗi trên là lỗi **production**, không
+phải lỗi của trang preview — chúng nằm trong `globals.css` và `StatusBadge` từ
+trước, chỉ là chưa ai đo.
+
+**Hệ quả cho mọi dự án clone:** mỗi tone cần HAI token — `--tone-x` (màu nền) và
+`--tone-x-fg` (màu chữ, đảo sáng/tối theo theme). Một màu không làm được cả hai
+việc. Và mỗi lần đổi `brandHue` thì `pnpm test:a11y` là **bắt buộc**, không phải
+lời khuyên.
+
+## 14.4 Trang preview đặt `data-theme` lên `<html>`, không lên div bọc
+
+Bẫy CSS thật, mất thời gian nhất trong GĐ A: `--table-header-bg:
+var(--surface-sunken)` khai ở `:root` được tính **ngay tại `:root`**, con cháu
+kế thừa giá trị đã thay. Đặt `[data-theme='dark']` trên một div con chỉ đổi
+`--surface-sunken` cho nhánh đó, còn `--table-header-bg` vẫn giữ giá trị sáng →
+chữ sáng trên nền sáng, **1,07:1**.
+
+Đây là minh hoạ cụ thể cho luật ở §8.1: trang preview phải đi **cùng đường** với
+app thật. Nó tự dựng theme kiểu khác thì cả ảnh baseline lẫn a11y đều đo nhầm.
+
+## 14.5 Ảnh baseline commit cho HAI nền tảng
+
+Playwright đặt tên ảnh theo nền tảng (`-chromium-linux`, `-chromium-win32`).
+CI chạy ubuntu, máy phát triển ở đây là Windows — thiếu bản `-linux` thì CI đỏ
+với "snapshot doesn't exist".
+
+Bản `-linux` sinh bằng cách chạy trình duyệt trong Docker
+(`mcr.microsoft.com/playwright:v1.62.1-noble`) trong khi Next chạy trên máy
+host, nối qua `PW_EXTERNAL_SERVER=1` + `PW_BASE_URL`. Lệnh đầy đủ ở
+`docs/cookbook.md`.
+
+Vì cần chạy được trong container không có `node_modules` của repo,
+`e2e/visual-presets.spec.ts` đọc danh sách màn từ `screen-ids.ts` — file **không
+import gì cả**. Đọc từ `screens.tsx` sẽ kéo cả cây component vào tiến trình
+Playwright chỉ để biết sáu cái tên.

@@ -1,11 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
 import { calculateMoney, DEFAULT_MONEY_CONFIG } from '@nexus/shared';
 import {
   apiAxios,
@@ -20,6 +19,7 @@ import { AsyncSelect } from '@/components/form/async-select';
 import { MoneyInput } from '@/components/form/money-input';
 import { applyServerErrors, useDirtyGuard } from '@/lib/form';
 import { useFormKeyboard, GRID_CELL_ATTR } from '@/lib/keyboard/use-form-keyboard';
+import { GridEntry, type GridColumn } from '@/design-system/patterns/grid-entry/grid-entry';
 import { formatMoney } from '@/lib/format/money';
 import { orderSchema, type OrderFormValues } from './schema';
 
@@ -29,6 +29,15 @@ import { orderSchema, type OrderFormValues } from './schema';
  * (@nexus/shared — một bộ tính tiền hai đầu, preview không bao giờ lệch).
  * POST kèm Idempotency-Key (§3.9) — double-click không tạo 2 đơn.
  */
+const GRID_COLUMNS: GridColumn[] = [
+  { id: 'product', header: 'Sản phẩm' },
+  { id: 'quantity', header: 'SL', className: 'w-20 text-right' },
+  { id: 'unitPrice', header: 'Đơn giá', className: 'w-32 text-right' },
+  { id: 'discountPercent', header: 'CK%', className: 'w-16 text-right' },
+  { id: 'taxRate', header: 'VAT%', className: 'w-16 text-right' },
+  { id: 'amount', header: 'Thành tiền', className: 'w-28 text-right', dataType: 'money' },
+];
+
 export function OrderFormDialog({
   open,
   onOpenChange,
@@ -56,13 +65,18 @@ export function OrderFormDialog({
     if (open) idempotencyKey.current = crypto.randomUUID();
   }, [open]);
 
-  // Preview tiền — watch toàn bộ items, tính bằng bộ B1 dùng chung
-  const watched = form.watch('items');
+  // Preview tiền — dùng useWatch (KHÔNG dùng form.watch): form.watch('items')
+  // trả về CÙNG reference sau mỗi setValue, nên useMemo không tính lại và
+  // dòng tổng đứng yên trong khi ô nhập vẫn đổi. useWatch tạo giá trị mới.
+  const watched = useWatch({ control: form.control, name: 'items' });
   const preview = React.useMemo(() => {
+    // `?? []` phải nằm TRONG useMemo: ở ngoài, mỗi render tạo một mảng rỗng
+    // mới nên dependency đổi liên tục và useMemo mất tác dụng.
+    const lines = watched ?? [];
     try {
       // KHÔNG filter — giữ lines[idx] thẳng hàng với dòng form; dòng gõ dở = 0
       return calculateMoney(
-        watched.map((i) => ({
+        lines.map((i) => ({
           quantity: i.quantity || '0',
           unitPrice: i.unitPrice || '0',
           discountPercent: i.discountPercent || undefined,
@@ -184,124 +198,90 @@ export function OrderFormDialog({
               />
             </FormField>
 
-            {/* FIELD ARRAY §5.8 — bảng dòng chứng từ */}
-            <div className="overflow-x-auto rounded-md border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted text-left">
-                  <tr>
-                    <th className="px-2 py-2">Sản phẩm</th>
-                    <th className="w-20 px-2 py-2 text-right">SL</th>
-                    <th className="w-32 px-2 py-2 text-right">Đơn giá</th>
-                    <th className="w-16 px-2 py-2 text-right">CK%</th>
-                    <th className="w-16 px-2 py-2 text-right">VAT%</th>
-                    <th className="w-28 px-2 py-2 text-right">Thành tiền</th>
-                    <th className="w-10 px-2 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.fields.map((field, idx) => (
-                    <tr key={field.id} className="border-t border-border align-top">
-                      <td className="px-2 py-1.5">
-                        <AsyncSelect
-                          value={form.watch(`items.${idx}.productId`) || null}
-                          valueLabel={form.watch(`items.${idx}.productLabel`)}
-                          placeholder="Chọn sản phẩm…"
-                          fetchPage={fetchProducts}
-                          onChange={(opt) => {
-                            form.setValue(`items.${idx}.productId`, opt.value, {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            });
-                            form.setValue(`items.${idx}.productLabel`, `${opt.hint} · ${opt.label}`);
-                          }}
-                        />
-                        {errors.items?.[idx]?.productId && (
-                          <p className="mt-1 text-xs text-destructive">
-                            {errors.items[idx]!.productId!.message}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <MoneyInput
-                          {...{ [GRID_CELL_ATTR]: '' }}
-                          value={form.watch(`items.${idx}.quantity`)}
-                          onChange={(v) =>
-                            form.setValue(`items.${idx}.quantity`, v, { shouldDirty: true })
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <MoneyInput
-                          {...{ [GRID_CELL_ATTR]: '' }}
-                          value={form.watch(`items.${idx}.unitPrice`)}
-                          onChange={(v) =>
-                            form.setValue(`items.${idx}.unitPrice`, v, { shouldDirty: true })
-                          }
-                        />
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <Input
-                          className="text-right tnum"
-                          inputMode="decimal"
-                          {...{ [GRID_CELL_ATTR]: '' }}
-                          {...form.register(`items.${idx}.discountPercent`)}
-                        />
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <Input
-                          className="text-right tnum"
-                          inputMode="decimal"
-                          {...{ [GRID_CELL_ATTR]: '' }}
-                          {...form.register(`items.${idx}.taxRate`)}
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-right tnum" data-type="money">
-                        {preview?.lines[idx] ? formatMoney(preview.lines[idx]!.amount) : '—'}
-                      </td>
-                      <td className="px-2 py-1.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Xoá dòng"
-                          disabled={items.fields.length <= 1}
-                          onClick={() => items.remove(idx)}
-                        >
-                          <Trash2 className="text-destructive" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                {/* DÒNG TỔNG (§5.5/§5.8) — từ calculateMoney, khớp BE tuyệt đối */}
-                {preview && (
-                  <tfoot className="border-t border-border bg-muted font-medium">
+            {/* FIELD ARRAY §5.8 — bảng dòng chứng từ, layout `grid-entry` */}
+            <GridEntry
+              caption="Dòng hàng của đơn"
+              columns={GRID_COLUMNS}
+              onAddRow={addRow}
+              onRemoveRow={(idx) => items.remove(idx)}
+              rows={items.fields.map((field, idx) => ({
+                key: field.id,
+                error: errors.items?.[idx]?.productId?.message,
+                cells: [
+                  <AsyncSelect
+                    key="product"
+                    value={form.watch(`items.${idx}.productId`) || null}
+                    valueLabel={form.watch(`items.${idx}.productLabel`)}
+                    placeholder="Chọn sản phẩm…"
+                    fetchPage={fetchProducts}
+                    onChange={(opt) => {
+                      form.setValue(`items.${idx}.productId`, opt.value, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      form.setValue(`items.${idx}.productLabel`, `${opt.hint} · ${opt.label}`);
+                    }}
+                  />,
+                  <MoneyInput
+                    key="qty"
+                    {...{ [GRID_CELL_ATTR]: '' }}
+                    value={form.watch(`items.${idx}.quantity`)}
+                    onChange={(v) => form.setValue(`items.${idx}.quantity`, v, { shouldDirty: true })}
+                  />,
+                  <MoneyInput
+                    key="price"
+                    {...{ [GRID_CELL_ATTR]: '' }}
+                    value={form.watch(`items.${idx}.unitPrice`)}
+                    onChange={(v) =>
+                      form.setValue(`items.${idx}.unitPrice`, v, { shouldDirty: true })
+                    }
+                  />,
+                  <Input
+                    key="discount"
+                    className="tnum text-right"
+                    inputMode="decimal"
+                    aria-label={`Chiết khấu % dòng ${idx + 1}`}
+                    {...{ [GRID_CELL_ATTR]: '' }}
+                    {...form.register(`items.${idx}.discountPercent`)}
+                  />,
+                  <Input
+                    key="tax"
+                    className="tnum text-right"
+                    inputMode="decimal"
+                    aria-label={`VAT % dòng ${idx + 1}`}
+                    {...{ [GRID_CELL_ATTR]: '' }}
+                    {...form.register(`items.${idx}.taxRate`)}
+                  />,
+                  <span key="amount" className="tnum block text-right">
+                    {preview?.lines[idx] ? formatMoney(preview.lines[idx]!.amount) : '—'}
+                  </span>,
+                ],
+              }))}
+              footer={
+                /* DÒNG TỔNG (§5.5/§5.8) — từ calculateMoney, khớp BE tuyệt đối */
+                preview ? (
+                  <tfoot
+                    className="border-t border-border font-medium"
+                    style={{ background: 'var(--table-header-bg)' }}
+                  >
                     <tr>
                       <td className="px-2 py-2" colSpan={5}>
                         Tổng · thuế {formatMoney(preview.taxTotal)} · chiết khấu{' '}
                         {formatMoney(preview.discountTotal)}
                       </td>
-                      <td className="px-2 py-2 text-right tnum" data-type="money">
+                      <td className="tnum px-2 py-2 text-right" data-type="money">
                         {formatMoney(preview.total)}
                       </td>
                       <td />
                     </tr>
                   </tfoot>
-                )}
-              </table>
-            </div>
+                ) : undefined
+              }
+            />
             {errors.items?.root && (
               <p className="text-xs text-destructive">{errors.items.root.message}</p>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addRow}
-            >
-              <Plus /> Thêm dòng
-            </Button>
           </fieldset>
 
           <div className="flex justify-end gap-2">

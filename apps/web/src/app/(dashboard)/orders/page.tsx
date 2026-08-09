@@ -9,8 +9,10 @@ import { useTranslations } from 'next-intl';
 import { CheckCircle, Command, Plus } from 'lucide-react';
 import { ordersControllerList, getApiError } from '@nexus/api-client';
 import type { OrderResponseDto } from '@nexus/api-client';
+import type { OrderState } from '@nexus/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { OrderStatusBadge } from '@/components/common/status-badge';
 import {
   ActionContextMenu,
   ActionMenu,
@@ -23,6 +25,7 @@ import { useCommandPalette } from '@/providers/command-palette';
 import { useCan, useCurrentUser } from '@/lib/auth/use-can';
 import { orderActions, bulkApproveOrders, type OrderActionCtx } from '@/features/orders/actions';
 import { OrderFormDialog } from '@/features/orders/order-form';
+import { SavedViewsBar } from '@/features/saved-views/saved-views-bar';
 
 /**
  * GĐ8b — trang [REF] chứng minh tiêu chí §10: "một action khai báo một lần,
@@ -115,6 +118,9 @@ function OrdersPage() {
         </div>
       </header>
 
+      {/* Saved views §5.5 — lưu bộ lọc hiện tại thành view đặt tên */}
+      <SavedViewsBar entity="Order" membershipId={me.data?.membershipId} />
+
       <Input
         placeholder={tc('search')}
         defaultValue={params.q}
@@ -187,7 +193,9 @@ function OrdersPage() {
                     </td>
                     <td className="px-3 py-2 font-mono">{r.code}</td>
                     <td className="px-3 py-2">{String(r.customer?.code ?? '—')}</td>
-                    <td className="px-3 py-2">{r.status}</td>
+                    <td className="px-3 py-2">
+                      <OrderStatusBadge status={r.status as OrderState} />
+                    </td>
                     <td className="px-3 py-2 text-right tnum" data-type="money">
                       {r.total} {r.currency}
                     </td>

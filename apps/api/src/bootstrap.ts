@@ -3,6 +3,8 @@ import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Cấu hình dùng chung main.ts + test — MỘT nơi, không lệch nhau.
@@ -20,7 +22,30 @@ export function configureApp(app: INestApplication): void {
   app.use(json({ limit: '20mb' }));
   app.use(urlencoded({ extended: true, limit: '20mb' }));
   app.use(cookieParser());
+  app.use(echoRequestId);
   app.useGlobalPipes(buildValidationPipe());
+}
+
+/**
+ * §3.1c: X-Request-Id LUÔN được trả lại — kể cả ở nhánh lỗi.
+ *
+ * Trước đây traceId chỉ được đặt vào CLS (app.module.ts) và đưa vào THÂN lỗi;
+ * header phản hồi thì không ai đặt. Test tầng 1 (U1/U5) bắt đúng chỗ này: 110
+ * route trả 401 mà không có header.
+ *
+ * Vì sao header quan trọng hơn là "cũng có trong body": khi phản hồi KHÔNG có
+ * body (204, 304, file stream, hoặc lỗi ở tầng proxy) thì header là thứ duy
+ * nhất nối được log của client với log của server.
+ *
+ * Đặt bằng middleware Express, không phải interceptor: interceptor không chạy
+ * cho request bị chặn TRƯỚC khi vào pipeline (404 route không tồn tại, lỗi
+ * body-parser). Middleware chạy cho mọi thứ.
+ */
+export function echoRequestId(req: Request, res: Response, next: NextFunction): void {
+  const traceId = (req.headers['x-request-id'] as string | undefined) || randomUUID();
+  req.headers['x-request-id'] = traceId; // CLS đọc lại chính giá trị này
+  res.setHeader('X-Request-Id', traceId);
+  next();
 }
 
 /**

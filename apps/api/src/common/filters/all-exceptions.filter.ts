@@ -8,7 +8,8 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ClsService } from 'nestjs-cls';
-import type { ApiErrorBody } from '@nexus/shared';
+import * as Sentry from '@sentry/nestjs';
+import { nextActionOf, type ApiErrorBody } from '@nexus/shared';
 import type { RequestContext } from '../../infra/cls/request-context';
 import { AppException } from '../errors/app.exception';
 
@@ -36,6 +37,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code: exception.code,
         message: exception.message,
         details: exception.details,
+        // §3.6: BE nói "còn cách nào đi tiếp" bằng MÃ; FE quyết nhãn + route
+        nextAction: nextActionOf(exception.code),
         traceId,
         timestamp,
       };
@@ -47,10 +50,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         typeof resp === 'object' && resp !== null && 'details' in resp
           ? ((resp as { details: Record<string, string[]> }).details ?? null)
           : null;
+      const mappedCode = statusToCode(status);
       body = {
-        code: statusToCode(status),
+        code: mappedCode,
         message: exception.message,
         details,
+        nextAction: nextActionOf(mappedCode),
         traceId,
         timestamp,
       };
@@ -60,6 +65,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         { traceId, err: exception instanceof Error ? exception.stack : String(exception) },
         'Unhandled exception',
       );
+      // §9: gắn traceId để đối chiếu Sentry ↔ log ↔ response trả cho client
+      Sentry.withScope((scope) => {
+        scope.setTag('traceId', traceId);
+        Sentry.captureException(exception);
+      });
       body = {
         code: 'COMMON.INTERNAL_ERROR',
         message: 'Lỗi hệ thống',

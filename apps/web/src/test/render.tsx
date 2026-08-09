@@ -8,6 +8,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OverlayProvider } from '@/providers/overlay';
+import { ProjectUIProvider } from '@/design-system/use-project-ui';
+import { resolveProjectUI } from '@/design-system/resolve-project-ui';
+import { PROJECT_UI } from '@/config/project-ui';
+import type { UserUIPrefs } from '@/design-system/registry';
 import messages from '@/messages/vi.json';
 
 /**
@@ -20,7 +24,7 @@ import messages from '@/messages/vi.json';
  */
 export function renderWithProviders(
   ui: React.ReactElement,
-  options?: RenderOptions & { queryClient?: QueryClient },
+  options?: RenderOptions & { queryClient?: QueryClient; userPrefs?: UserUIPrefs },
 ): RenderResult & { queryClient: QueryClient } {
   const queryClient =
     options?.queryClient ??
@@ -28,13 +32,20 @@ export function renderWithProviders(
       defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
     });
 
+  // Dùng CHÍNH chuỗi phân giải của app (§2.3). Test truyền `userPrefs` để kiểm
+  // hành vi ở density khác — không tự dựng ResolvedUI giả, vì object giả sẽ
+  // không phát hiện được khi chuỗi phân giải đổi.
+  const resolvedUI = resolveProjectUI(PROJECT_UI, options?.userPrefs);
+
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <NextIntlClientProvider locale="vi" messages={messages}>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <OverlayProvider>{children}</OverlayProvider>
-          </TooltipProvider>
+          <ProjectUIProvider value={resolvedUI}>
+            <TooltipProvider>
+              <OverlayProvider>{children}</OverlayProvider>
+            </TooltipProvider>
+          </ProjectUIProvider>
         </QueryClientProvider>
       </NextIntlClientProvider>
     );
