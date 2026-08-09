@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  // `nest build` ưu tiên file này. Không có nó, build dùng tsconfig.json vốn
+  // include cả `test`, `tools`, `prisma/seed.ts` — rootDir tụt lên apps/api và
+  // output thành `dist/src/main.js`, trong khi CMD của Dockerfile lẫn script
+  // `start:worker` đều trỏ `dist/main.js`. Container không khởi động được, và
+  // mã test đi thẳng vào image production.
+  //
+  // Chỉ biên dịch `src` cho bản phát hành. `typecheck` vẫn dùng tsconfig.json
+  // để kiểm cả test và tools.
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.ts", "test", "tools", "prisma/seed.ts", "dist"]
+}

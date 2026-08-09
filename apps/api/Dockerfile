@@ -30,6 +30,10 @@ RUN addgroup -S nexus && adduser -S nexus -G nexus
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
+# apps/api/node_modules là nơi pnpm đặt LIÊN KẾT tới dependency của gói này.
+# Thiếu nó thì mọi require đều chết ("Cannot find module 'reflect-metadata'"),
+# và `prisma` CLI cũng không có nên bước migration của CD không chạy được.
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/package.json ./apps/api/
 # Migration + seed đi theo image: bước "chạy migration" của CD dùng chính

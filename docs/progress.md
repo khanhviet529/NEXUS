@@ -66,6 +66,14 @@
 
 | 🐛 NỢ mới (PR riêng) | **Dark mode KHÔNG giảm chroma như §3.3 mô tả** — `--brand-c` vẫn là 0,15 thay vì 0,13 | Claude | ⏳ chưa làm | đo được: `brandC=0.15` khi `theme=dark` | `uiToCssVars` ghi `--brand-c` bằng inline style trên `<html>`, mà inline THẮNG rule `[data-theme='dark']` trong stylesheet. Cách sửa: đổi thành `--brand-c-preset` rồi `--brand-c: var(--brand-c-preset)` ở light và `calc(... - 0.02)` ở dark. **Tách PR riêng** vì đổi màu → phải chụp lại toàn bộ ảnh baseline |
 
+| 🔴 CD chạy thật lần đầu → **4 lỗi** | Merge lên `main` kích hoạt `cd.yml` lần đầu tiên trong đời dự án. `apps/api/Dockerfile` viết ở B8 chưa từng build được, và container chưa từng khởi động được | Claude | 🔍 chờ review | image build xanh + 3 smoke test | Chi tiết ở bảng dưới |
+| ↳ 1 | Tên image mang chữ hoa (`ghcr.io/khanhviet529/NEXUS/api`) → buildx từ chối | | đã sửa | | `${GITHUB_REPOSITORY,,}` |
+| ↳ 2 | **Repo thiếu `.dockerignore`** → `COPY . .` bê `node_modules` của host đè lên phần đã cài; symlink pnpm trỏ ổ đĩa Windows nên gãy trong Linux → `Cannot find module .../tsc`. Kèm hai hệ quả: `.env` và `.git` (toàn bộ lịch sử, kể cả secret đã xoá) lọt vào image | | đã sửa | | thêm `.dockerignore` có ghi lý do |
+| ↳ 3 | **Thiếu `apps/api/tsconfig.build.json`** → `nest build` dùng tsconfig.json vốn include `test`/`tools`, rootDir tụt lên `apps/api`, output thành `dist/src/main.js` trong khi `CMD` và `start:worker` đều trỏ `dist/main.js` | | đã sửa | | chữa cùng lúc: đường dẫn CMD, `start:worker`, và mã test lọt vào image |
+| ↳ 4 | Runtime stage **không chép `apps/api/node_modules`** → `Cannot find module 'reflect-metadata'`, và không có `prisma` CLI nên bước migration của CD bất khả thi | | đã sửa | | Nest nay khởi động tới bước kiểm biến môi trường; `prisma --version` chạy được trong image |
+
+| 🐛 NỢ mới (PR riêng) | **Image API nặng 1,17 GB** — `/app/node_modules` chiếm 712 MB vì chép cả store `.pnpm` gồm devDependency | Claude | ⏳ chưa làm | đo bằng `du -sh` trong image | Cần `pnpm deploy --prod` hoặc bước prune ở tầng runtime. Không gộp vào PR sửa lỗi để giữ PR nhỏ |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):
