@@ -57,11 +57,19 @@ jobs:
       packages: write
     outputs:
       image: ${{ steps.meta.outputs.image }}
+      repo: ${{ steps.meta.outputs.repo }}
     steps:
       - uses: actions/checkout@v4
 
+      # `github.repository` giữ NGUYÊN chữ hoa của tên repo (khanhviet529/NEXUS),
+      # nhưng Docker bắt buộc tên repository phải CHỮ THƯỜNG — buildx từ chối
+      # với "repository name must be lowercase". Đây là lỗi chỉ lộ khi CD chạy
+      # thật, nên nó nằm im suốt từ lúc B8 viết ra.
       - id: meta
-        run: echo "image=ghcr.io/${{ github.repository }}/api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: |
+          REPO="${GITHUB_REPOSITORY,,}"
+          echo "repo=ghcr.io/$REPO/api" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$REPO/api:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -79,7 +87,7 @@ jobs:
           # Tag theo SHA để rollback chỉ là "trỏ lại tag cũ"
           tags: |
             ${{ steps.meta.outputs.image }}
-            ghcr.io/${{ github.repository }}/api:latest
+            ${{ steps.meta.outputs.repo }}:latest
           build-args: BUILD_VERSION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

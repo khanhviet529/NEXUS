@@ -1,0 +1,55 @@
+# Thiếu file này là lỗi, không phải thiếu tối ưu.
+#
+# `apps/api/Dockerfile` cài dependency ở tầng `deps` rồi `COPY . .` ở tầng
+# `build`. Không có .dockerignore thì bước COPY bê nguyên `node_modules` của
+# MÁY HOST đè lên phần vừa cài — mà node_modules của pnpm gần như toàn symlink
+# trỏ vào store trên ổ đĩa host. Vào Linux chúng thành liên kết gãy, và build
+# chết với:
+#
+#     Cannot find module '/app/packages/shared/node_modules/typescript/bin/tsc'
+#
+# Đó đúng là lỗi đã làm CD đỏ ở lần chạy thật đầu tiên.
+
+# ── Phần gây lỗi ────────────────────────────────────────────────────────────
+node_modules
+**/node_modules
+
+# ── Kết quả build: image tự sinh lại, chép vào chỉ làm bẩn và chậm ──────────
+dist
+**/dist
+.next
+**/.next
+out
+**/out
+*.tsbuildinfo
+**/*.tsbuildinfo
+storybook-static
+**/storybook-static
+
+# ── Test artifact ───────────────────────────────────────────────────────────
+coverage
+**/coverage
+test-results
+**/test-results
+playwright-report
+**/playwright-report
+blob-report
+**/blob-report
+**/.turbo
+
+# ── KHÔNG BAO GIỜ đưa vào image ─────────────────────────────────────────────
+# .env chứa secret thật; .git chứa toàn bộ lịch sử kể cả secret đã xoá ở commit
+# sau. Cả hai đọc lại được từ image tầng bất kỳ, kể cả khi tầng cuối đã xoá.
+.env
+.env.*
+!.env.example
+.git
+.github
+
+# ── Không liên quan tới image API ───────────────────────────────────────────
+docs
+deploy
+*.md
+!README.md
+.vscode
+.idea
