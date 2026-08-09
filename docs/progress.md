@@ -52,6 +52,12 @@
 
 | **Phép thử §1.3** | Render cùng một màn bằng 4 preset, người ngoài phải phân biệt được | — | ⏳ chưa làm được | — | Cần ≥2 preset. Điều kiện đóng GĐ B, không phải GĐ A |
 
+| TC-1 | **test-catalog §3C HYBRID** — 13 ca cách ly cho `settings`/`feature_flags` + sửa lỗ ghi chéo tenant ở `tenancy.extension.ts` | Claude | 🔍 chờ review | **13 ca ✅** (6 ca đỏ lúc viết) | Nhánh HYBRID chỉ áp phạm vi cho `findMany`-loại op → A sửa/xoá/đọc được setting của B chỉ cần biết id, và job quên `runWith` âm thầm tạo dòng GLOBAL. Không ràng buộc DB nào cứu được (§3C/H12) |
+
+| TC-2 | Check thứ TÁM `check-raw-sql` — AR3 (cấm `*RawUnsafe`) · AR4 (Kysely không ghi) · **AR14** (không SQL thô ghi vào bảng HYBRID) | Claude | 🔍 chờ review | negative control ✅ | Danh sách bảng HYBRID đọc từ `TENANCY_POLICY`, không chép tay |
+
+| TC-3 | **test-catalog tầng 1** — route inventory (ModulesContainer, không `_router.stack`) + U1–U5 trên 110 route có bảo vệ | Claude | 🔍 chờ review | **8 ca ✅** | Bắt lỗi thật: §3.1c ghi "X-Request-Id LUÔN trả lại" nhưng **không ai đặt header** — 110 route thiếu. Đã sửa bằng middleware trong `configureApp`. **NỢ: U6** (id tenant khác → 404) cần fixture factory theo catalog §2.3 |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):
