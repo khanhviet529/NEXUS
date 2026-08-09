@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiError } from '@nexus/api-client';
 import { resolveNextAction } from '@/lib/api/next-action';
+import { reportApiError } from '@/lib/observability/sentry';
 import { useCan } from '@/lib/auth/use-can';
 import { useConfirm, useBulkResultDialog } from '@/providers/overlay';
 import type { ActionDef, BulkActionDef, ConfirmResult, ResolvedAction } from './types';
@@ -53,6 +54,8 @@ export function useActions<TCtx>(defs: ActionDef<TCtx>[], ctx: TCtx): ResolvedAc
       } catch (e) {
         // Lỗi tập trung — FE xử lý theo code/status, không theo message (§3.6)
         const err = getApiError(e);
+        // §9: lỗi hệ thống gửi Sentry kèm traceId để tra chéo FE ↔ BE
+        if (err.status >= 500) reportApiError(err);
         // §3.6: BE trả MÃ việc nên làm tiếp; FE quyết nhãn + đích đến.
         // Lỗi cụt ("không đủ tồn kho") để người dùng bế tắc; có lối đi tiếp
         // thì họ tự xử lý được.

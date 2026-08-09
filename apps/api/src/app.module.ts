@@ -41,6 +41,7 @@ import { PersonalizationModule } from './modules/personalization/personalization
 import { S3Module } from './infra/s3/s3.module';
 import { CryptoModule } from './infra/crypto/crypto.module';
 import { HealthController } from './modules/health/health.controller';
+import { HealthRepository } from './modules/health/health.repository';
 
 /**
  * Vòng đời request (§4.2):
@@ -110,6 +111,7 @@ import { HealthController } from './modules/health/health.controller';
   ],
   controllers: [HealthController],
   providers: [
+    HealthRepository,
     { provide: APP_GUARD, useClass: CompositeAuthGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },

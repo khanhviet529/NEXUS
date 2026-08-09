@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+// PHẢI trước mọi import module: Sentry vá thư viện lúc nạp (§9)
+import { initSentry } from './infra/observability/sentry';
+initSentry('api');
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';

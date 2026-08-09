@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ClsService } from 'nestjs-cls';
+import * as Sentry from '@sentry/nestjs';
 import { nextActionOf, type ApiErrorBody } from '@nexus/shared';
 import type { RequestContext } from '../../infra/cls/request-context';
 import { AppException } from '../errors/app.exception';
@@ -64,6 +65,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         { traceId, err: exception instanceof Error ? exception.stack : String(exception) },
         'Unhandled exception',
       );
+      // §9: gắn traceId để đối chiếu Sentry ↔ log ↔ response trả cho client
+      Sentry.withScope((scope) => {
+        scope.setTag('traceId', traceId);
+        Sentry.captureException(exception);
+      });
       body = {
         code: 'COMMON.INTERNAL_ERROR',
         message: 'Lỗi hệ thống',
