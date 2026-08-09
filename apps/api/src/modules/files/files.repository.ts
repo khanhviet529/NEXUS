@@ -60,16 +60,29 @@ export class FilesRepository {
   /**
    * Quyền đọc KẾ THỪA entity gốc (matrix §2.5): có permission read của entity
    * VÀ bản ghi nằm trong scope — kiểm bằng scoped findFirst, NHÚNG trong WHERE.
+   *
+   * Trả về BA trạng thái chứ không phải boolean, vì hai lý do "không được đọc"
+   * phải ra hai mã HTTP khác nhau (spec §3.6, dòng 356):
+   *
+   *   'no-permission' → 403: người dùng không có quyền đọc loại entity này
+   *   'not-found'     → 404: KHÔNG tồn tại HOẶC ngoài phạm vi dữ liệu
+   *
+   * Gộp cả hai vào 403 như bản trước là sai spec: "ngoài phạm vi" phải không
+   * phân biệt được với "không tồn tại". Test U6 bắt đúng chỗ này.
    */
-  async canReadEntity(user: AuthUser, entity: string, entityId: string): Promise<boolean> {
+  async canReadEntity(
+    user: AuthUser,
+    entity: string,
+    entityId: string,
+  ): Promise<'ok' | 'no-permission' | 'not-found'> {
     const ability = await this.ability.forUser(user);
     const scopedExists = async (
       permission: string,
       find: (where: Record<string, unknown>) => Promise<{ id: string } | null>,
-    ): Promise<boolean> => {
-      if (!ability.can(permission)) return false;
+    ): Promise<'ok' | 'no-permission' | 'not-found'> => {
+      if (!ability.can(permission)) return 'no-permission';
       const scopeWhere = await ability.scopeWhere(permission);
-      return !!(await find(scopeWhere));
+      return (await find(scopeWhere)) ? 'ok' : 'not-found';
     };
 
     switch (entity) {
@@ -95,8 +108,10 @@ export class FilesRepository {
           }),
         );
       default:
-        // Entity chưa đăng ký kế thừa quyền → fail-closed (§4.4)
-        return false;
+        // Entity chưa đăng ký kế thừa quyền → fail-closed (§4.4).
+        // 'no-permission' chứ không phải 'not-found': đây là thiếu sót cấu
+        // hình phía ta, không phải chuyện dữ liệu của người gọi.
+        return 'no-permission';
     }
   }
 }

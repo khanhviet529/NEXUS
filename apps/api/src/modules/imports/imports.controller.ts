@@ -75,6 +75,11 @@ export class ImportsController {
   @RequirePermission('product:import')
   @ApiOperation({ summary: 'Lỗi TỪNG DÒNG (§4.7) — file lỗi che field theo quyền người tải' })
   async jobErrors(@CurrentUser() _user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    // Không kiểm job thì id của tenant khác trả `[]` với mã 200 — trong khi
+    // `GET /import-jobs/:id` cùng id lại trả 404. Hai mã khác nhau cho cùng
+    // một sự thật là chỗ để suy ra sự tồn tại (§3.6).
+    const job = await this.imports.findJob(id);
+    if (!job) throw new AppException('COMMON.NOT_FOUND');
     return this.imports.listErrors(id);
   }
 

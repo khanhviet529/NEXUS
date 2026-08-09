@@ -70,6 +70,15 @@ export class WebhooksRepository {
     return { secret };
   }
 
+  /**
+   * Tra endpoint trong PHẠM VI tenant hiện hành (extension tự chèn where).
+   * Controller gọi trước mọi thao tác ghi lên endpoint: thiếu bước này thì id
+   * của tenant khác làm vỡ composite FK và trả 500 thay vì 404 (§3.6).
+   */
+  findEndpoint(id: string) {
+    return this.prisma.client.webhookEndpoint.findFirst({ where: { id }, select: { id: true } });
+  }
+
   async subscribe(tenantId: string, endpointId: string, eventType: string) {
     return this.prisma.client.webhookSubscription.upsert({
       where: { tenantId_endpointId_eventType: { tenantId, endpointId, eventType } },

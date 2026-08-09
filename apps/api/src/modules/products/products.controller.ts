@@ -242,6 +242,13 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: Partial<UpsertProductDto> & { version: number },
   ): Promise<ProductResponseDto> {
+    // Kiểm tồn-tại-trong-phạm-vi TRƯỚC, đúng khuôn module [REF] orders
+    // (`getInScope` rồi mới tới nghiệp vụ). Thiếu bước này thì id của tenant
+    // khác cho ra 409 VERSION_CONFLICT — sai §3.6 (phải 404) và còn gây hiểu
+    // nhầm: người dùng tưởng ai đó vừa sửa bản ghi.
+    const existing = await this.repo.findById(id);
+    if (!existing) throw new AppException('COMMON.NOT_FOUND');
+
     const affected = await this.repo.update(id, dto.version, dto);
     if (affected.count === 0) throw new AppException('COMMON.VERSION_CONFLICT');
     const row = await this.repo.findById(id);
@@ -260,6 +267,12 @@ export class ProductsController {
   @RequirePermission('product:delete')
   @ApiOperation({ summary: 'Xoá — delete guard A2: đang được tham chiếu → 409 kèm nguồn' })
   async remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    // Tồn-tại-trong-phạm-vi kiểm TRƯỚC: `softDelete` gọi thẳng `update` nên id
+    // của tenant khác làm Prisma ném P2025 → 500. §3.6 đòi 404, và 500 ở đây
+    // còn đẩy một tình huống bình thường vào Sentry. Test U6 bắt được.
+    const existing = await this.repo.findById(id);
+    if (!existing) throw new AppException('COMMON.NOT_FOUND');
+
     // A2 (§5B.1): đếm tham chiếu TRƯỚC, trả danh sách có link — không phải
     // thông báo chung chung, càng không phải 500 foreign key violation
     const references = await this.repo.countReferences(id);

@@ -79,6 +79,9 @@
 | ✅ N1.2 | Tổng quát hoá phát hiện check #6: `run-all.mjs` in `N/N check ĐÃ CHẠY`; hợp đồng mã thoát 0/2/khác; ở CI thì "không chạy được" = ĐỎ | Claude | 🔍 chờ review | 4 negative control | Rà cả 8 check: không còn cái nào thoát 0 im lặng. Thêm lưới thứ hai — file `check-*.mjs` có trên đĩa mà quên đăng ký trong `run-all` → ĐỎ (đó là dạng "không chạy" triệt để nhất) |
 
 | ✅ N1.3 | `check-pr-size` vượt ngưỡng → **ĐỎ**, trừ khi mô tả PR có dòng `PR-SIZE-OK: <lý do ≥30 ký tự>` | Claude | 🔍 chờ review | 6 nhánh đều kiểm | Cảnh báo không ai phải trả lời sẽ bị lờ sau ba lần. Vẫn không chặn cứng theo con số: chặn cứng đẻ ra thói quen tách PR theo SỐ DÒNG thay vì theo Ý NGHĨA |
+| ✅ N2.1 — U6 | Fixture factory cho MỌI route có `:id` (45 route) + ca "id tenant B → 404" | Claude | 🔍 chờ review | **5 ca ✅**, bắt **5 lỗi thật** | Ba lưới tự canh: route thiếu fixture → đỏ · fixture khai thừa → đỏ · `ownership` khác `tenant` mà không nêu lý do → đỏ. Lỗi tìm ra: `files/by-entity` trả **403** (tiết lộ tồn tại) · `DELETE /products/:id` trả **500** (ca D3, thứ 14 trong "28 ca dễ hỏng nhất") · `webhooks/…/subscriptions` trả **500** (vỡ FK) · `PATCH /products/:id` trả **409** thay vì 404 (thiếu bước `getInScope` mà module [REF] orders có) · `import-jobs/:id/errors` trả **200 []** trong khi `/import-jobs/:id` cùng id trả 404 |
+
+| ✅ N2.2 — L16 | Ngân sách query cho 13 endpoint danh sách: `queryCount(1 dòng) == queryCount(100 dòng)` | Claude | 🔍 chờ review | **3 ca ✅**, có negative control | Không dùng số cố định: `expectQueryCount(3)` chọn sai là vô nghĩa và refactor hợp lệ làm đỏ oan. Negative control: cài N+1 vào `GET /products` → `1 dòng: 3 query · 100 dòng: 32 query`, đỏ đúng chỗ. Kèm lưới bắt GET mới chưa phân loại vào LIST_PATHS hay KNOWN_SINGLETONS |
 
 ## Việc chặn (blocker)
 
