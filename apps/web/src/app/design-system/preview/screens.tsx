@@ -10,6 +10,8 @@ import { FormField } from '@/components/common/form-field';
 import { OrderStatusBadge } from '@/components/common/status-badge';
 import { DetailLayout, DetailField } from '@/design-system/patterns/list-detail/detail-layout';
 import { GridEntry, type GridColumn } from '@/design-system/patterns/grid-entry/grid-entry';
+import { AppShell } from '@/design-system/layouts/app-shell';
+import type { NavItem } from '@/design-system/layouts/types';
 import { formatMoney } from '@/lib/format/money';
 import { PREVIEW_LINES, PREVIEW_ORDERS, type PreviewOrder } from './fixtures';
 import type { PreviewScreen } from './screen-ids';
@@ -68,7 +70,64 @@ export function PreviewScreenView({ screen }: { screen: PreviewScreen }) {
       return <LoginScreen />;
     case 'states':
       return <StatesScreen />;
+    case 'shell':
+      return <ShellScreen />;
   }
+}
+
+/**
+ * Nav mẫu HAI CẤP. `sidebar` chỉ dùng cấp 1; `hybrid` đưa cấp 1 lên hàng trên
+ * và cấp 2 vào cột trái. Cùng một dữ liệu, hai cách trình bày — đó chính là
+ * điều `ShellProps` phải làm được.
+ */
+const PREVIEW_NAV: NavItem[] = [
+  {
+    href: '/orders',
+    label: 'Bán hàng',
+    children: [
+      { href: '/orders', label: 'Đơn hàng' },
+      { href: '/customers', label: 'Khách hàng' },
+      { href: '/orders/returns', label: 'Trả hàng' },
+    ],
+  },
+  {
+    href: '/inventory',
+    label: 'Kho',
+    children: [
+      { href: '/inventory/balances', label: 'Tồn kho' },
+      { href: '/inventory/movements', label: 'Phiếu xuất nhập' },
+    ],
+  },
+  { href: '/users', label: 'Quản trị', children: [{ href: '/users', label: 'Người dùng' }] },
+];
+
+/**
+ * Màn DUY NHẤT render khung app. Sáu màn kia cố ý render trần để ảnh chỉ nói
+ * về nội dung; ảnh này nói về KHUNG — và nó là thứ phân biệt hai shell.
+ */
+function ShellScreen() {
+  return (
+    <AppShell
+      nav={PREVIEW_NAV}
+      breadcrumb={[{ label: 'Bán hàng', href: '/orders' }, { label: 'Đơn hàng' }]}
+      pageMode="normal"
+      headerSlots={{
+        search: (
+          <Button variant="ghost" size="sm">
+            Ctrl+K
+          </Button>
+        ),
+        notifications: (
+          <Button variant="ghost" size="sm" aria-label="Thông báo">
+            🔔
+          </Button>
+        ),
+        user: <span className="mx-2 text-sm">Nguyễn Thị Minh</span>,
+      }}
+    >
+      <ListScreen />
+    </AppShell>
+  );
 }
 
 function ListScreen() {

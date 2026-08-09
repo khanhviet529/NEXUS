@@ -184,6 +184,17 @@ describe('DataTable — kích thước theo token, không phải số cứng', (
     );
   });
 
+  it('giá trị limit ĐANG DÙNG luôn có trong danh sách chọn', () => {
+    // Thiếu nó thì trình duyệt hiện tuỳ chọn đầu tiên và người dùng đọc sai số
+    // bản ghi mỗi trang — xảy ra thật khi saved view lưu một limit lạ.
+    renderTable({
+      state: { page: 1, limit: 37 },
+      meta: { page: 1, totalPages: 1, total: 2, hasNext: false },
+    });
+    const select = screen.getByRole('combobox', { name: 'Số bản ghi mỗi trang' });
+    expect(select).toHaveValue('37');
+  });
+
   it('danh sách số bản ghi/trang chứa defaultPageSize của preset', () => {
     renderTable({ meta: { page: 1, totalPages: 1, total: 2, hasNext: false } });
     const select = screen.getByRole('combobox', { name: 'Số bản ghi mỗi trang' });

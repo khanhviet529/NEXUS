@@ -12,7 +12,17 @@
  * Thay bằng `states` — bốn trạng thái DataTable, bề mặt CÓ THẬT và dễ vỡ khi
  * đổi token. Đổi lại khi `dashboard` được implement ở GĐ D.
  */
-export const PREVIEW_SCREENS = ['list', 'detail', 'form', 'grid-entry', 'login', 'states'] as const;
+export const PREVIEW_SCREENS = [
+  'list',
+  'detail',
+  'form',
+  'grid-entry',
+  'login',
+  'states',
+  // Màn DUY NHẤT render khung app (AppShell). Sáu màn trên cố ý render trần
+  // để ảnh chỉ nói về nội dung; `shell` mới là ảnh nói về khung.
+  'shell',
+] as const;
 
 export type PreviewScreen = (typeof PREVIEW_SCREENS)[number];
 
