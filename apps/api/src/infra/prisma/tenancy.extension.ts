@@ -50,6 +50,27 @@ const FILTER_WHERE_OPS = new Set([
 
 const CREATE_OPS = new Set(['create', 'createMany', 'createManyAndReturn']);
 
+/**
+ * HYBRID tách ĐỌC và GHI, vì hai bên có phạm vi khác nhau (test-catalog §3C).
+ * `upsert` xếp vào nhóm GHI: nhánh update của nó sửa dòng đã có.
+ */
+const HYBRID_READ_UNIQUE_OPS = new Set(['findUnique', 'findUniqueOrThrow']);
+const HYBRID_WRITE_UNIQUE_OPS = new Set(['update', 'delete', 'upsert']);
+const HYBRID_WRITE_MANY_OPS = new Set(['updateMany', 'deleteMany']);
+
+function requireTenant(
+  tenantId: string | undefined,
+  model: string,
+  operation: string,
+): asserts tenantId is string {
+  if (!tenantId) {
+    throw new Error(
+      `[TENANCY] ${model}.${operation} (HYBRID) ghi mà không có tenantId trong context — fail-closed. ` +
+        `Ghi dòng global phải đi qua bypass của SYSADMIN, không phải qua job quên runWith(ctx).`,
+    );
+  }
+}
+
 interface MutableArgs {
   where?: Record<string, unknown>;
   data?: Record<string, unknown> | Record<string, unknown>[];
@@ -93,20 +114,45 @@ export function createTenancyExtension(getCtx: () => TenancyContext) {
           const a = args as MutableArgs;
 
           if (cls === 'HYBRID') {
-            // tenant_id = current OR IS NULL (ưu tiên dòng có tenant xử lý ở service)
-            if (FILTER_WHERE_OPS.has(operation)) {
-              const scope = ctx.tenantId
-                ? { OR: [{ tenantId: ctx.tenantId }, { tenantId: null }] }
-                : { tenantId: null };
-              a.where = a.where ? { AND: [a.where, scope] } : scope;
+            /**
+             * ĐỌC được nới, GHI thì không (test-catalog §3C).
+             *
+             * Bản đầu chỉ áp phạm vi cho FILTER_WHERE_OPS, nên `update`/`delete`/
+             * `upsert`/`findUnique` theo `id` KHÔNG bị chặn gì cả: tenant A sửa
+             * được setting của B chỉ cần biết id. Không ràng buộc DB nào cứu
+             * được — composite FK và NOT NULL không biết caller thuộc tenant
+             * nào. Extension là lớp DUY NHẤT chặn được (§3C/H12).
+             *
+             * Ba luật:
+             *   đọc  → tenant hiện hành HOẶC global
+             *   ghi  → CHỈ tenant hiện hành (sửa dòng global = đổi mặc định
+             *          của mọi tenant, phải qua bypass của SYSADMIN)
+             *   tạo  → không có tenant context thì THROW, không âm thầm tạo
+             *          dòng global
+             */
+            const readScope = ctx.tenantId
+              ? { OR: [{ tenantId: ctx.tenantId }, { tenantId: null }] }
+              : { tenantId: null };
+
+            if (HYBRID_READ_UNIQUE_OPS.has(operation)) {
+              a.where = { ...(a.where ?? {}), AND: [readScope] };
+            } else if (HYBRID_WRITE_UNIQUE_OPS.has(operation)) {
+              requireTenant(ctx.tenantId, model, operation);
+              a.where = { ...(a.where ?? {}), tenantId: ctx.tenantId };
+            } else if (HYBRID_WRITE_MANY_OPS.has(operation)) {
+              requireTenant(ctx.tenantId, model, operation);
+              const own = { tenantId: ctx.tenantId };
+              a.where = a.where ? { AND: [a.where, own] } : own;
+            } else if (FILTER_WHERE_OPS.has(operation)) {
+              a.where = a.where ? { AND: [a.where, readScope] } : readScope;
             }
-            if (CREATE_OPS.has(operation) && a.data && ctx.tenantId) {
-              // HYBRID cho phép ghi dòng global (tenantId: null tường minh);
-              // không khai gì → mặc định tenant hiện hành
-              const rows = Array.isArray(a.data) ? a.data : [a.data];
-              for (const row of rows) {
-                if (!('tenantId' in row)) row['tenantId'] = ctx.tenantId;
-              }
+
+            if (CREATE_OPS.has(operation) && a.data) {
+              requireTenant(ctx.tenantId, model, operation);
+              injectCreateData(a.data, ctx.tenantId!, model);
+            }
+            if (operation === 'upsert' && a.create) {
+              injectCreateData(a.create, ctx.tenantId!, model);
             }
             return query(args);
           }
