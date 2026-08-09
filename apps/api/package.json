@@ -30,6 +30,8 @@
     "@nestjs/swagger": "^11.0.0",
     "@nexus/shared": "workspace:*",
     "@prisma/client": "6.19.3",
+    "@sentry/nestjs": "^10.69.0",
+    "@sentry/node": "^10.69.0",
     "argon2": "^0.44.0",
     "bullmq": "^5.30.0",
     "class-transformer": "^0.5.1",

@@ -1,0 +1,133 @@
+# CD — spec §9: build image → chạy migration → rolling deploy → health check
+# → rollback tự động nếu health check thất bại.
+#
+# Thiết kế có chủ đích:
+#  - Chỉ chạy khi CI của cùng commit đã XANH (workflow_run), không deploy mù
+#  - Migration chạy bằng CHÍNH image vừa build → schema và code luôn cùng
+#    phiên bản; không có cửa sổ "code mới, schema cũ"
+#  - Bước deploy/rollback gọi script của hạ tầng đích. Repo này CHƯA gắn với
+#    cloud cụ thể nên script là điểm nối tường minh (deploy/ROLLBACK.md),
+#    KHÔNG bịa lệnh cho một nhà cung cấp mà dự án chưa chọn.
+name: CD
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Môi trường triển khai
+        required: true
+        default: staging
+        type: choice
+        options: [staging, production]
+
+concurrency:
+  # Không cho hai lần deploy chồng nhau lên cùng môi trường
+  group: cd-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Chỉ deploy khi CI xanh
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "CI không xanh (${{ github.event.workflow_run.conclusion }}) — DỪNG."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-image:
+    name: Build image
+    needs: guard
+    if: needs.guard.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        run: echo "image=ghcr.io/${{ github.repository }}/api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          # Tag theo SHA để rollback chỉ là "trỏ lại tag cũ"
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ghcr.io/${{ github.repository }}/api:latest
+          build-args: BUILD_VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  migrate:
+    name: Chạy migration (bằng chính image vừa build)
+    needs: [guard, build-image]
+    if: needs.guard.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: prisma migrate deploy
+        env:
+          IMAGE: ${{ needs.build-image.outputs.image }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Thiếu secret DATABASE_URL cho môi trường này — xem deploy/README.md"
+            exit 1
+          fi
+          docker run --rm -e DATABASE_URL="$DATABASE_URL" "$IMAGE" \
+            npx prisma migrate deploy
+
+  deploy:
+    name: Rolling deploy + health check + rollback
+    needs: [guard, build-image, migrate]
+    if: needs.guard.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rolling deploy
+        env:
+          IMAGE: ${{ needs.build-image.outputs.image }}
+          DEPLOY_HOOK: ${{ secrets.DEPLOY_HOOK }}
+        run: ./deploy/rolling-deploy.sh "$IMAGE"
+
+      - name: Health check
+        id: health
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: ./deploy/health-check.sh "$HEALTH_URL"
+
+      # §9: rollback TỰ ĐỘNG nếu health check thất bại
+      - name: Rollback
+        if: failure() && steps.health.outcome == 'failure'
+        env:
+          DEPLOY_HOOK: ${{ secrets.DEPLOY_HOOK }}
+        run: ./deploy/rollback.sh

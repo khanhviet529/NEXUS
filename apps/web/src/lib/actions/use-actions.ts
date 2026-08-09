@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiError } from '@nexus/api-client';
+import { reportApiError } from '@/lib/observability/sentry';
 import { useCan } from '@/lib/auth/use-can';
 import { useConfirm, useBulkResultDialog } from '@/providers/overlay';
 import type { ActionDef, BulkActionDef, ConfirmResult, ResolvedAction } from './types';
@@ -52,6 +53,8 @@ export function useActions<TCtx>(defs: ActionDef<TCtx>[], ctx: TCtx): ResolvedAc
       } catch (e) {
         // Lỗi tập trung — FE xử lý theo code/status, không theo message (§3.6)
         const err = getApiError(e);
+        // §9: lỗi hệ thống gửi Sentry kèm traceId để tra chéo FE ↔ BE
+        if (err.status >= 500) reportApiError(err);
         if (err.status === 403) {
           toast.error('Bạn không có quyền thực hiện thao tác này');
         } else if (err.status === 409) {

@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+// PHẢI trước mọi import module: Sentry vá thư viện lúc nạp (§9)
+import { initSentry } from './infra/observability/sentry';
+initSentry('worker');
 import { NestFactory } from '@nestjs/core';
 import { Worker } from 'bullmq';
 import Redis from 'ioredis';
