@@ -8,8 +8,8 @@
  *
  * Cách chạy: so diff với nhánh gốc (mặc định origin/main, đổi bằng BASE_REF).
  *
- * ⚠ Ở LOCAL, không có nhánh gốc thì bỏ qua. Ở CI thì KHÔNG: thiếu mốc so sánh
- * là lỗi CẤU HÌNH và phải đỏ.
+ * ⚠ Thiếu nhánh gốc thì check thoát mã 2 = "không chạy được". run-all.mjs
+ * quyết định: local cho qua, CI thì ĐỎ.
  *
  * Bài học đắt: bản đầu ghi "CI luôn có" rồi bỏ qua im lặng — nhưng
  * actions/checkout@v4 mặc định clone NÔNG nên origin/main không tồn tại, và
@@ -33,14 +33,11 @@ function changedFiles() {
   try {
     execFileSync('git', ['rev-parse', '--verify', BASE], { stdio: 'ignore' });
   } catch {
-    if (process.env.GITHUB_ACTIONS) {
-      console.error(`❌ check-fe-test-coverage: KHÔNG có ${BASE} trong CI.`);
-      console.error('   Nguyên nhân thường gặp: actions/checkout thiếu `fetch-depth: 0`,');
-      console.error('   hoặc chưa fetch nhánh gốc. Sửa workflow, đừng nới check.');
-      process.exit(1);
-    }
-    console.log(`⏭️  check-fe-test-coverage: không có ${BASE} — bỏ qua (chỉ ở local)`);
-    process.exit(0);
+    // Mã 2 = KHÔNG CHẠY ĐƯỢC (hợp đồng ở run-all.mjs). run-all quyết định điều
+    // đó có được phép không: ở local thì được, ở CI thì ĐỎ. Chính sách nằm một
+    // chỗ, không rải vào từng check.
+    console.log(`⏭️  check-fe-test-coverage: không có ${BASE} — không so diff được`);
+    process.exit(2);
   }
   const merge = execFileSync('git', ['merge-base', 'HEAD', BASE], { encoding: 'utf8' }).trim();
   return execFileSync('git', ['diff', '--name-only', '--diff-filter=ACMR', merge, 'HEAD'], {

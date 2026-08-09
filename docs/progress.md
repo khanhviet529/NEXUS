@@ -46,7 +46,7 @@
 
 | B7 | Saved views UI (áp view = `router.replace` URL) | Claude | ⏳ chưa mở PR | **6 test ✅** | Nhánh `feat/saved-views-b7` đã push; `gh` không còn trên máy nên chưa mở được PR |
 
-| B8 | CD pipeline có rollback (guard → build image → migrate → rolling → health → rollback) + Sentry redact hai phía + `/health` kiểm THẬT db/redis (503 khi hỏng) | Claude | ⏳ chưa mở PR | **health 2 + redact 4 + FE sentry 5 ✅** | Nhánh `feat/cd-sentry-b8` đã push. `deploy/*.sh` gọi `DEPLOY_HOOK` thay vì lệnh ECS/K8s: repo là boilerplate, chưa chọn hạ tầng. `rollback.sh` KHÔNG hạ cấp schema → mọi migration phải tương thích ngược |
+| B8 | CD pipeline có rollback (guard → build image → migrate → rolling → health → rollback) + Sentry redact hai phía + `/health` kiểm THẬT db/redis (503 khi hỏng) | Claude | 🔄 **CHƯA XONG** | health 2 + redact 4 + FE sentry 5 ✅ | **Đường deploy chưa đi trọn lần nào.** Cùng loại với check #6: cơ chế tồn tại mà chưa chạy. Đã chạy tới: `guard` ✅ → `build image` ✅ → `migrate` ❌ (thiếu `DATABASE_URL`, ĐÚNG thiết kế "thiếu secret thì dừng") → `rolling deploy` ⏭️ chưa chạy lần nào. `deploy/*.sh` gọi `DEPLOY_HOOK`, chưa nối hạ tầng nào. Chỉ coi là xong khi có một môi trường thật deploy được và health check trả 200 |
 
 | GĐ A | Hệ preset FE (`docs/fe-preset-system.md`): ba tầng token · `registry.ts` 1 preset · ba cấp cấu hình + `resolveProjectUI` · `ShellProps` + `SidebarShell` bỏ `useQuery` · check thứ BẢY `check-token-layers` · DataTable resize/ghim/đổi thứ tự cột · DetailLayout · FilterBar · GridEntry · Import/Export UI · trang preview · **6 ảnh baseline** · **a11y 2 tổ hợp** | Claude | 🔍 chờ review | **154 vitest + 9 e2e ✅**, 7/7 check | Bộ a11y bắt BỐN lỗi tương phản thật, gồm một lỗi production: dark mode nút primary chỉ 2,54:1. Ba chỗ lệch spec có chủ đích, ghi ở §14 của fe-preset-system.md. Ảnh baseline commit cả bản `-linux` (khớp CI) lẫn `-win32` (dev máy Windows) |
 
@@ -73,6 +73,12 @@
 | ↳ 4 | Runtime stage **không chép `apps/api/node_modules`** → `Cannot find module 'reflect-metadata'`, và không có `prisma` CLI nên bước migration của CD bất khả thi | | đã sửa | | Nest nay khởi động tới bước kiểm biến môi trường; `prisma --version` chạy được trong image |
 
 | 🐛 NỢ mới (PR riêng) | **Image API nặng 1,17 GB** — `/app/node_modules` chiếm 712 MB vì chép cả store `.pnpm` gồm devDependency | Claude | ⏳ chưa làm | đo bằng `du -sh` trong image | Cần `pnpm deploy --prod` hoặc bước prune ở tầng runtime. Không gộp vào PR sửa lỗi để giữ PR nhỏ |
+
+| 📏 Nợ quy trình — số đo THẬT | PR #12: **115 file · +7.760/−529 · 16 commit**, gấp ~19 lần ngưỡng §6 | Claude | ghi nhận | đo bằng GitHub API + `git diff --numstat` | **Nguyên nhân**: `gh` không có trên máy nên không mở được PR riêng cho từng hạng mục B7/B8/GĐ A; tất cả dồn vào một nhánh tích hợp. Đã gỡ bằng token API (PR #13 trở đi mở được riêng lẻ). **Đính chính một số liệu**: `docs/` trong PR #12 chỉ chiếm **196 dòng**, không phải 2.876 — phần phình là mã nguồn + test, nên "tách tài liệu ra PR riêng" sẽ KHÔNG giúp gì đáng kể. Cách tách đúng ở đây là theo hạng mục (B7 · B8 · GĐ A · test-catalog), tức theo Ý NGHĨA |
+
+| ✅ N1.2 | Tổng quát hoá phát hiện check #6: `run-all.mjs` in `N/N check ĐÃ CHẠY`; hợp đồng mã thoát 0/2/khác; ở CI thì "không chạy được" = ĐỎ | Claude | 🔍 chờ review | 4 negative control | Rà cả 8 check: không còn cái nào thoát 0 im lặng. Thêm lưới thứ hai — file `check-*.mjs` có trên đĩa mà quên đăng ký trong `run-all` → ĐỎ (đó là dạng "không chạy" triệt để nhất) |
+
+| ✅ N1.3 | `check-pr-size` vượt ngưỡng → **ĐỎ**, trừ khi mô tả PR có dòng `PR-SIZE-OK: <lý do ≥30 ký tự>` | Claude | 🔍 chờ review | 6 nhánh đều kiểm | Cảnh báo không ai phải trả lời sẽ bị lờ sau ba lần. Vẫn không chặn cứng theo con số: chặn cứng đẻ ra thói quen tách PR theo SỐ DÒNG thay vì theo Ý NGHĨA |
 
 ## Việc chặn (blocker)
 
