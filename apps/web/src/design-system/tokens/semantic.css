@@ -85,7 +85,10 @@
 /* Dark mode: đè TẦNG 2, cộng ngoại lệ có chủ đích ở tham số palette (§3.3).
    Không component nào biết dark mode tồn tại. Không preset nào đè khối này. */
 [data-theme='dark'] {
-  --brand-c: 0.13; /* giảm chroma cho nền tối — tham số palette, §3.3 */
+  /* Giảm chroma cho nền tối (§3.3). DẪN XUẤT từ tham số preset chứ không phải
+     hằng số: preset khác có chroma gốc khác, hằng số 0.13 sẽ xoá luôn khác
+     biệt đó ở dark mode. */
+  --brand-c: calc(var(--brand-c-preset) - 0.02);
   --color-primary: var(--brand-400); /* sáng hơn để nổi trên nền tối */
   --primary: var(--brand-400); /* alias phải đổi cùng — xem ghi chú ở :root */
   /* Nền primary sáng lên thì chữ trên nó phải TỐI lại. Giữ near-white như

@@ -49,11 +49,13 @@ jobs:
           BASE_REF: origin/${{ github.base_ref || 'main' }}
         run: node tools/checks/run-all.mjs
 
-      # Tư vấn, KHÔNG chặn — xem chú thích đầu check-pr-size.mjs
+      # Vượt ngưỡng §6 thì ĐỎ, trừ khi mô tả PR có dòng `PR-SIZE-OK: <lý do>`.
+      # Cảnh báo suông không ai phải trả lời nên sau vài lần sẽ bị lờ.
       - name: Kích thước PR so với working-agreement §6
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: origin/${{ github.base_ref || 'main' }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: node tools/checks/check-pr-size.mjs
 
       - name: Prisma generate

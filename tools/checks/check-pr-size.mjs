@@ -6,12 +6,19 @@
  * 16 commit) và không có gì báo. Một luật chỉ nằm trong tài liệu thì nó là lời nhắc; đưa
  * vào CI thì nó là luật.
  *
- * ⚠ Check này CẢNH BÁO, không chặn — và đó là chủ ý:
+ * ⚠ Vượt ngưỡng thì ĐỎ, TRỪ KHI mô tả PR có dòng giải trình. Không chặn cứng
+ * theo con số, nhưng cũng không chỉ cảnh báo:
  *
- *   Chặn cứng ở 400 dòng sẽ đẻ ra thói quen tệ hơn: người ta tách PR theo SỐ
- *   DÒNG chứ không theo Ý NGHĨA, ra một chuỗi PR không tự đứng được, review
- *   từng cái đều vô nghĩa. Cái ta muốn là người mở PR PHẢI GIẢI THÍCH khi vượt
- *   ngưỡng, không phải là con số luôn nằm dưới ngưỡng.
+ *   Chặn cứng ở 400 dòng đẻ ra thói quen tệ hơn — người ta tách PR theo SỐ
+ *   DÒNG chứ không theo Ý NGHĨA, ra một chuỗi PR không tự đứng được.
+ *
+ *   Còn cảnh báo suông thì không ai phải trả lời, và sau ba lần nó bị lờ.
+ *
+ * Nên cửa thoát là một dòng TƯỜNG MINH trong mô tả PR:
+ *
+ *     PR-SIZE-OK: <lý do vì sao không tách nhỏ hơn được>
+ *
+ * Nó buộc người mở PR viết ra lý do, và để lại dấu vết cho người review.
  *
  * Ngoại lệ tính: file sinh tự động, lockfile, ảnh baseline, snapshot — chúng
  * làm số dòng phình mà không tốn công review.
@@ -20,7 +27,10 @@ import { execFileSync } from 'node:child_process';
 
 const BASE = process.env.BASE_REF ?? 'origin/main';
 const SOFT = Number(process.env.PR_SIZE_SOFT ?? 400); // luật §6
-const LOUD = Number(process.env.PR_SIZE_LOUD ?? 800); // ngưỡng cảnh báo to
+/** Mô tả PR — workflow truyền qua env; rỗng nghĩa là không chạy trong ngữ cảnh PR */
+const PR_BODY = process.env.PR_BODY ?? '';
+/** Lý do phải là câu thật, không phải "PR-SIZE-OK: ok" */
+const WAIVER = /^[ 	>*]*PR-SIZE-OK\s*:\s*(.{30,})$/im;
 
 /** Không tính vào công review — sinh tự động hoặc nhị phân */
 const NOT_REVIEWED = [
@@ -39,11 +49,10 @@ function git(args) {
 try {
   execFileSync('git', ['rev-parse', '--verify', BASE], { stdio: 'ignore' });
 } catch {
-  // Check này là TƯ VẤN nên không đỏ, nhưng vẫn phải kêu ở CI — im lặng bỏ qua
-  // là cách check-fe-test-coverage đã chạy rỗng suốt nhiều PR.
-  const where = process.env.GITHUB_ACTIONS ? 'CI (thiếu fetch-depth: 0?)' : 'local';
-  console.log(`⏭️  check-pr-size: không có ${BASE} — bỏ qua ở ${where}`);
-  process.exit(0);
+  // Mã 2 = không chạy được (hợp đồng ở run-all.mjs). Check này là TƯ VẤN và
+  // chạy ở bước riêng, nhưng vẫn khai đúng mã để không ai đọc nhầm là "đạt".
+  console.log(`⏭️  check-pr-size: không có ${BASE} — không so diff được`);
+  process.exit(2);
 }
 
 const merge = git(['merge-base', 'HEAD', BASE]).trim();
@@ -87,25 +96,37 @@ const top = reviewedFiles
   .map((f) => `      ${String(f.churn).padStart(6)}  ${f.file}`)
   .join('\n');
 
-const level = reviewed > LOUD ? 'error' : 'warning';
-const headline =
-  reviewed > LOUD
-    ? `PR VƯỢT XA ngưỡng §6: ${reviewed} dòng (gấp ${(reviewed / SOFT).toFixed(1)} lần ${SOFT})`
-    : `PR vượt ngưỡng §6: ${reviewed} dòng (ngưỡng ${SOFT})`;
+const headline = `PR vượt ngưỡng §6: ${reviewed} dòng cần review (ngưỡng ${SOFT}, gấp ${(
+  reviewed / SOFT
+).toFixed(1)} lần)`;
 
-// Annotation của GitHub Actions — hiện thẳng trên PR, không phải chỉ trong log
-if (process.env.GITHUB_ACTIONS) {
-  console.log(`::${level} title=Kích thước PR::${headline}. ${summary}`);
+const waiver = WAIVER.exec(PR_BODY);
+
+if (waiver) {
+  console.log(`✅ check-pr-size: ${headline}`);
+  console.log(`   ${summary}`);
+  console.log(`   Đã có giải trình trong mô tả PR: "${waiver[1].trim().slice(0, 120)}"`);
+  process.exit(0);
 }
 
-console.warn(`⚠️  check-pr-size: ${headline}`);
-console.warn(`   ${summary}`);
-console.warn(`   Tám file nặng nhất:\n${top}`);
-console.warn('');
-console.warn('   working-agreement §6: PR < 400 dòng, nhánh sống ≤ 2 ngày.');
-console.warn('   Nếu KHÔNG tách được thì viết vào mô tả PR lý do vì sao — check');
-console.warn('   này cố ý không chặn, nhưng vượt ngưỡng mà im lặng thì lần sau');
-console.warn('   nó thành bình thường.');
+// Không có mô tả PR → không phải ngữ cảnh pull_request, chỉ báo cho biết
+if (!PR_BODY) {
+  console.warn(`⚠️  check-pr-size: ${headline}`);
+  console.warn(`   ${summary}`);
+  console.warn('   (không có PR_BODY nên chưa đòi giải trình — chỉ báo)');
+  process.exit(0);
+}
 
-// Cố ý exit 0: xem chú thích đầu file
-process.exit(0);
+if (process.env.GITHUB_ACTIONS) {
+  console.log(`::error title=Kích thước PR::${headline}. ${summary}`);
+}
+console.error(`❌ check-pr-size: ${headline}`);
+console.error(`   ${summary}`);
+console.error(`   Tám file nặng nhất:\n${top}`);
+console.error('');
+console.error('   working-agreement §6: PR < 400 dòng, nhánh sống ≤ 2 ngày.');
+console.error('   Tách theo Ý NGHĨA (mỗi PR tự đứng và review độc lập được),');
+console.error('   hoặc dán MỘT dòng sau vào mô tả PR kèm lý do thật:');
+console.error('');
+console.error('       PR-SIZE-OK: <vì sao không tách nhỏ hơn được, ≥30 ký tự>');
+process.exit(1);
