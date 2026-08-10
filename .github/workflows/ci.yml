@@ -287,10 +287,14 @@ jobs:
       # không phải nới ngưỡng.
       - name: So thời gian với cam kết của README
         run: |
-          LIMIT=1800
-          echo "pnpm bootstrap: ${SETUP_SECONDS}s · README cam kết: ${LIMIT}s"
+          # 300s, không phải 1800s. Đo thật trên runner sạch: 48s. Ngưỡng 30
+          # phút của README là lời hứa cho NGƯỜI (máy nhà còn phải tải image
+          # lần đầu); ngưỡng ở đây là gác HỒI QUY trên CI. Để 1800 thì check
+          # không bao giờ đỏ được, tức là một check không làm gì cả.
+          LIMIT=300
+          echo "pnpm bootstrap: ${SETUP_SECONDS}s · ngưỡng hồi quy CI: ${LIMIT}s"
           if [ "$SETUP_SECONDS" -gt "$LIMIT" ]; then
-            echo "::error::Setup ${SETUP_SECONDS}s VƯỢT cam kết ${LIMIT}s của README. Sửa repo hoặc sửa con số trong README."
+            echo "::error::Setup ${SETUP_SECONDS}s VƯỢT ngưỡng ${LIMIT}s (đo nền: 48s). Onboarding đã chậm đi gấp 6 lần — tìm nguyên nhân, đừng nới ngưỡng."
             exit 1
           fi
           echo "::notice::Onboarding sạch: ${SETUP_SECONDS}s / ${LIMIT}s cam kết"

@@ -45,7 +45,10 @@ vì `make` không có sẵn trên Windows.
 
 Tài khoản seed: xem `apps/api/prisma/seed.ts`.
 
-Nếu `pnpm bootstrap` mất **hơn 30 phút** thì đó là bug của repo — mở issue.
+Đo thật trên runner sạch của CI: **48 giây** cho `pnpm bootstrap`.
+Trên máy nhà, lần đầu tốn thêm thời gian tải image Docker (postgres · redis ·
+minio · mailpit) — thường vài phút. Nếu quá **30 phút** thì đó là bug của
+repo, mở issue.
 Job CI `onboarding` đo con số này trên máy sạch mỗi PR; vượt cam kết là CI đỏ.
 
 > ⚠️ **Clone lần thứ hai trên cùng một máy**: mở `.env` và đổi
