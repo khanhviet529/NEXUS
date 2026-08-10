@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { {{pascalCase name}}sController } from './{{dashCase name}}s.controller';
 import { {{pascalCase name}}sRepository } from './{{dashCase name}}s.repository';
 
-/** [GEN] Nhớ import vào app.module.ts (checklist bước 5) */
+/** [OPT] {{pascalCase name}}s — module nghiệp vụ sinh bởi gen:module. Đổi nhãn thành
+ * CORE nếu dự án không cắt được nó, rồi chạy `node tools/checks/check-cut-table.mjs --fix`.
+ * Nhớ import vào app.module.ts (checklist bước 5). */
 @Module({
   controllers: [{{pascalCase name}}sController],
   providers: [{{pascalCase name}}sRepository],
