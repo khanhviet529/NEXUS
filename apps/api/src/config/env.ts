@@ -25,7 +25,33 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/**
+ * Giá trị dev trong `.env.example`. Phải hợp lệ để clone sạch chạy được ngay
+ * (F-16: bản cũ dài 29 ký tự — không qua nổi chính validator ở trên, nên API
+ * không khởi động nổi sau `pnpm bootstrap`), nhưng phải CHẶN ở production.
+ *
+ * Một placeholder không qua được validator thì chặn cả người mới; một
+ * placeholder qua được mà không ai gác thì đi thẳng lên production. Cần cả hai.
+ */
+const DEV_PLACEHOLDERS: Record<string, string> = {
+  JWT_SECRET: 'dev-only-KHONG-DUNG-O-PRODUCTION-0000',
+  APP_ENCRYPTION_KEY: 'ZGV2LW9ubHkta2hvbmctZHVuZy1wcm9kLTAwMDA=',
+};
+
 export function validateEnv(config: Record<string, unknown>): Env {
+  if (config.NODE_ENV === 'production') {
+    const leaked = Object.entries(DEV_PLACEHOLDERS)
+      .filter(([k, v]) => config[k] === v)
+      .map(([k]) => k);
+    if (leaked.length) {
+      throw new Error(
+        `Biến môi trường không hợp lệ:\n` +
+          leaked.map((k) => `  ${k}: vẫn là giá trị mẫu của .env.example`).join('\n') +
+          `\nSinh giá trị thật trước khi chạy production.`,
+      );
+    }
+  }
+
   const result = envSchema.safeParse(config);
   if (!result.success) {
     const detail = result.error.issues

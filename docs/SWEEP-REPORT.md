@@ -243,3 +243,44 @@ trường thật vẫn thắng file, để CI truyền secret được). Bốn s
 đi qua nó; `ConfigModule` thêm `envFilePath: ['../../.env', '.env']`.
 Không thêm dependency nào — `dotenv-cli` đã cân nhắc và bỏ (CLAUDE.md §4).
 
+### F-16 — BLOCKER — `.env.example` chở giá trị KHÔNG qua nổi validator của chính repo
+
+Cũng do job `onboarding` tìm ra, ở lần chạy thứ hai — sau khi F-15 được vá,
+`pnpm bootstrap` xanh và lỗi lộ ra ở bước kế tiếp:
+
+```
+[Nest] ERROR [ExceptionHandler] Error: Biến môi trường không hợp lệ:
+  JWT_SECRET: JWT_SECRET phải ≥ 32 ký tự
+```
+
+`.env.example` ghi `JWT_SECRET=CHANGE_ME_min_32_bytes_random` — **29 ký tự**,
+ngay cạnh một validator `z.string().min(32)`. Placeholder vừa **nói ra luật**
+vừa **vi phạm luật**. Người mới chạy `pnpm bootstrap` thành công rồi `pnpm dev`
+chết ngay dòng đầu.
+
+Đổi cho đủ dài thôi thì lại đẩy nợ sang đầu kia: một placeholder qua được
+validator mà không ai gác sẽ đi thẳng lên production. Cần **cả hai** đầu.
+
+**Đã sửa:**
+- `.env.example`: `JWT_SECRET` (37 ký tự) và `APP_ENCRYPTION_KEY` hợp lệ ở dev
+- `env.ts`: `NODE_ENV=production` + vẫn dùng giá trị mẫu → **từ chối khởi động**
+- `apps/api/test/env-validation.spec.ts` — 4 test, đọc THẲNG từ `.env.example`
+  nên test không trôi khỏi file thật:
+
+```
+ ✓ test/env-validation.spec.ts (4 tests) 76ms
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+```
+
+### Bằng chứng — API khởi động thật trên clone sạch
+
+```
+$ curl -s http://localhost:4100/api/v1/health
+{"status":"ok","db":true,"redis":true,"version":"dev"}
+```
+
+Ba lần chạy job `onboarding` là ba lỗi khác nhau, mỗi lần lùi được một bước:
+F-15 (bootstrap chết) → F-16 (bootstrap xanh, app chết) → app sống. Không lần
+nào trong ba lỗi đó nhìn ra được nếu chỉ đọc code.
+
