@@ -1,6 +1,10 @@
 # [CORE] Hạ tầng dev cục bộ — spec §2.1, §9
 # Chạy: make setup  (hoặc docker compose -f docker-compose.dev.yml up -d)
-name: nexus-dev
+# Đặt được từ env (F-04). Hardcode `nexus-dev` làm CLONE THỨ HAI dùng chung
+# container, volume và DATABASE với clone thứ nhất — chạy migrate/seed ở clone
+# mới sẽ ghi đè dữ liệu của clone cũ, không cảnh báo gì.
+# Đây là lỗi DUY NHẤT trong 12 phát hiện C0 có thể phá dữ liệu repo gốc.
+name: ${COMPOSE_PROJECT_NAME:-nexus-dev}
 
 services:
   postgres:
@@ -10,7 +14,7 @@ services:
       POSTGRES_PASSWORD: nexus
       POSTGRES_DB: nexus
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       # ltree + pg_trgm bật sẵn cho DB dev (spec §2.3, §3.5)
@@ -24,7 +28,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -38,8 +42,8 @@ services:
       MINIO_ROOT_USER: nexus
       MINIO_ROOT_PASSWORD: nexus-minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -51,8 +55,8 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "8025:8025" # web UI
-      - "1025:1025" # SMTP
+      - "${MAILPIT_UI_PORT:-8025}:8025" # web UI
+      - "${MAILPIT_SMTP_PORT:-1025}:1025" # SMTP
 
 volumes:
   pgdata:

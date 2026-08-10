@@ -143,3 +143,68 @@ mọi PR, và CD chưa từng build được image.
 
 Cùng một khuôn mẫu lặp lại ba lần: **cơ chế tồn tại, được ghi trong tài liệu,
 và chưa từng chạy lần nào.**
+
+---
+
+## Phụ lục — F-13, F-14: phát hiện KHI VÁ, không phải khi quét
+
+Hai phát hiện dưới đây không đến từ C0.1–C0.3. Chúng lộ ra ở lượt V1–V4, lúc
+**chạy thử chính bản vá** cho F-01…F-06. Ghi vào đây để giữ MỘT sổ phát hiện
+duy nhất; V7 (C0.4→C0.6) vì vậy bắt đầu từ **F-15**.
+
+### F-13 — BLOCKER — `pnpm setup` là lệnh CÓ SẴN của pnpm, không phải script của repo
+
+V2/V3 thêm `"setup": "node tools/setup.mjs"` vào `package.json` và README bảo
+người mới chạy `pnpm setup`. Chạy thử trên clone sạch:
+
+```
+Next configuration changes were made:
+PNPM_HOME=C:\Users\...\AppData\Local\pnpm
+Setup complete. Open a new terminal to start using pnpm.
+```
+
+pnpm nuốt tên `setup` cho lệnh nội bộ của nó (thiết lập `PNPM_HOME`), script
+trong `package.json` **không bao giờ chạy**. Người mới sẽ thấy dòng "Setup
+complete" — tưởng xong — rồi `pnpm dev` chết vì chưa có database.
+
+Đây đúng thuộc tính thứ ba ở working-agreement §4.1b: hướng dẫn **PHẢI SỬA ĐƯỢC
+THEO**. Nó chỉ lộ ra vì có người gõ thật thay vì đọc và tin.
+
+**Đã sửa:** đổi tên thành `pnpm bootstrap` (`package.json`, `README.md`,
+`Makefile`, `docs/onboarding.md`, job CI `onboarding`).
+
+### F-14 — BLOCKER — đổi `COMPOSE_PROJECT_NAME` KHÔNG đủ để chạy clone thứ hai
+
+V1 vá F-04 bằng `name: ${COMPOSE_PROJECT_NAME:-nexus-dev}`. Bản vá đó tách
+container và volume — nhưng **không tách cổng host**. Clone thứ hai vẫn chết:
+
+```
+Error response from daemon: failed to set up container networking:
+Bind for 0.0.0.0:9000 failed: port is already allocated
+```
+
+Tức bản vá F-04 **chưa đủ**, và nếu không chạy thử thì tài liệu đã ghi "đổi
+`COMPOSE_PROJECT_NAME` là xong" — một câu sai.
+
+**Đã sửa:** tham số hoá cả 6 cổng host (`POSTGRES_PORT`, `REDIS_PORT`,
+`MINIO_PORT`, `MINIO_CONSOLE_PORT`, `MAILPIT_UI_PORT`, `MAILPIT_SMTP_PORT`)
+trong `docker-compose.dev.yml` + `.env.example`, kèm ghi chú rằng phải đổi
+**cả cụm**, không chỉ tên project.
+
+### Bằng chứng: lần đầu tiên đường onboarding chạy TRỌN
+
+Clone thứ hai (`E:\nexus-sweep`), `COMPOSE_PROJECT_NAME=nexus-sweep`, cổng riêng:
+
+```
+▸ Dựng hạ tầng (postgres · redis · minio · mailpit)  ✓ 81.2s
+▸ Cài dependency                                     ✓ 26.3s
+▸ Build @nexus/shared                                ✓  7.7s
+▸ Sinh Prisma client                                 ✓ 13.5s
+▸ Chạy migration                                     ✓ 10.0s
+▸ Seed dữ liệu mẫu                                   ✓ 11.0s
+✅ Setup xong trong 150s (2.5 phút).       EXIT=0
+```
+
+F-01, F-02, F-03, F-06 đóng. F-04 đóng bằng F-14. Job CI `onboarding` (V4) giữ
+cho con số này không mục lại: nó checkout vào thư mục riêng, **không cache
+pnpm**, chạy đúng lệnh README nói, và đỏ nếu vượt cam kết 30 phút.

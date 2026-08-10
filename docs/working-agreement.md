@@ -119,6 +119,36 @@ Bốn trạng thái, không hơn: `⬜ chưa` · `🔄 đang làm` · `🔍 ch�
 
 Bảy check này thay thế được khoảng hai chục dòng "quy ước" mà không ai đọc.
 
+## 4.1b Ba thuộc tính BẮT BUỘC của mọi check
+
+Có check là chưa đủ. Dự án này đã gặp **ba cách khác nhau** để một check trở
+nên vô dụng, và cả ba đều xảy ra khi check "tồn tại" và bảng kết quả toàn dấu ✅:
+
+| Đã gặp | Cách chết | Thuộc tính bị thiếu |
+|---|---|---|
+| `check-fe-test-coverage` | Tự bỏ qua ở đúng nơi cần chạy (CI clone nông → không có `origin/main` → thoát 0) | **PHẢI CHẠY** |
+| `check-component-usage` | Dương tính giả (`DisabledTooltip` dùng ở `lib/actions/`) → sẽ bị vô hiệu hoá sau vài lần | **PHẢI ĐÚNG** |
+| `check-pr-size` | Hướng dẫn sửa **không có tác dụng**: bảo thêm `PR-SIZE-OK:` vào mô tả PR, nhưng payload sự kiện đóng băng mô tả cũ nên re-run vẫn đỏ | **PHẢI SỬA ĐƯỢC THEO** |
+
+Nên **check mới phải chứng minh CẢ BA**, không chỉ chứng minh mình tồn tại:
+
+**1. PHẢI CHẠY.** In ra bằng chứng dương tính (đã quét bao nhiêu file, đối chiếu
+bao nhiêu mục). Thiếu tiền đề (không có nhánh gốc để so diff) thì **ĐỎ ở CI**,
+không ⏭️. Chính sách bỏ qua nằm ở `run-all.mjs`, không rải vào từng check.
+
+**2. PHẢI ĐÚNG.** Trước khi merge, phải thử ít nhất một ca **dương tính giả**
+và loại nó. Allowlist mỗi dòng kèm lý do đọc được — allowlist không lý do là
+nơi giấu nợ.
+
+**3. PHẢI SỬA ĐƯỢC THEO.** Thông báo lỗi nêu chính xác việc phải làm, **và
+việc đó phải có tác dụng thật**. Đây là điểm không ai nghĩ tới cho tới khi
+`check-pr-size` cắn: chỉ dẫn đúng nội dung mà người dùng vẫn không thoát được.
+
+> Kiểm điểm 3 bằng cách TỰ LÀM THEO chỉ dẫn của chính mình, một lần, trên một
+> PR thật. Nếu không thoát được thì check chưa xong.
+
+Áp lại cho 11 check hiện có: **trước GĐ C**.
+
 ## 4.2 Luật không tự động hoá được — phải nhớ
 
 Danh sách này **cố ý ngắn**. Danh sách dài là danh sách không ai đọc.

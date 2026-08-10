@@ -3,10 +3,12 @@ SHELL := /bin/sh
 
 .PHONY: setup dev up down migrate seed reset test
 
-setup: up
-	pnpm install
-	pnpm --filter @nexus/api prisma:migrate
-	pnpm --filter @nexus/api prisma:seed
+# `make` KHÔNG có sẵn trên Windows (F-03) nên ĐƯỜNG CHÍNH là `pnpm bootstrap`.
+# Target này chỉ gọi lại nó — giữ MỘT danh sách bước duy nhất ở tools/setup.mjs.
+# Bản trước liệt kê bước ở đây và thiếu 3 bước (env · build shared · generate),
+# nên không chạy nổi trên clone sạch.
+setup:
+	pnpm bootstrap
 
 up:
 	docker compose -f docker-compose.dev.yml up -d --wait

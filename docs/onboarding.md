@@ -1,3 +1,12 @@
+> ⚠️ **ĐỌC TRƯỚC KHI CLONE LẦN THỨ HAI**
+>
+> `docker-compose.dev.yml` dùng `COMPOSE_PROJECT_NAME` để đặt tên dự án Docker.
+> Nếu bạn clone repo này lần thứ hai trên cùng một máy mà KHÔNG đổi giá trị đó
+> trong `.env`, hai clone sẽ dùng **chung container và chung database**. Chạy
+> `pnpm bootstrap` ở clone mới sẽ **ghi đè dữ liệu** của clone cũ, không hỏi gì.
+>
+> Đổi một dòng là xong: `COMPOSE_PROJECT_NAME=nexus-<tên-dự-án>`.
+
 # Onboarding
 
 > Nếu bước 1 mất hơn 30 phút thì đó là bug của repo — mở issue (working-agreement §9).
