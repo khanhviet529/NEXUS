@@ -5,6 +5,8 @@ import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
 
+/** [REF] Module mẫu chuẩn — TỒN TẠI ĐỂ LÀM KHUÔN. Copy rồi xoá (§11 bước 3) */
+
 @Module({
   imports: [AuthModule, ApprovalAuthoritiesModule],
   controllers: [OrdersController],
