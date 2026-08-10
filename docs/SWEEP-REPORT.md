@@ -208,3 +208,38 @@ Clone thứ hai (`E:\nexus-sweep`), `COMPOSE_PROJECT_NAME=nexus-sweep`, cổng r
 F-01, F-02, F-03, F-06 đóng. F-04 đóng bằng F-14. Job CI `onboarding` (V4) giữ
 cho con số này không mục lại: nó checkout vào thư mục riêng, **không cache
 pnpm**, chạy đúng lệnh README nói, và đỏ nếu vượt cam kết 30 phút.
+
+### F-15 — BLOCKER — `.env` ở gốc, nhưng Prisma chạy ở `apps/api` và không thấy nó
+
+Do **chính job CI `onboarding` (V4) tìm ra ở lần chạy đầu tiên**, không phải do
+người quét. Đây là bằng chứng job đó có giá trị.
+
+```
+Error: Prisma schema validation - (get-config wasm)
+Error code: P1012
+error: Environment variable not found: DATABASE_URL.
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @nexus/api prisma:migrate
+```
+
+Repo có ĐÚNG MỘT `.env`, ở gốc. `prisma generate|migrate` và `tsx
+--env-file=.env prisma/seed.ts` đều chạy với cwd là `apps/api`, và **không cái
+nào đi ngược lên thư mục cha**. `ConfigModule.forRoot()` cũng vậy — nên `pnpm
+dev` cho API cũng hỏng trên clone sạch, chỉ là migrate chết trước nên chưa ai
+thấy.
+
+Đo A/B trên cùng một clone, khác đúng một dòng script:
+
+| lệnh | mã thoát | kết quả |
+|---|---|---|
+| `prisma migrate deploy` | **1** | `Environment variable not found: DATABASE_URL` |
+| `node ../../tools/with-env.mjs prisma migrate deploy` | **0** | `No pending migrations to apply.` |
+
+Vì sao lượt chạy tay trước đó của tôi lại xanh: máy đã có `apps/api/.env` từ
+một lần thử cũ. Tôi xoá nó đi rồi mới đo lại — và đó đúng là "thiếu thứ mà máy
+quen việc đã có sẵn", loại lỗi mà job không-cache-gì-cả sinh ra để bắt.
+
+**Đã sửa:** `tools/with-env.mjs` nạp `.env` ở gốc rồi mới spawn lệnh (biến môi
+trường thật vẫn thắng file, để CI truyền secret được). Bốn script `prisma:*`
+đi qua nó; `ConfigModule` thêm `envFilePath: ['../../.env', '.env']`.
+Không thêm dependency nào — `dotenv-cli` đã cân nhắc và bỏ (CLAUDE.md §4).
+
