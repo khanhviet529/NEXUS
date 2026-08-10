@@ -247,6 +247,13 @@ import { ${MODEL}sModule } from './modules/${PLURAL}/${PLURAL}.module';`,
   const gp = run('npx', ['prisma', 'generate'], { cwd: join(ROOT, 'apps/api') });
   assert('#3a prisma generate chạy được với model mới', gp.status === 0);
 
+  // Checklist bước 8 (V5): in lại bảng cắt gọt §11 cho module vừa sinh.
+  // Test này kiểm CHÍNH cái checklist mà generator in ra, nên nó phải làm theo
+  // đúng checklist đó — bỏ bước 8 thì #3b đỏ vì check #12, và cái đỏ ấy tố cáo
+  // test chứ không tố cáo generator.
+  remember(join(ROOT, 'docs/boilerplate-spec.md'));
+  run(process.execPath, ['tools/checks/check-cut-table.mjs', '--fix']);
+
   const after = run(process.execPath, ['tools/checks/run-all.mjs']);
   assert(
     '#3b check kiến trúc XANH sau khi khai registry',
