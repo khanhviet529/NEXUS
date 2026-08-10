@@ -137,8 +137,11 @@ export class FilesController {
     @Param('entity') entity: string,
     @Param('entityId', ParseUUIDPipe) entityId: string,
   ) {
-    const ok = await this.repo.canReadEntity(user, entity, entityId);
-    if (!ok) throw new AppException('AUTH.FORBIDDEN');
+    // §3.6: "ngoài phạm vi" phải trả 404 giống hệt "không tồn tại"; chỉ khi
+    // thiếu QUYỀN mới là 403.
+    const access = await this.repo.canReadEntity(user, entity, entityId);
+    if (access === 'no-permission') throw new AppException('AUTH.FORBIDDEN');
+    if (access === 'not-found') throw new AppException('COMMON.NOT_FOUND');
     const rows = await this.repo.listByEntity(entity, entityId);
     return rows.map((a) => ({
       attachmentId: a.id,

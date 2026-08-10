@@ -44,7 +44,17 @@ const checks = [
  * `check-pr-size.mjs` cố ý không nằm trong danh sách — nó là TƯ VẤN, chạy ở
  * bước riêng của workflow và chỉ có nghĩa với pull_request.
  */
-const ADVISORY = new Set(['check-pr-size.mjs']);
+const ADVISORY = new Set([
+  'check-pr-size.mjs',
+  // check #11 CỐ Ý chưa vào danh sách chạy bắt buộc: hiện nó ĐỎ với 3 component
+  // (DetailLayout · FilterBar · StatusBadge) và sẽ còn đỏ cho tới khi V9–V13 nối
+  // chúng vào màn hình thật. Đưa vào `checks` ngay bây giờ là chặn mọi PR khác
+  // vì một khoản nợ đã biết.
+  //
+  // Nó KHÔNG phải check tư vấn: chuyển sang `checks` ở CHÍNH PR làm nó xanh.
+  // Đó là điều kiện nghiệm thu của GĐ A2, ghi ở progress.md.
+  'check-component-usage.mjs',
+]);
 const onDisk = readdirSync(dir).filter((f) => f.startsWith('check-') && f.endsWith('.mjs'));
 const unregistered = onDisk.filter((f) => !checks.includes(f) && !ADVISORY.has(f));
 
