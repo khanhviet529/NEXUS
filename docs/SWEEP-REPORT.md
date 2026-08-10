@@ -284,3 +284,120 @@ Ba lần chạy job `onboarding` là ba lỗi khác nhau, mỗi lần lùi đư�
 F-15 (bootstrap chết) → F-16 (bootstrap xanh, app chết) → app sống. Không lần
 nào trong ba lỗi đó nhìn ra được nếu chỉ đọc code.
 
+---
+
+# V7 — tiếp C0.4 và C0.5
+
+Đánh số từ **F-17** (F-13…F-16 đã dùng ở V1–V4).
+
+## C0.5 — `gen:module` × 4 tổ hợp
+
+Chạy trong `E:\nexus-sweep`, không đụng repo gốc.
+
+| # | Đầu vào | Kết quả | Đánh giá |
+|---|---|---|---|
+| 1 | `category` | `modules/categorys`, `ListCategorysDto`, route `/categorys` | **F-17** |
+| 2 | `order` (trùng module có sẵn) | `EXIT=1`, `File already exists`, **không ghi đè** — md5 của `orders.module.ts` không đổi, controller vẫn 405 dòng | ✓ đúng |
+| 3 | `purchase-order` | `modules/purchase-orders` — số nhiều nhiều-từ đúng | ✓ đúng |
+| 4 | `Invoice` (chữ hoa) | `EXIT=1`, `kebab-case, bắt đầu bằng chữ thường`, không sinh file nào | ✓ đúng |
+
+### F-17 — SAI — generator ghép `+s` thô, số nhiều bất quy tắc sai không cảnh báo
+
+`category` → `categorys`. Sai ở **tên thư mục, tên class DTO, và route HTTP**
+(`/categorys`) — tức lộ ra tận API công khai. Không có cảnh báo nào.
+
+Danh mục là loại module người ta sinh nhiều nhất; `category`, `company`,
+`policy`, `entity` đều rơi vào cùng cái bẫy.
+
+**Chưa sửa** (luật số một: ghi, không sửa). Hai hướng đều hợp lệ —
+**[CẦN QUYẾT]**: (a) thêm bảng số nhiều bất quy tắc vào generator, hay
+(b) hỏi thẳng số nhiều thành một câu hỏi riêng của prompt.
+
+### F-18 — SAI — generator sinh module KHÔNG có nhãn cắt gọt → check #12 đỏ ngay
+
+Do chính V5 tạo ra: check #12 đòi mọi module có nhãn `[CORE]/[OPT]/[REF]`, mà
+`templates/be-module.hbs` không sinh nhãn nào và checklist 8 bước cũng không
+nhắc. Sinh xong module là CI đỏ, người dùng không biết vì sao.
+
+Đúng thuộc tính thứ ba ở working-agreement §4.1b: một check bảo "hãy làm X" mà
+công cụ chính thức tạo ra thứ vi phạm X thì hướng dẫn đó **không sửa theo được**.
+
+**Đã sửa** (nằm trong PR của V5, vì đây là hệ quả của V5): template mang sẵn
+`[OPT]` kèm hướng dẫn đổi sang CORE; checklist thêm bước 8.
+
+### F-19 — MA SÁT — thông báo lỗi của plop in ĐƯỜNG DẪN CHƯA RENDER
+
+```
+✖  ++ File already exists
+✖  ++ ../../apps/api/src/modules/{{dashCase name}}s/{{dashCase name}}s.controller.ts
+```
+
+Không nói file NÀO trùng. Người dùng phải tự suy ra. **Chưa sửa.**
+
+## C0.4 — Playbook FE §1, `brandHue = 70`
+
+`apps/web/src/config/project-ui.ts` ghi: *"⚠ Sau khi đổi `brandHue`, BẮT BUỘC
+chạy `pnpm test:a11y`… Vùng hue vàng-lục (~70) đặc biệt dễ trượt AA với chữ
+trắng trên nền brand"*.
+
+Đã đổi `brandHue: 258 → 70`, build lại, chạy `pnpm test:a11y`.
+
+### F-20 — MA SÁT — `pnpm test:a11y` KHÔNG chạy nổi trên máy Windows này
+
+4/4 test đỏ, nhưng **không phải vì tương phản**: `page.goto` và
+`axe.analyze` đều `Test timeout of 30000ms exceeded`. Một test duyệt **6 màn ×
+(điều hướng + quét axe)** trong ngân sách 30s của `playwright.config.ts`.
+
+Cùng bộ test **XANH trên CI** (job "FE tầng 5", PR #22), nên đây không phải
+repo hỏng — mà là: lệnh được ghi là **BẮT BUỘC** ngay trong file mà người khởi
+tạo dự án sửa đầu tiên, lại không chạy được trên nền tảng repo này được phát
+triển. Vẫn là thuộc tính "PHẢI SỬA ĐƯỢC THEO". **Chưa sửa.**
+
+> Sai lầm của tôi trong lúc đo, ghi lại để người sau không mất công: lượt
+> "đối chứng" đầu tiên chạy nhầm vào **server cũ** — `next start` mới báo
+> `EADDRINUSE` và im lặng chết, cổng 3100 vẫn do bản build hue 70 giữ. Số đo
+> chỉ có nghĩa sau khi `netstat` xác nhận cổng đã trống.
+
+### Trả lời câu hỏi thật của C0.4 — bằng tính toán, không bằng trình duyệt
+
+Vì lưới a11y không chạy nổi, tôi tính thẳng OKLCH → OKLab → linear sRGB →
+relative luminance → tỉ số WCAG (script ở scratchpad, thuật toán chuẩn).
+
+**Cặp nền/chữ thật sự dùng trong `semantic.css`:**
+
+| theme | hue | nền | chữ | tỉ số | AA 4.5 | ngoài gamut sRGB |
+|---|---|---|---|---|---|---|
+| light | 258 | `brand-600` | `oklch(.98 0 0)` | **5.75** | ✓ | — |
+| dark | 258 | `brand-400` | `oklch(.18 .02 258)` | **6.99** | ✓ | — |
+| light | **70** | `brand-600` | `oklch(.98 0 0)` | **5.82** | ✓ | **CÓ** |
+| dark | **70** | `brand-400` | `oklch(.18 .02 258)` | **6.83** | ✓ | — |
+
+**Kết luận đo được: cảnh báo trong `project-ui.ts` KHÔNG đúng như đã viết.**
+Ở hue 70, tỉ số tương phản gần như **không đổi** (5.82 so với 5.75) và vẫn đạt
+AA. Lý do: thang L của brand được chốt bằng số đo (0.70/0.58/0.50/0.42), mà
+L của OKLCH bám khá sát luminance — đó chính là điều làm OKLCH đáng dùng.
+
+Rủi ro thật ở hue 70 **là chuyện khác**: `brand-600` rơi **ra ngoài gamut
+sRGB**. Trình duyệt tự kẹp, nên màu hiển thị KHÔNG phải màu đã tính — tương
+phản vẫn đạt, nhưng sắc độ lệch khỏi thứ nhà thiết kế chọn. Cảnh báo hiện tại
+chỉ vào sai chỗ.
+
+### F-21 — SAI — `--color-primary-fg` ở dark mode chốt cứng hue 258
+
+```css
+--color-primary-fg: oklch(0.18 0.02 258);   /* không dùng var(--brand-h) */
+```
+
+Dự án đặt `brandHue: 70` vẫn nhận chữ ám xanh trên nút brand vàng-lục. Chroma
+0.02 nên gần như không thấy bằng mắt, nhưng nó là một token **thoát khỏi núm
+`brandHue`** — đúng thứ hệ ba tầng token sinh ra để chặn. **Chưa sửa.**
+
+## Còn lại
+
+| Bước | Trạng thái |
+|---|---|
+| C0.4 | **Xong** — nhưng bằng tính toán, không bằng lưới a11y (F-20) |
+| C0.5 | **Xong** — 4/4 tổ hợp |
+| C0.6 | **Chưa chạm** — phần lớn giá trị của C0 vẫn nằm ở đây, ước ~4 giờ |
+| C0.0 tầng 1–5, C0.2 (`rm -rf` thật) | Chưa chạm, như mục 6 |
+
