@@ -263,10 +263,18 @@ jobs:
       # Bằng chứng DƯƠNG TÍNH: không chỉ "job xanh" mà phải có 200 thật.
       - name: /health và trang chủ phải trả 200
         run: |
+          # -L: `/` chuyển hướng 307 sang /login khi chưa đăng nhập — đó là
+          # hành vi ĐÚNG của app. Đòi 200 ngay ở `/` là check sai, không phải
+          # app sai (working-agreement §4.1b: check PHẢI ĐÚNG). Ta đi theo
+          # chuyển hướng và đòi 200 ở ĐÍCH — vẫn là "trang tải được thật".
           ok() {
             for i in $(seq 1 60); do
-              code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 "$1" || true)
-              [ "$code" = "200" ] && { echo "✓ $1 → 200"; return 0; }
+              code=$(curl -sL -o /dev/null -w '%{http_code}' -m 10 "$1" || true)
+              if [ "$code" = "200" ]; then
+                final=$(curl -sL -o /dev/null -w '%{url_effective}' -m 10 "$1")
+                echo "✓ $1 → 200 (đích: $final)"
+                return 0
+              fi
               sleep 5
             done
             echo "::error::$1 KHÔNG trả 200 sau 5 phút (mã cuối: $code)"
