@@ -1248,3 +1248,8 @@ model FavoriteItem {
   @@unique([tenantId, membershipId, entity, entityId])
   @@map("favorite_items")
 }
+
+// <<< GEN_TEST_ANCHOR
+// Test #37 (generator) chèn model tạm của nó NGAY DƯỚI dòng này rồi gỡ đi khi
+// xong. Đừng xoá mốc, và đừng viết model thật bên dưới nó — bước dọn dẹp của
+// test cắt từ mốc tới hết file.

@@ -55,8 +55,17 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: origin/${{ github.base_ref || 'main' }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: node tools/checks/check-pr-size.mjs
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        # ĐỌC MÔ TẢ PR TỪ API, không dùng `github.event.pull_request.body`.
+        # Payload sự kiện bị ĐÓNG BĂNG lúc sự kiện phát sinh: sửa mô tả để thêm
+        # `PR-SIZE-OK:` rồi bấm "re-run" vẫn dùng mô tả CŨ, nên check vẫn đỏ.
+        # Tức là thông báo lỗi bảo người ta làm một việc KHÔNG có tác dụng.
+        run: |
+          PR_BODY="$(curl -sS -H "Authorization: Bearer $GH_TOKEN"             -H "Accept: application/vnd.github+json"             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"             | python3 -c 'import sys,json; print(json.load(sys.stdin).get("body") or "")')"
+          export PR_BODY
+          node tools/checks/check-pr-size.mjs
 
       - name: Prisma generate
         run: pnpm --filter @nexus/api prisma:generate
@@ -163,3 +172,48 @@ jobs:
             apps/web/playwright-report/
             apps/web/test-results/
           retention-days: 7
+
+  generator:
+    name: Test #37 — generator gen:module
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # fetch-depth: 0 để `git diff --exit-code` ở bước cuối so được với gốc
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared + Prisma generate
+        run: |
+          pnpm --filter @nexus/shared build
+          pnpm --filter @nexus/api prisma:generate
+
+      # Test này SỬA repo rồi dọn lại: sinh module, chèn model, khai registry,
+      # chạy test sinh kèm. Chạy job riêng để một lần đỏ giữa chừng không để
+      # lại rác cho job khác.
+      - name: Test #37 (4 khẳng định)
+        run: node tools/test-generator.mjs
+
+      # Kiểm chính HÀM DỌN DẸP của test: dọn sót thì đỏ ở đây.
+      # Không có bước này thì test có thể "xanh" mà để lại model tạm trong
+      # schema, và PR sau sẽ mang theo rác không ai để ý.
+      - name: Dọn dẹp có sạch không
+        run: |
+          git status --porcelain
+          git diff --exit-code
+          test -z "$(git status --porcelain)" || {
+            echo "::error::Test #37 để lại file thừa — sửa hàm cleanup() trong tools/test-generator.mjs"
+            exit 1
+          }
