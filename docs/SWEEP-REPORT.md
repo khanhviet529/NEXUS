@@ -143,3 +143,144 @@ mọi PR, và CD chưa từng build được image.
 
 Cùng một khuôn mẫu lặp lại ba lần: **cơ chế tồn tại, được ghi trong tài liệu,
 và chưa từng chạy lần nào.**
+
+---
+
+## Phụ lục — F-13, F-14: phát hiện KHI VÁ, không phải khi quét
+
+Hai phát hiện dưới đây không đến từ C0.1–C0.3. Chúng lộ ra ở lượt V1–V4, lúc
+**chạy thử chính bản vá** cho F-01…F-06. Ghi vào đây để giữ MỘT sổ phát hiện
+duy nhất; V7 (C0.4→C0.6) vì vậy bắt đầu từ **F-15**.
+
+### F-13 — BLOCKER — `pnpm setup` là lệnh CÓ SẴN của pnpm, không phải script của repo
+
+V2/V3 thêm `"setup": "node tools/setup.mjs"` vào `package.json` và README bảo
+người mới chạy `pnpm setup`. Chạy thử trên clone sạch:
+
+```
+Next configuration changes were made:
+PNPM_HOME=C:\Users\...\AppData\Local\pnpm
+Setup complete. Open a new terminal to start using pnpm.
+```
+
+pnpm nuốt tên `setup` cho lệnh nội bộ của nó (thiết lập `PNPM_HOME`), script
+trong `package.json` **không bao giờ chạy**. Người mới sẽ thấy dòng "Setup
+complete" — tưởng xong — rồi `pnpm dev` chết vì chưa có database.
+
+Đây đúng thuộc tính thứ ba ở working-agreement §4.1b: hướng dẫn **PHẢI SỬA ĐƯỢC
+THEO**. Nó chỉ lộ ra vì có người gõ thật thay vì đọc và tin.
+
+**Đã sửa:** đổi tên thành `pnpm bootstrap` (`package.json`, `README.md`,
+`Makefile`, `docs/onboarding.md`, job CI `onboarding`).
+
+### F-14 — BLOCKER — đổi `COMPOSE_PROJECT_NAME` KHÔNG đủ để chạy clone thứ hai
+
+V1 vá F-04 bằng `name: ${COMPOSE_PROJECT_NAME:-nexus-dev}`. Bản vá đó tách
+container và volume — nhưng **không tách cổng host**. Clone thứ hai vẫn chết:
+
+```
+Error response from daemon: failed to set up container networking:
+Bind for 0.0.0.0:9000 failed: port is already allocated
+```
+
+Tức bản vá F-04 **chưa đủ**, và nếu không chạy thử thì tài liệu đã ghi "đổi
+`COMPOSE_PROJECT_NAME` là xong" — một câu sai.
+
+**Đã sửa:** tham số hoá cả 6 cổng host (`POSTGRES_PORT`, `REDIS_PORT`,
+`MINIO_PORT`, `MINIO_CONSOLE_PORT`, `MAILPIT_UI_PORT`, `MAILPIT_SMTP_PORT`)
+trong `docker-compose.dev.yml` + `.env.example`, kèm ghi chú rằng phải đổi
+**cả cụm**, không chỉ tên project.
+
+### Bằng chứng: lần đầu tiên đường onboarding chạy TRỌN
+
+Clone thứ hai (`E:\nexus-sweep`), `COMPOSE_PROJECT_NAME=nexus-sweep`, cổng riêng:
+
+```
+▸ Dựng hạ tầng (postgres · redis · minio · mailpit)  ✓ 81.2s
+▸ Cài dependency                                     ✓ 26.3s
+▸ Build @nexus/shared                                ✓  7.7s
+▸ Sinh Prisma client                                 ✓ 13.5s
+▸ Chạy migration                                     ✓ 10.0s
+▸ Seed dữ liệu mẫu                                   ✓ 11.0s
+✅ Setup xong trong 150s (2.5 phút).       EXIT=0
+```
+
+F-01, F-02, F-03, F-06 đóng. F-04 đóng bằng F-14. Job CI `onboarding` (V4) giữ
+cho con số này không mục lại: nó checkout vào thư mục riêng, **không cache
+pnpm**, chạy đúng lệnh README nói, và đỏ nếu vượt cam kết 30 phút.
+
+### F-15 — BLOCKER — `.env` ở gốc, nhưng Prisma chạy ở `apps/api` và không thấy nó
+
+Do **chính job CI `onboarding` (V4) tìm ra ở lần chạy đầu tiên**, không phải do
+người quét. Đây là bằng chứng job đó có giá trị.
+
+```
+Error: Prisma schema validation - (get-config wasm)
+Error code: P1012
+error: Environment variable not found: DATABASE_URL.
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @nexus/api prisma:migrate
+```
+
+Repo có ĐÚNG MỘT `.env`, ở gốc. `prisma generate|migrate` và `tsx
+--env-file=.env prisma/seed.ts` đều chạy với cwd là `apps/api`, và **không cái
+nào đi ngược lên thư mục cha**. `ConfigModule.forRoot()` cũng vậy — nên `pnpm
+dev` cho API cũng hỏng trên clone sạch, chỉ là migrate chết trước nên chưa ai
+thấy.
+
+Đo A/B trên cùng một clone, khác đúng một dòng script:
+
+| lệnh | mã thoát | kết quả |
+|---|---|---|
+| `prisma migrate deploy` | **1** | `Environment variable not found: DATABASE_URL` |
+| `node ../../tools/with-env.mjs prisma migrate deploy` | **0** | `No pending migrations to apply.` |
+
+Vì sao lượt chạy tay trước đó của tôi lại xanh: máy đã có `apps/api/.env` từ
+một lần thử cũ. Tôi xoá nó đi rồi mới đo lại — và đó đúng là "thiếu thứ mà máy
+quen việc đã có sẵn", loại lỗi mà job không-cache-gì-cả sinh ra để bắt.
+
+**Đã sửa:** `tools/with-env.mjs` nạp `.env` ở gốc rồi mới spawn lệnh (biến môi
+trường thật vẫn thắng file, để CI truyền secret được). Bốn script `prisma:*`
+đi qua nó; `ConfigModule` thêm `envFilePath: ['../../.env', '.env']`.
+Không thêm dependency nào — `dotenv-cli` đã cân nhắc và bỏ (CLAUDE.md §4).
+
+### F-16 — BLOCKER — `.env.example` chở giá trị KHÔNG qua nổi validator của chính repo
+
+Cũng do job `onboarding` tìm ra, ở lần chạy thứ hai — sau khi F-15 được vá,
+`pnpm bootstrap` xanh và lỗi lộ ra ở bước kế tiếp:
+
+```
+[Nest] ERROR [ExceptionHandler] Error: Biến môi trường không hợp lệ:
+  JWT_SECRET: JWT_SECRET phải ≥ 32 ký tự
+```
+
+`.env.example` ghi `JWT_SECRET=CHANGE_ME_min_32_bytes_random` — **29 ký tự**,
+ngay cạnh một validator `z.string().min(32)`. Placeholder vừa **nói ra luật**
+vừa **vi phạm luật**. Người mới chạy `pnpm bootstrap` thành công rồi `pnpm dev`
+chết ngay dòng đầu.
+
+Đổi cho đủ dài thôi thì lại đẩy nợ sang đầu kia: một placeholder qua được
+validator mà không ai gác sẽ đi thẳng lên production. Cần **cả hai** đầu.
+
+**Đã sửa:**
+- `.env.example`: `JWT_SECRET` (37 ký tự) và `APP_ENCRYPTION_KEY` hợp lệ ở dev
+- `env.ts`: `NODE_ENV=production` + vẫn dùng giá trị mẫu → **từ chối khởi động**
+- `apps/api/test/env-validation.spec.ts` — 4 test, đọc THẲNG từ `.env.example`
+  nên test không trôi khỏi file thật:
+
+```
+ ✓ test/env-validation.spec.ts (4 tests) 76ms
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+```
+
+### Bằng chứng — API khởi động thật trên clone sạch
+
+```
+$ curl -s http://localhost:4100/api/v1/health
+{"status":"ok","db":true,"redis":true,"version":"dev"}
+```
+
+Ba lần chạy job `onboarding` là ba lỗi khác nhau, mỗi lần lùi được một bước:
+F-15 (bootstrap chết) → F-16 (bootstrap xanh, app chết) → app sống. Không lần
+nào trong ba lỗi đó nhìn ra được nếu chỉ đọc code.
+

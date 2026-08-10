@@ -33,15 +33,28 @@ Một **reference implementation** — bạn clone nó, xoá phần không cần
 ## Chạy thử
 
 ```bash
-# Yêu cầu: Node 22+, pnpm, Docker
+# Yêu cầu: Node 22+, pnpm, Docker.  KHÔNG cần `make`.
 git clone <repo> && cd <repo>
-make setup          # cài deps, dựng postgres/redis/minio/mailpit, migrate, seed
-make dev            # web :3000 · api :4000 · swagger :4000/docs
+pnpm install        # cần trước, để có `pnpm bootstrap`
+pnpm bootstrap          # .env · hạ tầng · deps · build shared · prisma · migrate · seed
+pnpm dev            # web :3000 · api :4000 · swagger :4000/docs
 ```
+
+`make setup` vẫn dùng được và chỉ gọi lại `pnpm bootstrap`. Đường chính là `pnpm`
+vì `make` không có sẵn trên Windows.
 
 Tài khoản seed: xem `apps/api/prisma/seed.ts`.
 
-Nếu `make setup` mất **hơn 30 phút** thì đó là bug của repo — mở issue.
+Đo thật trên runner sạch của CI: **48 giây** cho `pnpm bootstrap`.
+Trên máy nhà, lần đầu tốn thêm thời gian tải image Docker (postgres · redis ·
+minio · mailpit) — thường vài phút. Nếu quá **30 phút** thì đó là bug của
+repo, mở issue.
+Job CI `onboarding` đo con số này trên máy sạch mỗi PR; vượt cam kết là CI đỏ.
+
+> ⚠️ **Clone lần thứ hai trên cùng một máy**: mở `.env` và đổi
+> `COMPOSE_PROJECT_NAME` sang tên khác. Để nguyên thì hai clone dùng chung
+> container và **cùng một database** — clone sau sẽ ghi đè dữ liệu của clone
+> trước mà không cảnh báo gì.
 
 ---
 

@@ -55,7 +55,14 @@ import { HealthRepository } from './modules/health/health.repository';
  */
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
+    // envFilePath: repo có ĐÚNG MỘT `.env`, ở gốc. Nest tìm theo cwd, mà cwd
+    // của API là `apps/api` — không có `.env` ở đó và cũng không nên có (hai
+    // bản lệch nhau là chuyện sớm muộn). Xem tools/with-env.mjs, F-15.
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate: validateEnv,
+      envFilePath: ['../../.env', '.env'],
+    }),
     ClsModule.forRoot({
       global: true,
       middleware: {

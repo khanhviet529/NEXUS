@@ -80,6 +80,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
+        id: push
         with:
           context: .
           file: apps/api/Dockerfile
@@ -91,6 +92,19 @@ jobs:
           build-args: BUILD_VERSION=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # BẰNG CHỨNG DƯƠNG TÍNH. Trước đây CD chưa từng build nổi một image nào
+      # mà pipeline vẫn trông ổn — vì không job nào phải IN RA thứ nó đã tạo.
+      # "Job xanh" không phải bằng chứng; digest là.
+      - name: In bằng chứng đã push
+        run: |
+          DIGEST='${{ steps.push.outputs.digest }}'
+          if [ -z "$DIGEST" ]; then
+            echo "::error::build-push-action không trả digest — image KHÔNG được push."
+            exit 1
+          fi
+          echo "image ${{ steps.meta.outputs.image }} pushed, digest $DIGEST"
+          echo "image ${{ steps.meta.outputs.image }} pushed, digest $DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
   migrate:
     name: Chạy migration (bằng chính image vừa build)

@@ -217,3 +217,84 @@ jobs:
             echo "::error::Test #37 để lại file thừa — sửa hàm cleanup() trong tools/test-generator.mjs"
             exit 1
           }
+
+  onboarding:
+    name: Onboarding — clone sạch chạy được không
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      # Checkout vào THƯ MỤC RIÊNG, không dùng workspace mặc định.
+      # Đây là điểm cốt lõi của job: mô phỏng `git clone` của người mới, chứ
+      # không phải một workspace đã được các bước trước chuẩn bị sẵn.
+      - uses: actions/checkout@v4
+        with:
+          path: clone-sach
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      # KHÔNG `cache: pnpm`. Clone sạch trên máy mới KHÔNG có cache, và F-01/
+      # F-02 lộ ra CHÍNH VÌ thiếu thứ mà máy quen việc đã có sẵn. Bật cache ở
+      # đây là che đúng loại lỗi job này tồn tại để tìm.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Chạy ĐÚNG lệnh README nói, không thêm bước nào. Nếu job này cần một
+      # bước mà README không nhắc, thì README sai — sửa README, đừng sửa job.
+      - name: pnpm install && pnpm bootstrap (đo giờ)
+        working-directory: clone-sach
+        run: |
+          START=$(date +%s)
+          pnpm install
+          pnpm bootstrap
+          END=$(date +%s)
+          echo "SETUP_SECONDS=$((END-START))" >> "$GITHUB_ENV"
+          echo "⏱  pnpm bootstrap: $((END-START)) giây"
+
+      - name: Khởi động app như người mới
+        working-directory: clone-sach
+        run: |
+          nohup pnpm --filter @nexus/api dev > /tmp/api.log 2>&1 &
+          nohup pnpm --filter @nexus/web dev > /tmp/web.log 2>&1 &
+          echo "đang chờ hai tiến trình lên…"
+
+      # Bằng chứng DƯƠNG TÍNH: không chỉ "job xanh" mà phải có 200 thật.
+      - name: /health và trang chủ phải trả 200
+        run: |
+          # -L: `/` chuyển hướng 307 sang /login khi chưa đăng nhập — đó là
+          # hành vi ĐÚNG của app. Đòi 200 ngay ở `/` là check sai, không phải
+          # app sai (working-agreement §4.1b: check PHẢI ĐÚNG). Ta đi theo
+          # chuyển hướng và đòi 200 ở ĐÍCH — vẫn là "trang tải được thật".
+          ok() {
+            for i in $(seq 1 60); do
+              code=$(curl -sL -o /dev/null -w '%{http_code}' -m 10 "$1" || true)
+              if [ "$code" = "200" ]; then
+                final=$(curl -sL -o /dev/null -w '%{url_effective}' -m 10 "$1")
+                echo "✓ $1 → 200 (đích: $final)"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$1 KHÔNG trả 200 sau 5 phút (mã cuối: $code)"
+            return 1
+          }
+          ok http://localhost:4000/api/v1/health || { tail -40 /tmp/api.log; exit 1; }
+          ok http://localhost:3000              || { tail -40 /tmp/web.log; exit 1; }
+
+      # README cam kết dưới 30 phút. Vượt thì ĐỎ — README sai thì sửa README,
+      # không phải nới ngưỡng.
+      - name: So thời gian với cam kết của README
+        run: |
+          # 300s, không phải 1800s. Đo thật trên runner sạch: 48s. Ngưỡng 30
+          # phút của README là lời hứa cho NGƯỜI (máy nhà còn phải tải image
+          # lần đầu); ngưỡng ở đây là gác HỒI QUY trên CI. Để 1800 thì check
+          # không bao giờ đỏ được, tức là một check không làm gì cả.
+          LIMIT=300
+          echo "pnpm bootstrap: ${SETUP_SECONDS}s · ngưỡng hồi quy CI: ${LIMIT}s"
+          if [ "$SETUP_SECONDS" -gt "$LIMIT" ]; then
+            echo "::error::Setup ${SETUP_SECONDS}s VƯỢT ngưỡng ${LIMIT}s (đo nền: 48s). Onboarding đã chậm đi gấp 6 lần — tìm nguyên nhân, đừng nới ngưỡng."
+            exit 1
+          fi
+          echo "::notice::Onboarding sạch: ${SETUP_SECONDS}s / ${LIMIT}s cam kết"
