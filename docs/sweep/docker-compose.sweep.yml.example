@@ -1,0 +1,13 @@
+# Override CHỈ dùng cho C0 — không phải bản vá. Phát hiện gốc (compose hardcode
+# `name: nexus-dev` + cổng cố định) ghi ở SWEEP-REPORT, KHÔNG sửa trong lượt này.
+# `!override` là bắt buộc: compose GỘP danh sách ports thay vì thay thế.
+name: nexus-sweep
+services:
+  postgres:
+    ports: !override ['55432:5432']
+  redis:
+    ports: !override ['56379:6379']
+  minio:
+    ports: !override ['59000:9000', '59001:9001']
+  mailpit:
+    ports: !override ['58025:8025', '51025:1025']
