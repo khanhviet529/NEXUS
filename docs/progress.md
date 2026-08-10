@@ -83,6 +83,12 @@
 
 | ✅ N2.2 — L16 | Ngân sách query cho 13 endpoint danh sách: `queryCount(1 dòng) == queryCount(100 dòng)` | Claude | 🔍 chờ review | **3 ca ✅**, có negative control | Không dùng số cố định: `expectQueryCount(3)` chọn sai là vô nghĩa và refactor hợp lệ làm đỏ oan. Negative control: cài N+1 vào `GET /products` → `1 dòng: 3 query · 100 dòng: 32 query`, đỏ đúng chỗ. Kèm lưới bắt GET mới chưa phân loại vào LIST_PATHS hay KNOWN_SINGLETONS |
 
+| ✅ V8 — check #11 | `check-component-usage.mjs`: component export từ `design-system/` và `components/common/` phải có ≥1 import từ màn hình nghiệp vụ thật | Claude | 🔍 chờ review | **ĐỎ 3/8 — đúng ý đồ** | **SỐ BAN ĐẦU để đo V9–V13: 3 vi phạm** — `DetailLayout` (chỉ ở preview) · `FilterBar` (chỉ ở preview) · `StatusBadge` (không dùng ở đâu). Đích: 0. Check nằm ở `ADVISORY` cho tới PR làm nó xanh, vì đưa vào `checks` ngay là chặn mọi PR khác vì một khoản nợ đã biết |
+
+| 🔎 V8 phát hiện | Định nghĩa "màn hình thật" trong yêu cầu (`app/(dashboard)` hoặc `features/`) cho **dương tính giả**: `DisabledTooltip` dùng ở `lib/actions/renderers.tsx` — Action Registry (§5.9) là mã production render thẳng vào màn hình thật | Claude | đã nới | — | Nới thêm `lib/`. Đích của check là "component có tới tay người dùng không", qua Action Registry thì có. Check có dương tính giả sẽ bị vô hiệu hoá sau vài lần — đó mới là mất mát thật |
+
+| ⏳ GĐ A2 V9–V14 | orders/[id] 4 tab · products qua `gen:module` · FilterBar/ExportDialog/saved-views vào orders · audit-logs + settings · notification dropdown + recent/favorites + AuditTimeline · chụp lại baseline | Claude | **CHƯA LÀM** | — | Độ phủ pattern hiện **3/15**, đích 13/15. Ước lượng ~2–3 ngày. Điều kiện đóng: check #11 xanh và chuyển từ ADVISORY sang `checks` |
+
 ## Việc chặn (blocker)
 
 Không còn blocker hạ tầng. Hai bug thật đã bắt-và-sửa nhờ test GĐ1 (ghi ở onboarding §5):
