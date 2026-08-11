@@ -27,5 +27,10 @@ export default defineConfig({
     exclude: ['node_modules/**', 'e2e/**', '.next/**'],
     css: false,
     restoreMocks: true,
+    // Test tương tác (userEvent + MSW) nhạy với nghẽn CPU: máy dev chạy kèm
+    // Docker làm timeout mặc định 5s đỏ NGẪU NHIÊN từng test khác nhau mỗi
+    // lượt (order-form, saved-views… đều xanh khi chạy cô lập). Nới trần —
+    // KHÔNG che lỗi thật: treo thật vẫn chết ở 15s, còn assert sai vẫn đỏ.
+    testTimeout: 15_000,
   },
 });
