@@ -14,6 +14,8 @@ import { InvitationService } from './invitation.service';
 import { AbilityService } from './ability.service';
 import { OrgTreeRepository } from './org-tree.repository';
 
+/** [CORE] Xác thực + phân quyền §4.3/§4.4 — nền của mọi thứ còn lại */
+
 @Module({
   imports: [
     JwtModule.registerAsync({

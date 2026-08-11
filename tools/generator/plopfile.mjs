@@ -76,7 +76,10 @@ export default function (plop) {
           `  5. apps/api/src/app.module.ts: import ${plop.getHelper('pascalCase')(n)}sModule`,
           '  6. Migration SQL tay theo khuôn migrations/ gần nhất',
           '  7. pnpm gen:api → sinh lại api-client + thêm export vào src/index.ts',
-          '  8. node tools/checks/run-all.mjs && pnpm test — check kiến trúc sẽ ĐỎ nếu thiếu bước 3/4',
+          `  8. Nhãn cắt gọt: module sinh ra mang [OPT]; đổi thành [CORE] ở`,
+          `     modules/${n}s/${n}s.module.ts nếu dự án không cắt được nó, rồi`,
+          '     node tools/checks/check-cut-table.mjs --fix   (in lại bảng §11)',
+          '  9. node tools/checks/run-all.mjs && pnpm test — check kiến trúc sẽ ĐỎ nếu thiếu bước 3/4/8',
           '',
         ].join('\n');
       },

@@ -4,6 +4,8 @@ import { OutboxWorkerService } from './outbox-worker.service';
 import { OrderApprovedHandler } from './handlers/order-approved.handler';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 
+/** [CORE] Outbox §4.8 — event có tác dụng phụ ngoài transaction DB phải qua đây (§12 #21) */
+
 @Global()
 @Module({
   imports: [WebhooksModule], // GĐ10 §5C.5 — webhook phát qua outbox

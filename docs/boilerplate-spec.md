@@ -2467,16 +2467,56 @@ Outbox không có cách nào biết bước 2 đã thành công. Vì vậy:
 
 **Bảng cắt gọt:**
 
-| Module | Nhãn | Lệnh xoá | File cần sửa kèm |
+<!-- BẢNG-CẮT-GỌT:BẮT-ĐẦU — sinh bởi tools/checks/check-cut-table.mjs, đừng sửa tay -->
+
+**24 module backend** — 14 CORE · 3 REF · 7 OPT.
+Nhãn lấy TỪ `<module>.module.ts`, không gõ tay ở đây. Đổi nhãn thì sửa code
+rồi chạy `node tools/checks/check-cut-table.mjs --fix`.
+
+| Module | Nhãn | Lệnh xoá | File cần sửa kèm | Ghi chú |
+|---|---|---|---|---|
+| `admin` | **CORE** | **Không xoá** | — | Truy cập chéo tenant §4.4b — luôn audit CROSS_TENANT_ACCESS (§12 #18) |
+| `audit` | **CORE** | **Không xoá** | — | Audit log §4.9 — append-only, không cho sửa/xoá (§12 #14) |
+| `auth` | **CORE** | **Không xoá** | — | Xác thực + phân quyền §4.3/§4.4 — nền của mọi thứ còn lại |
+| `calendar` | **CORE** nhẹ | **Không xoá** | — | Business calendar §5C.4 — SLA engine là OPT, KHÔNG nằm ở đây |
+| `exports` | **CORE** | **Không xoá** | — | Export qua queue (§4.7, GĐ7f) — worker gọi ExportsService |
+| `files` | **CORE** | **Không xoá** | — | Files qua presigned S3 (§2, matrix §2.5) — GĐ7 |
+| `health` | **CORE** | **Không xoá** | — | Health check — §9: CD dựa vào endpoint này để quyết ROLLBACK. |
+| `idempotency` | **CORE** | **Không xoá** | — | Idempotency ba lớp §3.9 — Redis + bảng DB + unique business key (§12 #20) |
+| `inventory` | **CORE** nếu có kho | **Không xoá** | — | Tồn kho §5B.2/B4 — movement append-only + snapshot (§12 #3/#4) |
+| `org-units` | **CORE** | **Không xoá** | — | Cây đơn vị §4.4 — `ltree`, nền của scope department/descendants (§12 #10) |
+| `outbox` | **CORE** | **Không xoá** | — | Outbox §4.8 — event có tác dụng phụ ngoài transaction DB phải qua đây (§12 #21) |
+| `reports` | **CORE** | **Không xoá** | — | Report framework §5B.1/A1 — registry là CORE; các ReportDef mẫu bên trong là REF |
+| `roles` | **CORE** | **Không xoá** | — | Vai trò §4.4 — vai trò là DỮ LIỆU, không phải mã; nền của `can()` (§12 #2) |
+| `users` | **CORE** | **Không xoá** | — | Người dùng §4.4b — mô hình định danh `users` global + `tenant_memberships` (§12 #16) |
+| `customers` | **REF** | `rm -rf apps/api/src/modules/customers apps/web/src/features/customers` | `app.module.ts`, sidebar config | Danh mục mẫu GĐ5 — copy làm khuôn rồi xoá, như orders |
+| `orders` | **REF** | `rm -rf apps/api/src/modules/orders apps/web/src/features/orders` | `app.module.ts`, sidebar config | Module mẫu chuẩn — TỒN TẠI ĐỂ LÀM KHUÔN. Copy rồi xoá (§11 bước 3) |
+| `products` | **REF** | `rm -rf apps/api/src/modules/products` | `app.module.ts` | Danh mục mẫu — khuôn cho generator GĐ9, xoá sau khi đã copy |
+| `approval-authorities` | **OPT** | `rm -rf apps/api/src/modules/approval-authorities` | `app.module.ts` | Hạn mức duyệt §5C.12 — GĐ10. OrdersModule import để fail-closed approve |
+| `imports` | **OPT** khuyến nghị giữ | `rm -rf apps/api/src/modules/imports apps/web/src/features/imports` | `app.module.ts`, sidebar config | Import §4.7 — transaction theo batch + checkpoint + resume (§12 #23) |
+| `notifications` | **OPT** | `rm -rf apps/api/src/modules/notifications` | `app.module.ts` | Notifications (§11 bảng cắt gọt) — phía đọc; ghi ở outbox consumer |
+| `personalization` | **OPT** ưu tiên cao | `rm -rf apps/api/src/modules/personalization` | `app.module.ts` | Recent/favorites §5C.2/§5C.7 — GĐ10 |
+| `saved-views` | **OPT** | `rm -rf apps/api/src/modules/saved-views apps/web/src/features/saved-views` | `app.module.ts`, sidebar config | Saved views §5.5 — spec gọi thẳng là "Tuỳ chọn" của DataTable; lưu bộ lọc + cấu hình cột |
+| `search` | **OPT** ưu tiên cao | `rm -rf apps/api/src/modules/search` | `app.module.ts` | Global search §5C.7 — GĐ8 |
+| `webhooks` | **OPT** ưu tiên cao | `rm -rf apps/api/src/modules/webhooks` | `app.module.ts` | Webhook §5C.5 — phát QUA OUTBOX (OutboxModule import module này) |
+
+<!-- BẢNG-CẮT-GỌT:KẾT-THÚC -->
+
+### Không phải module backend
+
+Ba thứ dưới đây cũng cắt được, nhưng không nằm trong `apps/api/src/modules/`
+nên check #12 không gác — cột "kiểm tự động" nói rõ điều đó.
+
+| Thành phần | Nhãn | Lệnh xoá | Kiểm tự động |
 |---|---|---|---|
-| approvals | OPT | `rm -rf apps/api/src/modules/approvals apps/web/src/features/approvals` | `app.module.ts`, sidebar config |
-| imports | OPT | `rm -rf .../imports` | `app.module.ts`, sidebar config |
-| notifications | OPT | `rm -rf .../notifications` | `app.module.ts`, header component |
-| settings — **hạ tầng** | **CORE** | **Không xoá.** Bảng `settings`, service đọc/ghi có cache, audit trigger đều là nền tảng | — |
-| settings — **màn hình quản lý** | OPT | `rm -rf apps/web/src/features/settings` | sidebar config |
-| packages/vn | OPT | `rm -rf packages/vn` | các form dùng cascader tỉnh/xã |
-| SSO / 2FA | OPT | tắt bằng ENV trước, xoá sau | `auth.module.ts` |
-| **orders** | **REF** | **xoá sau khi đã copy** | `app.module.ts`, sidebar, seed |
+| `settings` — hạ tầng (bảng, service có cache, audit trigger) | **CORE** | **Không xoá** | không |
+| `settings` — màn hình quản lý | OPT | `rm -rf apps/web/src/features/settings` | không |
+| SSO / 2FA | OPT | tắt bằng ENV trước, xoá sau (`auth.module.ts`) | không |
+
+> **Đã bỏ khỏi bảng:** dòng `packages/vn` (`rm -rf packages/vn`). Package đó
+> **không tồn tại** trong repo — xem F-07 ở `docs/SWEEP-REPORT.md`. Dòng
+> `approvals` cũng sai tên: module thật là `approval-authorities` (F-05).
+> Cả hai đã nằm trong bảng sinh tự động ở trên, đúng tên thư mục thật.
 
 ---
 

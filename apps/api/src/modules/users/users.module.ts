@@ -4,6 +4,8 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 
+/** [CORE] Người dùng §4.4b — mô hình định danh `users` global + `tenant_memberships` (§12 #16) */
+
 @Module({
   imports: [AuthModule],
   controllers: [UsersController],

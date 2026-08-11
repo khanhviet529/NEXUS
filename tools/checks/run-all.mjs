@@ -36,6 +36,7 @@ const checks = [
   'check-token-layers.mjs', // fe-preset-system §3.4: kỷ luật ba tầng token
   'check-raw-sql.mjs', // test-catalog §3B: AR3/AR4/AR14 — AR14 gác bảng HYBRID
   'check-module-registry.mjs', // test #37: module mới phải khai model, đi ngược từ code về registry
+  'check-cut-table.mjs', // V5: bảng cắt gọt §11 phải khớp 24 module có thật (F-05, F-07)
 ];
 
 /**
