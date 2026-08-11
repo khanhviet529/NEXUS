@@ -24,6 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminTenantDto,
   CreateTenantDto,
   SetFeaturesDto
 } from '../../models';
@@ -42,7 +43,7 @@ export const adminControllerListTenants = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<AdminTenantDto[]>(
       {url: `/api/v1/admin/tenants`, method: 'GET', signal
     },
       );
@@ -134,7 +135,7 @@ export const adminControllerCreateTenant = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<AdminTenantDto>(
       {url: `/api/v1/admin/tenants`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createTenantDto, signal

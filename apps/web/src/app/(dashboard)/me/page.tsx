@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuthControllerMe, getApiError } from '@nexus/api-client';
@@ -53,6 +54,11 @@ export default function MePage() {
           </tr>
         </tbody>
       </table>
+      <p style={{ marginTop: 12 }}>
+        <Link href="/me/sessions" className="text-sm underline">
+          Thiết bị đang đăng nhập →
+        </Link>
+      </p>
     </main>
   );
 }
