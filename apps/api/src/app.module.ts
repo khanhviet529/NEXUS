@@ -32,6 +32,7 @@ import { ImportsModule } from './modules/imports/imports.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { FilesModule } from './modules/files/files.module';
 import { ExportsModule } from './modules/exports/exports.module';
 import { SearchModule } from './modules/search/search.module';
@@ -107,6 +108,7 @@ import { HealthRepository } from './modules/health/health.repository';
     ReportsModule,
     NotificationsModule,
     CalendarModule,
+    SettingsModule,
     S3Module,
     CryptoModule,
     FilesModule,

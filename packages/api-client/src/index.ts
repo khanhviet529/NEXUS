@@ -23,4 +23,5 @@ export * from './gen/endpoints/search/search';
 export * from './gen/endpoints/approval-authorities/approval-authorities';
 export * from './gen/endpoints/webhooks/webhooks';
 export * from './gen/endpoints/personalization/personalization';
+export * from './gen/endpoints/settings/settings';
 export * from './gen/models';
