@@ -9,7 +9,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayNotEmpty,
@@ -21,11 +21,59 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { PERMISSION_SCOPES } from '@nexus/shared';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { RolesService } from './roles.service';
+
+/** Một dòng gán quyền của vai trò — nguồn cho builder permission×scope (2a) */
+export class RolePermissionDto {
+  @ApiProperty({ example: 'order:approve' }) @Expose() permissionCode!: string;
+  @ApiProperty({ enum: PERMISSION_SCOPES }) @Expose() scope!: string;
+}
+
+export class RoleDto {
+  @ApiProperty() @Expose() id!: string;
+  @ApiProperty() @Expose() code!: string;
+  @ApiProperty() @Expose() name!: string;
+  @ApiProperty({ description: 'Vai trò seed — không sửa/xoá được' })
+  @Expose()
+  isSystem!: boolean;
+
+  @ApiProperty({ type: [RolePermissionDto] })
+  @Expose()
+  @Type(() => RolePermissionDto)
+  permissions!: RolePermissionDto[];
+}
+
+export class PermissionDto {
+  @ApiProperty({ example: 'order:approve' }) @Expose() code!: string;
+  @ApiProperty({ example: 'order' }) @Expose() resource!: string;
+  @ApiProperty({ example: 'approve' }) @Expose() action!: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) @Expose() description!: string | null;
+}
+
+/** Row Prisma (include permissions.permission) → DTO phẳng cho FE */
+type RoleRow = {
+  id: string;
+  code: string;
+  name: string;
+  isSystem: boolean;
+  permissions: Array<{ scope: string; permission: { code: string } }>;
+};
+function toRoleDto(r: RoleRow): RoleDto {
+  return {
+    id: r.id,
+    code: r.code,
+    name: r.name,
+    isSystem: r.isSystem,
+    permissions: r.permissions.map((p) => ({
+      permissionCode: p.permission.code,
+      scope: p.scope,
+    })),
+  };
+}
 
 class RolePermissionInputDto {
   @ApiProperty({ example: 'user:read' })
@@ -79,26 +127,32 @@ export class RolesController {
   @Get('roles')
   @RequirePermission('role:read')
   @ApiOperation({ summary: 'Danh sách vai trò của tenant' })
-  list(@CurrentUser() user: AuthUser) {
-    return this.roles.list(user);
+  @ApiOkResponse({ type: [RoleDto] })
+  async list(@CurrentUser() user: AuthUser): Promise<RoleDto[]> {
+    const rows = await this.roles.list(user);
+    return rows.map(toRoleDto);
   }
 
   @Post('roles')
   @RequirePermission('role:create')
   @ApiOperation({ summary: 'Tenant tự tạo vai trò từ permission + scope (§4.4 #61)' })
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateRoleDto) {
-    return this.roles.create(user, dto);
+  @ApiOkResponse({ type: RoleDto })
+  async create(@CurrentUser() user: AuthUser, @Body() dto: CreateRoleDto): Promise<RoleDto> {
+    const row = await this.roles.create(user, dto);
+    return toRoleDto(row!);
   }
 
   @Patch('roles/:id')
   @RequirePermission('role:update')
   @ApiOperation({ summary: 'Sửa vai trò — is_system bị chặn; không cấp quyền mình không có' })
-  update(
+  @ApiOkResponse({ type: RoleDto })
+  async update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoleDto,
-  ) {
-    return this.roles.update(user, id, dto);
+  ): Promise<RoleDto> {
+    const row = await this.roles.update(user, id, dto);
+    return toRoleDto(row!);
   }
 
   @Delete('roles/:id')
@@ -112,7 +166,14 @@ export class RolesController {
   @Get('permissions')
   @RequirePermission('permission:read')
   @ApiOperation({ summary: 'Registry permission — sync từ code (§4.4)' })
-  listPermissions() {
-    return this.roles.listPermissions();
+  @ApiOkResponse({ type: [PermissionDto] })
+  async listPermissions(): Promise<PermissionDto[]> {
+    const rows = await this.roles.listPermissions();
+    return rows.map((p) => ({
+      code: p.code,
+      resource: p.resource,
+      action: p.action,
+      description: p.description,
+    }));
   }
 }

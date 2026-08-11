@@ -31,7 +31,7 @@
 
 ## Phase 2 — Màn quản trị CORE còn thiếu *(~2 ngày, 2 PR)*
 
-- [ ] **PR 2a**: `roles` (danh sách + tạo vai trò từ permission×scope — UI cho quyết định #61) · `org-units` (cây, tạo/sửa/di chuyển, cảnh báo "đổi cây huỷ cache quyền toàn tenant")
+- [x] **PR 2a**: `roles` (danh sách + tạo vai trò từ permission×scope — UI cho quyết định #61) · `org-units` (cây, tạo/sửa/di chuyển, cảnh báo "đổi cây huỷ cache quyền toàn tenant")
 - [ ] **PR 2b**: `admin/tenants` (sysadmin: tạo/suspend/features — chỉ hiện khi có `system:cross_tenant`) · `tenants/current` branding · `me/sessions` (thiết bị đăng nhập + thu hồi)
 
 ## Phase 3 — Luồng auth còn thiếu UI *(~0,5 ngày, 1 PR)*

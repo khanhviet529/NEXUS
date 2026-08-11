@@ -25,6 +25,7 @@ import type {
 
 import type {
   CreateOrgUnitDto,
+  OrgUnitDto,
   UpdateOrgUnitDto
 } from '../../models';
 
@@ -42,7 +43,7 @@ export const orgUnitsControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrgUnitDto[]>(
       {url: `/api/v1/org-units`, method: 'GET', signal
     },
       );
@@ -131,7 +132,7 @@ export const orgUnitsControllerCreate = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrgUnitDto>(
       {url: `/api/v1/org-units`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createOrgUnitDto, signal
@@ -192,7 +193,7 @@ export const orgUnitsControllerUpdate = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OrgUnitDto>(
       {url: `/api/v1/org-units/${id}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
       data: updateOrgUnitDto

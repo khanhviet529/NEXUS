@@ -25,6 +25,8 @@ import type {
 
 import type {
   CreateRoleDto,
+  PermissionDto,
+  RoleDto,
   UpdateRoleDto
 } from '../../models';
 
@@ -42,7 +44,7 @@ export const rolesControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<RoleDto[]>(
       {url: `/api/v1/roles`, method: 'GET', signal
     },
       );
@@ -134,7 +136,7 @@ export const rolesControllerCreate = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<RoleDto>(
       {url: `/api/v1/roles`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createRoleDto, signal
@@ -198,7 +200,7 @@ export const rolesControllerUpdate = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<RoleDto>(
       {url: `/api/v1/roles/${id}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
       data: updateRoleDto
@@ -323,7 +325,7 @@ export const rolesControllerListPermissions = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<PermissionDto[]>(
       {url: `/api/v1/permissions`, method: 'GET', signal
     },
       );
