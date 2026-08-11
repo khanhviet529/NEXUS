@@ -21,6 +21,7 @@ import {
 import { useAuthControllerLogout } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
 import { NotificationDropdown } from '@/components/common/notification-dropdown';
+import { TenantSwitcher } from '@/components/common/tenant-switcher';
 import { AppShell } from '@/design-system/layouts/app-shell';
 import type { NavItem } from '@/design-system/layouts/types';
 import { useCommandPalette } from '@/providers/command-palette';
@@ -95,6 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         notifications: <NotificationDropdown />,
         user: (
           <>
+            <TenantSwitcher />
             <Button variant="ghost" size="icon" aria-label="Đổi giao diện" onClick={toggleTheme}>
               <Sun className="block dark:hidden" />
               <Moon className="hidden dark:block" />

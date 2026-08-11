@@ -36,9 +36,9 @@
 
 ## Phase 3 — Luồng auth còn thiếu UI *(~0,5 ngày, 1 PR)*
 
-- [ ] `forgot-password` → `reset-password` (đủ vòng: nhập email → 202 → link token → đặt mật khẩu)
-- [ ] `accept-invitation` (đặt mật khẩu lần đầu / email đã tồn tại)
-- [ ] Switch-tenant từ header (user nhiều membership) — gọi `POST /auth/switch-tenant`, reload
+- [x] `forgot-password` → `reset-password` (đủ vòng: nhập email → 202 → link token → đặt mật khẩu)
+- [x] `accept-invitation` (đặt mật khẩu lần đầu / email đã tồn tại)
+- [x] Switch-tenant từ header (user nhiều membership) — gọi `POST /auth/switch-tenant`, reload
 
 ## Phase 4 — Reports · Inventory · Import wizard *(~1,5 ngày, 2 PR)*
 

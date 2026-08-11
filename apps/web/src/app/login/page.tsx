@@ -90,6 +90,9 @@ export default function LoginPage() {
           {login.isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </button>
       </form>
+      <p style={{ marginTop: 12 }}>
+        <a href="/forgot-password">Quên mật khẩu?</a>
+      </p>
     </main>
   );
 }
