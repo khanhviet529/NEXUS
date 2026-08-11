@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
@@ -191,7 +192,11 @@ function OrdersPage() {
                         }
                       />
                     </td>
-                    <td className="px-3 py-2 font-mono">{r.code}</td>
+                    <td className="px-3 py-2 font-mono">
+                      <Link href={`/orders/${r.id}`} className="hover:underline">
+                        {r.code}
+                      </Link>
+                    </td>
                     <td className="px-3 py-2">{String(r.customer?.code ?? '—')}</td>
                     <td className="px-3 py-2">
                       <OrderStatusBadge status={r.status as OrderState} />

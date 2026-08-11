@@ -24,7 +24,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AttachmentDto,
   ConfirmDto,
+  FileDownloadDto,
   PresignDto
 } from '../../models';
 
@@ -171,7 +173,7 @@ export const filesControllerListByEntity = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<AttachmentDto[]>(
       {url: `/api/v1/files/by-entity/${entity}/${entityId}`, method: 'GET', signal
     },
       );
@@ -269,7 +271,7 @@ export const filesControllerDownload = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<FileDownloadDto>(
       {url: `/api/v1/files/${id}`, method: 'GET', signal
     },
       );

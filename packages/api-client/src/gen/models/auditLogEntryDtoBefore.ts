@@ -6,7 +6,6 @@
  */
 
 /**
- * CHỈ khi có field:cost (§4.4c)
  * @nullable
  */
-export type OrderItemResponseDtoCostPrice = { [key: string]: unknown } | null;
+export type AuditLogEntryDtoBefore = { [key: string]: unknown } | null;
