@@ -13,7 +13,9 @@
     "placeholder": "Gõ lệnh hoặc tìm kiếm…",
     "actions": "Hành động",
     "results": "Kết quả tìm kiếm",
-    "hint": "Ctrl+K để mở"
+    "hint": "Ctrl+K để mở",
+    "favorites": "Đã ghim",
+    "recent": "Vừa xem"
   },
   "orders": {
     "title": "Đơn hàng",

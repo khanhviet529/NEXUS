@@ -24,7 +24,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  MarkAllReadResultDto,
+  MarkReadResultDto,
+  NotificationListResponseDto,
   NotificationsControllerListParams,
+  UnreadCountDto,
   UpsertPreferenceDto
 } from '../../models';
 
@@ -42,7 +46,7 @@ export const notificationsControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<NotificationListResponseDto>(
       {url: `/api/v1/notifications`, method: 'GET',
         params, signal
     },
@@ -135,7 +139,7 @@ export const notificationsControllerUnreadCount = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<UnreadCountDto>(
       {url: `/api/v1/notifications/unread-count`, method: 'GET', signal
     },
       );
@@ -227,7 +231,7 @@ export const notificationsControllerMarkRead = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<MarkReadResultDto>(
       {url: `/api/v1/notifications/${id}/read`, method: 'POST', signal
     },
       );
@@ -289,7 +293,7 @@ export const notificationsControllerMarkAllRead = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<MarkAllReadResultDto>(
       {url: `/api/v1/notifications/read-all`, method: 'POST', signal
     },
       );

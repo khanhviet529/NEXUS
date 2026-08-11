@@ -20,7 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  SearchControllerSearchParams
+  SearchControllerSearchParams,
+  SearchResponseDto
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -37,7 +38,7 @@ export const searchControllerSearch = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<SearchResponseDto>(
       {url: `/api/v1/search`, method: 'GET',
         params, signal
     },

@@ -25,6 +25,8 @@ import type {
 
 import type {
   FavoriteDto,
+  OkDto,
+  PersonalItemDto,
   TouchItemDto
 } from '../../models';
 
@@ -41,7 +43,7 @@ export const personalizationControllerTouch = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OkDto>(
       {url: `/api/v1/recent-items`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: touchItemDto
@@ -97,7 +99,7 @@ export const usePersonalizationControllerTouch = <TError = unknown,
       return useMutation(mutationOptions, queryClient);
     }
     /**
- * @summary 20 bản ghi vừa xem gần nhất của TÔI
+ * @summary 20 bản ghi vừa xem gần nhất của TÔI — nhãn đã resolve
  */
 export const personalizationControllerListRecent = (
     
@@ -105,7 +107,7 @@ export const personalizationControllerListRecent = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<PersonalItemDto[]>(
       {url: `/api/v1/recent-items`, method: 'GET', signal
     },
       );
@@ -168,7 +170,7 @@ export function usePersonalizationControllerListRecent<TData = Awaited<ReturnTyp
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary 20 bản ghi vừa xem gần nhất của TÔI
+ * @summary 20 bản ghi vừa xem gần nhất của TÔI — nhãn đã resolve
  */
 
 export function usePersonalizationControllerListRecent<TData = Awaited<ReturnType<typeof personalizationControllerListRecent>>, TError = unknown>(
@@ -196,7 +198,7 @@ export const personalizationControllerAddFavorite = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OkDto>(
       {url: `/api/v1/favorite-items`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: favoriteDto
@@ -251,13 +253,16 @@ export const usePersonalizationControllerAddFavorite = <TError = unknown,
 
       return useMutation(mutationOptions, queryClient);
     }
-    export const personalizationControllerListFavorites = (
+    /**
+ * @summary Danh sách đã ghim — label tự đặt thắng nhãn resolve
+ */
+export const personalizationControllerListFavorites = (
     
  signal?: AbortSignal
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<PersonalItemDto[]>(
       {url: `/api/v1/favorite-items`, method: 'GET', signal
     },
       );
@@ -319,6 +324,9 @@ export function usePersonalizationControllerListFavorites<TData = Awaited<Return
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personalizationControllerListFavorites>>, TError, TData>>, }
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Danh sách đã ghim — label tự đặt thắng nhãn resolve
+ */
 
 export function usePersonalizationControllerListFavorites<TData = Awaited<ReturnType<typeof personalizationControllerListFavorites>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof personalizationControllerListFavorites>>, TError, TData>>, }
@@ -343,7 +351,7 @@ export const personalizationControllerRemoveFavorite = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<OkDto>(
       {url: `/api/v1/favorite-items/${entity}/${entityId}`, method: 'DELETE'
     },
       );

@@ -185,4 +185,13 @@ export const handlers = [
   ),
 
   http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
+
+  // V13 — personalization + notifications (mặc định rỗng; test cần dữ liệu tự server.use)
+  http.put(`${API}/api/v1/recent-items`, () => HttpResponse.json({ ok: true })),
+  http.get(`${API}/api/v1/recent-items`, () => HttpResponse.json([])),
+  http.get(`${API}/api/v1/favorite-items`, () => HttpResponse.json([])),
+  http.get(`${API}/api/v1/notifications/unread-count`, () => HttpResponse.json({ count: 0 })),
+  http.get(`${API}/api/v1/notifications`, () => HttpResponse.json(paginated([]))),
+  http.post(`${API}/api/v1/notifications/read-all`, () => HttpResponse.json({ updated: 0 })),
+  http.post(`${API}/api/v1/notifications/:id/read`, () => HttpResponse.json({ ok: true })),
 ];

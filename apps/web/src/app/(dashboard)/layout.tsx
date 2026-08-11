@@ -2,9 +2,7 @@
 
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import {
-  Bell,
   Command,
   Languages,
   LogOut,
@@ -14,8 +12,9 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import { notificationsControllerUnreadCount, useAuthControllerLogout } from '@nexus/api-client';
+import { useAuthControllerLogout } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
+import { NotificationDropdown } from '@/components/common/notification-dropdown';
 import { AppShell } from '@/design-system/layouts/app-shell';
 import type { NavItem } from '@/design-system/layouts/types';
 import { useCommandPalette } from '@/providers/command-palette';
@@ -46,13 +45,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const me = useCurrentUser();
   const can = useCan();
   const logout = useAuthControllerLogout();
-
-  const unread = useQuery({
-    queryKey: ['notifications-unread'],
-    queryFn: () => notificationsControllerUnreadCount() as unknown as Promise<{ count: number }>,
-    refetchInterval: 30_000,
-    enabled: !!me.data,
-  });
 
   // Lọc quyền TRƯỚC khi đưa vào shell — shell không biết can() là gì (§5.1)
   const nav = React.useMemo(
@@ -87,16 +79,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Command /> Ctrl+K
           </Button>
         ),
-        notifications: (
-          <Button variant="ghost" size="icon" aria-label="Thông báo" className="relative">
-            <Bell />
-            {(unread.data?.count ?? 0) > 0 && (
-              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                {Math.min(unread.data!.count, 99)}
-              </span>
-            )}
-          </Button>
-        ),
+        notifications: <NotificationDropdown />,
         user: (
           <>
             <Button variant="ghost" size="icon" aria-label="Đổi giao diện" onClick={toggleTheme}>

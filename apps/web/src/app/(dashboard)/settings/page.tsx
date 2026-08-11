@@ -11,6 +11,7 @@ import {
 import type { SettingDto } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { StatusBadge } from '@/components/common/status-badge';
 import { useCan } from '@/lib/auth/use-can';
 
 /**
@@ -55,15 +56,10 @@ function SettingRow({
     <tr className="border-b last:border-0">
       <td className="py-2 pr-3 align-top font-mono text-sm">{setting.key}</td>
       <td className="py-2 pr-3 align-top">
-        <span
-          className="rounded px-1.5 py-0.5 text-xs"
-          style={{
-            background: setting.scope === 'tenant' ? 'var(--tone-info)' : 'var(--tone-muted)',
-            color: setting.scope === 'tenant' ? 'var(--tone-info-fg)' : 'var(--tone-muted-fg)',
-          }}
-        >
-          {setting.scope === 'tenant' ? 'Override tenant' : 'Mặc định hệ thống'}
-        </span>
+        <StatusBadge
+          tone={setting.scope === 'tenant' ? 'info' : 'muted'}
+          label={setting.scope === 'tenant' ? 'Override tenant' : 'Mặc định hệ thống'}
+        />
       </td>
       <td className="py-2 pr-3">
         <Input

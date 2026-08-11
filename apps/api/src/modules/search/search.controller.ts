@@ -1,5 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
@@ -13,6 +14,31 @@ class SearchDto {
   @MinLength(2)
   @MaxLength(100)
   q!: string;
+}
+
+export class SearchItemDto {
+  @ApiProperty() @Expose() id!: string;
+  @ApiProperty() @Expose() code!: string;
+  @ApiProperty() @Expose() label!: string;
+  @ApiProperty({ example: '/orders/uuid' }) @Expose() href!: string;
+}
+
+export class SearchGroupDto {
+  @ApiProperty({ enum: ['Product', 'Customer', 'Order', 'User'] })
+  @Expose()
+  entity!: 'Product' | 'Customer' | 'Order' | 'User';
+
+  @ApiProperty({ type: [SearchItemDto] })
+  @Expose()
+  @Type(() => SearchItemDto)
+  items!: SearchItemDto[];
+}
+
+export class SearchResponseDto {
+  @ApiProperty({ type: [SearchGroupDto] })
+  @Expose()
+  @Type(() => SearchGroupDto)
+  groups!: SearchGroupDto[];
 }
 
 /**
@@ -31,7 +57,8 @@ export class SearchController {
   @AllowAuthenticated()
   @Get()
   @ApiOperation({ summary: 'Tìm toàn cục — nhóm theo module, áp row-level (§8.2 #29)' })
-  async search(@CurrentUser() user: AuthUser, @Query() dto: SearchDto) {
+  @ApiOkResponse({ type: SearchResponseDto })
+  async search(@CurrentUser() user: AuthUser, @Query() dto: SearchDto): Promise<SearchResponseDto> {
     const raw = this.ctx.locale;
     const locale: Locale = (SUPPORTED_LOCALES as readonly string[]).includes(raw)
       ? (raw as Locale)

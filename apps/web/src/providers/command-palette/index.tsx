@@ -5,8 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import type { LucideIcon } from 'lucide-react';
-import { CornerDownLeft, FileText, Package, ShoppingCart, User } from 'lucide-react';
-import { searchControllerSearch } from '@nexus/api-client';
+import { Clock, CornerDownLeft, FileText, Package, ShoppingCart, Star, User } from 'lucide-react';
+import {
+  personalizationControllerListFavorites,
+  personalizationControllerListRecent,
+  searchControllerSearch,
+} from '@nexus/api-client';
+import type { PersonalItemDto } from '@nexus/api-client';
 import {
   CommandDialog,
   CommandEmpty,
@@ -114,13 +119,33 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     staleTime: 15_000,
   });
 
+  // V13 §5C.7 — palette rỗng không còn trống: đã ghim + vừa xem (chỉ kéo khi mở)
+  const favorites = useQuery({
+    queryKey: ['favorite-items'],
+    queryFn: () => personalizationControllerListFavorites(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const recent = useQuery({
+    queryKey: ['recent-items'],
+    queryFn: () => personalizationControllerListRecent(),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
   const actionCommands = Object.values(scopes).flat();
   const filtered = q.trim()
     ? actionCommands.filter((c) => c.label.toLowerCase().includes(q.trim().toLowerCase()))
     : actionCommands;
-  const groups =
-    (search.data as { groups?: Array<{ entity: string; items: Array<{ id: string; code: string; label: string; href: string }> }> } | undefined)
-      ?.groups ?? [];
+  const groups = search.data?.groups ?? [];
+  // Gõ chữ rồi thì nhường chỗ cho kết quả tìm — ghim/vừa xem chỉ hiện lúc rỗng
+  const showPersonal = q.trim().length === 0;
+  const favoriteItems = showPersonal ? (favorites.data ?? []) : [];
+  const recentItems = showPersonal
+    ? (recent.data ?? []).filter(
+        (r) => !favoriteItems.some((f) => f.entity === r.entity && f.entityId === r.entityId),
+      )
+    : [];
 
   return (
     <PaletteContext.Provider value={{ register, unregister, open: openPalette }}>
@@ -128,10 +153,49 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
       <CommandDialog open={open} onOpenChange={setOpen} title={t('placeholder')}>
         <CommandInput value={q} onValueChange={setQ} placeholder={t('placeholder')} />
         <CommandList>
-          {filtered.length === 0 && groups.length === 0 && (
-            <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-              {t('hint')}
-            </CommandEmpty>
+          {filtered.length === 0 &&
+            groups.length === 0 &&
+            favoriteItems.length === 0 &&
+            recentItems.length === 0 && (
+              <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                {t('hint')}
+              </CommandEmpty>
+            )}
+          {favoriteItems.length > 0 && (
+            <CommandGroup heading={t('favorites')}>
+              {favoriteItems.map((item: PersonalItemDto) => (
+                <CommandItem
+                  key={`fav-${item.entity}-${item.entityId}`}
+                  value={`fav-${item.entity}-${item.entityId}`}
+                  onSelect={() => {
+                    setOpen(false);
+                    router.push(item.href);
+                  }}
+                >
+                  <Star />
+                  <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {recentItems.length > 0 && (
+            <CommandGroup heading={t('recent')}>
+              {recentItems.map((item: PersonalItemDto) => (
+                <CommandItem
+                  key={`recent-${item.entity}-${item.entityId}`}
+                  value={`recent-${item.entity}-${item.entityId}`}
+                  onSelect={() => {
+                    setOpen(false);
+                    router.push(item.href);
+                  }}
+                >
+                  <Clock />
+                  <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
           {filtered.length > 0 && (
             <CommandGroup heading={t('actions')}>
