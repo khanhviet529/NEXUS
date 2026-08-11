@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import { http } from 'msw';
-import { OrderDetailScreen } from './page';
+import { OrderDetailScreen } from './order-detail-screen';
 import { renderWithProviders } from '@/test/render';
 import { server } from '@/mocks/server';
 import { apiError } from '@/mocks/handlers';

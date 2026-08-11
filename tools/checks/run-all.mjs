@@ -36,6 +36,10 @@ const checks = [
   'check-token-layers.mjs', // fe-preset-system §3.4: kỷ luật ba tầng token
   'check-raw-sql.mjs', // test-catalog §3B: AR3/AR4/AR14 — AR14 gác bảng HYBRID
   'check-module-registry.mjs', // test #37: module mới phải khai model, đi ngược từ code về registry
+  // V14: chuyển từ ADVISORY sang chặn — V9–V13 đã nối đủ 11/11 component vào
+  // màn hình thật (điều kiện nghiệm thu GĐ A2, progress.md). Từ đây component
+  // mới trong design-system/ hoặc components/common/ mà không màn nào dùng là ĐỎ.
+  'check-component-usage.mjs',
 ];
 
 /**
@@ -46,14 +50,6 @@ const checks = [
  */
 const ADVISORY = new Set([
   'check-pr-size.mjs',
-  // check #11 CỐ Ý chưa vào danh sách chạy bắt buộc: hiện nó ĐỎ với 3 component
-  // (DetailLayout · FilterBar · StatusBadge) và sẽ còn đỏ cho tới khi V9–V13 nối
-  // chúng vào màn hình thật. Đưa vào `checks` ngay bây giờ là chặn mọi PR khác
-  // vì một khoản nợ đã biết.
-  //
-  // Nó KHÔNG phải check tư vấn: chuyển sang `checks` ở CHÍNH PR làm nó xanh.
-  // Đó là điều kiện nghiệm thu của GĐ A2, ghi ở progress.md.
-  'check-component-usage.mjs',
 ]);
 const onDisk = readdirSync(dir).filter((f) => f.startsWith('check-') && f.endsWith('.mjs'));
 const unregistered = onDisk.filter((f) => !checks.includes(f) && !ADVISORY.has(f));

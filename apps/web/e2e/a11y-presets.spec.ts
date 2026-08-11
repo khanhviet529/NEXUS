@@ -21,6 +21,10 @@ const SCREENS = ['list', 'detail', 'form', 'grid-entry', 'login', 'states'] as c
 for (const preset of PRESET_IDS) {
   for (const theme of ['light', 'dark'] as const) {
     test(`${preset}/${theme} đạt WCAG 2 AA trên mọi màn`, async ({ page }) => {
+      // 6 màn × (goto + quét axe) trong MỘT test — 30s mặc định đủ trên CI
+      // Linux nhưng thiếu trên máy Windows chạy kèm việc khác. Timeout ở đây
+      // là ngân sách CẢ VÒNG, không phải mỗi màn.
+      test.setTimeout(120_000);
       for (const screen of SCREENS) {
         await page.goto(
           `/design-system/preview?preset=${preset}&screen=${screen}&theme=${theme}`,
