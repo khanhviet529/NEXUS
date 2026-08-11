@@ -24,6 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CurrentTenantDto,
   UpdateBrandingDto
 } from '../../models';
 
@@ -38,7 +39,7 @@ export const tenantSelfControllerGetCurrent = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<CurrentTenantDto>(
       {url: `/api/v1/tenants/current`, method: 'GET', signal
     },
       );
@@ -123,7 +124,7 @@ export const tenantSelfControllerUpdateBranding = (
  ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<CurrentTenantDto>(
       {url: `/api/v1/tenants/current/branding`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
       data: updateBrandingDto

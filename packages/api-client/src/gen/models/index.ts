@@ -7,6 +7,8 @@
 
 export * from './acceptInvitationDto';
 export * from './addHolidayDto';
+export * from './adminTenantDto';
+export * from './adminTenantDtoStatus';
 export * from './approvalAuthoritiesControllerCheckParams';
 export * from './assignRolesDto';
 export * from './attachmentDto';
@@ -36,6 +38,8 @@ export * from './createTenantDto';
 export * from './createViewDto';
 export * from './createViewDtoConfig';
 export * from './createWarehouseDto';
+export * from './currentTenantDto';
+export * from './currentTenantDtoBranding';
 export * from './customersControllerListParams';
 export * from './errorDto';
 export * from './errorDtoDetails';
@@ -106,6 +110,8 @@ export * from './settingDtoScope';
 export * from './settingDtoValue';
 export * from './subscribeDto';
 export * from './switchTenantDto';
+export * from './tenantFeatureDto';
+export * from './tenantFeatureDtoQuota';
 export * from './tokenPairDto';
 export * from './touchItemDto';
 export * from './touchItemDtoEntity';

@@ -186,6 +186,65 @@ export const handlers = [
 
   http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
 
+  // Phase 2b — admin/tenants + tenants/current + me/sessions
+  http.get(`${API}/api/v1/admin/tenants`, () =>
+    HttpResponse.json([
+      {
+        id: 'tenant-a',
+        code: 'TENANT-A',
+        name: 'Tenant A',
+        status: 'ACTIVE',
+        memberCount: 5,
+        createdAt: '2026-08-01T00:00:00.000Z',
+      },
+      {
+        id: 'tenant-b',
+        code: 'TENANT-B',
+        name: 'Tenant B',
+        status: 'SUSPENDED',
+        memberCount: 2,
+        createdAt: '2026-08-02T00:00:00.000Z',
+      },
+    ]),
+  ),
+  http.get(`${API}/api/v1/tenants/current`, () =>
+    HttpResponse.json({
+      id: 'tenant-a',
+      code: 'TENANT-A',
+      name: 'Tenant A',
+      status: 'ACTIVE',
+      defaultLocale: 'vi',
+      defaultTimezone: 'Asia/Ho_Chi_Minh',
+      branding: { primaryColor: '#0ea5e9' },
+      features: [
+        { featureKey: 'module.approvals', enabled: true, quota: null },
+        { featureKey: 'module.webhooks', enabled: false, quota: null },
+      ],
+    }),
+  ),
+  http.get(`${API}/api/v1/me/sessions`, () =>
+    HttpResponse.json([
+      {
+        id: 'ses-1',
+        device: 'Chrome trên Windows',
+        ip: '203.0.113.10',
+        userAgent: 'Mozilla/5.0',
+        createdAt: '2026-08-10T08:00:00.000Z',
+        lastSeenAt: '2026-08-11T07:00:00.000Z',
+        revokedAt: null,
+      },
+      {
+        id: 'ses-2',
+        device: 'Safari trên iPhone',
+        ip: '203.0.113.99',
+        userAgent: 'Mobile Safari',
+        createdAt: '2026-08-01T00:00:00.000Z',
+        lastSeenAt: '2026-08-05T00:00:00.000Z',
+        revokedAt: null,
+      },
+    ]),
+  ),
+
   // Phase 2a — roles + permissions registry + org-units
   http.get(`${API}/api/v1/roles`, () =>
     HttpResponse.json([

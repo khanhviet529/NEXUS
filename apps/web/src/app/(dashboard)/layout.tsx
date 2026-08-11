@@ -3,12 +3,14 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Building2,
   Command,
   Languages,
   LogOut,
   Moon,
   Network,
   ScrollText,
+  Server,
   Settings,
   ShieldCheck,
   ShoppingCart,
@@ -40,6 +42,9 @@ const NAV: (NavItem & { permission?: string })[] = [
   { href: '/org-units', label: 'Đơn vị', icon: Network, permission: 'org_unit:read' },
   { href: '/audit-logs', label: 'Nhật ký', icon: ScrollText, permission: 'audit:read' },
   { href: '/settings', label: 'Cấu hình', icon: Settings, permission: 'setting:read' },
+  { href: '/tenant', label: 'Tổ chức', icon: Building2, permission: 'tenant:read' },
+  // Khu sysadmin — chỉ ai có system_tenant:read mới thấy (guard thật ở BE §3.1b)
+  { href: '/admin/tenants', label: 'Tenants', icon: Server, permission: 'system_tenant:read' },
 ];
 
 function setCookie(name: string, value: string): void {
