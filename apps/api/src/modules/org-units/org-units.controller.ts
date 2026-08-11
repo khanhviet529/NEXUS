@@ -9,11 +9,43 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 import { IsInt, IsOptional, IsString, IsUUID, Min, MinLength } from 'class-validator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { OrgUnitsService } from './org-units.service';
+
+export class OrgUnitDto {
+  @ApiProperty() @Expose() id!: string;
+  @ApiProperty() @Expose() code!: string;
+  @ApiProperty() @Expose() name!: string;
+  @ApiPropertyOptional({ nullable: true, type: String }) @Expose() parentId!: string | null;
+  @ApiProperty({ description: 'Optimistic locking (§4.5) — PATCH cần gửi lại' })
+  @Expose()
+  version!: number;
+}
+
+type OrgUnitRow = {
+  id: string;
+  code: string;
+  name: string;
+  parentId: string | null;
+  version: number;
+};
+const toOrgUnitDto = (r: OrgUnitRow): OrgUnitDto => ({
+  id: r.id,
+  code: r.code,
+  name: r.name,
+  parentId: r.parentId,
+  version: r.version,
+});
 
 class CreateOrgUnitDto {
   @ApiProperty({ example: 'PB-KD' })
@@ -59,25 +91,31 @@ export class OrgUnitsController {
   @Get()
   @RequirePermission('org_unit:read')
   @ApiOperation({ summary: 'Cây đơn vị của tenant' })
-  list(@CurrentUser() user: AuthUser) {
-    return this.orgUnits.list(user);
+  @ApiOkResponse({ type: [OrgUnitDto] })
+  async list(@CurrentUser() user: AuthUser): Promise<OrgUnitDto[]> {
+    const rows = await this.orgUnits.list(user);
+    return rows.map(toOrgUnitDto);
   }
 
   @Post()
   @RequirePermission('org_unit:create')
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateOrgUnitDto) {
-    return this.orgUnits.create(user, dto);
+  @ApiOkResponse({ type: OrgUnitDto })
+  async create(@CurrentUser() user: AuthUser, @Body() dto: CreateOrgUnitDto): Promise<OrgUnitDto> {
+    const row = await this.orgUnits.create(user, dto);
+    return toOrgUnitDto(row!);
   }
 
   @Patch(':id')
   @RequirePermission('org_unit:update')
   @ApiOperation({ summary: 'Sửa/di chuyển đơn vị — đổi cây invalidate quyền TOÀN tenant' })
-  update(
+  @ApiOkResponse({ type: OrgUnitDto })
+  async update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOrgUnitDto,
-  ) {
-    return this.orgUnits.update(user, id, dto);
+  ): Promise<OrgUnitDto> {
+    const row = await this.orgUnits.update(user, id, dto);
+    return toOrgUnitDto(row!);
   }
 
   @Delete(':id')

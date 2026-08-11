@@ -186,6 +186,43 @@ export const handlers = [
 
   http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
 
+  // Phase 2a — roles + permissions registry + org-units
+  http.get(`${API}/api/v1/roles`, () =>
+    HttpResponse.json([
+      {
+        id: 'role-admin',
+        code: 'TENANT_ADMIN',
+        name: 'Quản trị tenant',
+        isSystem: true,
+        permissions: [{ permissionCode: 'order:read', scope: 'all' }],
+      },
+      {
+        id: 'role-custom',
+        code: 'KE_TOAN',
+        name: 'Kế toán',
+        isSystem: false,
+        permissions: [
+          { permissionCode: 'order:read', scope: 'department' },
+          { permissionCode: 'order:approve', scope: 'department' },
+        ],
+      },
+    ]),
+  ),
+  http.get(`${API}/api/v1/permissions`, () =>
+    HttpResponse.json([
+      { code: 'order:read', resource: 'order', action: 'read', description: 'Xem đơn hàng' },
+      { code: 'order:approve', resource: 'order', action: 'approve', description: 'Duyệt đơn' },
+      { code: 'user:read', resource: 'user', action: 'read', description: 'Xem người dùng' },
+    ]),
+  ),
+  http.get(`${API}/api/v1/org-units`, () =>
+    HttpResponse.json([
+      { id: 'ou-root', code: 'ROOT', name: 'Công ty', parentId: null, version: 1 },
+      { id: 'ou-kd', code: 'PB-KD', name: 'Phòng Kinh doanh', parentId: 'ou-root', version: 1 },
+      { id: 'ou-kd-1', code: 'KD-1', name: 'Nhóm KD 1', parentId: 'ou-kd', version: 2 },
+    ]),
+  ),
+
   // V13 — personalization + notifications (mặc định rỗng; test cần dữ liệu tự server.use)
   http.put(`${API}/api/v1/recent-items`, () => HttpResponse.json({ ok: true })),
   http.get(`${API}/api/v1/recent-items`, () => HttpResponse.json([])),

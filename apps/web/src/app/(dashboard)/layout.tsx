@@ -7,6 +7,10 @@ import {
   Languages,
   LogOut,
   Moon,
+  Network,
+  ScrollText,
+  Settings,
+  ShieldCheck,
   ShoppingCart,
   Sun,
   User,
@@ -32,6 +36,10 @@ const NAV: (NavItem & { permission?: string })[] = [
   { href: '/orders', label: 'Đơn hàng', icon: ShoppingCart, permission: 'order:read' },
   { href: '/customers', label: 'Khách hàng', icon: Users, permission: 'customer:read' },
   { href: '/users', label: 'Người dùng', icon: User, permission: 'user:read' },
+  { href: '/roles', label: 'Vai trò', icon: ShieldCheck, permission: 'role:read' },
+  { href: '/org-units', label: 'Đơn vị', icon: Network, permission: 'org_unit:read' },
+  { href: '/audit-logs', label: 'Nhật ký', icon: ScrollText, permission: 'audit:read' },
+  { href: '/settings', label: 'Cấu hình', icon: Settings, permission: 'setting:read' },
 ];
 
 function setCookie(name: string, value: string): void {
