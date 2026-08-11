@@ -187,6 +187,39 @@ export const handlers = [
 
   http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
 
+  // Phase 4a — reports
+  http.get(`${API}/api/v1/reports`, () =>
+    HttpResponse.json([{ id: 'sales-by-customer', name: 'Doanh thu theo khách hàng' }]),
+  ),
+  http.get(`${API}/api/v1/reports/:id/meta`, () =>
+    HttpResponse.json({
+      id: 'sales-by-customer',
+      name: 'Doanh thu theo khách hàng',
+      params: [{ key: 'period', type: 'dateRange', label: 'Khoảng ngày', required: true }],
+      columns: [
+        { key: 'customerCode', label: 'Mã KH' },
+        { key: 'customerName', label: 'Khách hàng' },
+        { key: 'revenue', label: 'Doanh thu', type: 'money', summary: 'sum' },
+      ],
+    }),
+  ),
+  http.post(`${API}/api/v1/reports/:id/run`, () =>
+    HttpResponse.json({
+      columns: [
+        { key: 'customerCode', label: 'Mã KH' },
+        { key: 'customerName', label: 'Khách hàng' },
+        { key: 'revenue', label: 'Doanh thu', type: 'money', summary: 'sum' },
+      ],
+      rows: [
+        { customerCode: 'KH-01', customerName: 'Khách A', revenue: '1200000' },
+        { customerCode: 'KH-02', customerName: 'Khách B', revenue: '800000' },
+      ],
+      summary: { revenue: '2000000' },
+      drilldowns: ['/orders?filter[customerId][eq]=c-1', null],
+      cached: false,
+    }),
+  ),
+
   // Phase 2b — admin/tenants + tenants/current + me/sessions
   http.get(`${API}/api/v1/admin/tenants`, () =>
     HttpResponse.json([

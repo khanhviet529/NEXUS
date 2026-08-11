@@ -23,6 +23,13 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query';
 
+import type {
+  ReportMetaDto,
+  ReportRunResultDto,
+  ReportSummaryDto,
+  RunReportDto
+} from '../../models';
+
 import { apiMutator } from '../../../mutator';
 
 
@@ -37,7 +44,7 @@ export const reportsControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<ReportSummaryDto[]>(
       {url: `/api/v1/reports`, method: 'GET', signal
     },
       );
@@ -129,7 +136,7 @@ export const reportsControllerMeta = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<ReportMetaDto>(
       {url: `/api/v1/reports/${id}/meta`, method: 'GET', signal
     },
       );
@@ -217,12 +224,15 @@ export function useReportsControllerMeta<TData = Awaited<ReturnType<typeof repor
  */
 export const reportsControllerRun = (
     id: string,
+    runReportDto: RunReportDto,
  signal?: AbortSignal
 ) => {
       
       
-      return apiMutator<void>(
-      {url: `/api/v1/reports/${id}/run`, method: 'POST', signal
+      return apiMutator<ReportRunResultDto>(
+      {url: `/api/v1/reports/${id}/run`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: runReportDto, signal
     },
       );
     }
@@ -230,8 +240,8 @@ export const reportsControllerRun = (
 
 
 export const getReportsControllerRunMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string;data: RunReportDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string;data: RunReportDto}, TContext> => {
 
 const mutationKey = ['reportsControllerRun'];
 const {mutation: mutationOptions} = options ?
@@ -243,10 +253,10 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportsControllerRun>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportsControllerRun>>, {id: string;data: RunReportDto}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  reportsControllerRun(id,)
+          return  reportsControllerRun(id,data,)
         }
 
         
@@ -255,18 +265,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ReportsControllerRunMutationResult = NonNullable<Awaited<ReturnType<typeof reportsControllerRun>>>
-    
+    export type ReportsControllerRunMutationBody = RunReportDto
     export type ReportsControllerRunMutationError = unknown
 
     /**
  * @summary Chạy báo cáo — scope nhúng trong query, cache theo (tenant, scope, params)
  */
 export const useReportsControllerRun = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerRun>>, TError,{id: string;data: RunReportDto}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof reportsControllerRun>>,
         TError,
-        {id: string},
+        {id: string;data: RunReportDto},
         TContext
       > => {
 
@@ -279,12 +289,15 @@ export const useReportsControllerRun = <TError = unknown,
  */
 export const reportsControllerExport = (
     id: string,
+    runReportDto: RunReportDto,
  signal?: AbortSignal
 ) => {
       
       
       return apiMutator<void>(
-      {url: `/api/v1/reports/${id}/export`, method: 'POST', signal
+      {url: `/api/v1/reports/${id}/export`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: runReportDto, signal
     },
       );
     }
@@ -292,8 +305,8 @@ export const reportsControllerExport = (
 
 
 export const getReportsControllerExportMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string}, TContext>, }
-): UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string;data: RunReportDto}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string;data: RunReportDto}, TContext> => {
 
 const mutationKey = ['reportsControllerExport'];
 const {mutation: mutationOptions} = options ?
@@ -305,10 +318,10 @@ const {mutation: mutationOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportsControllerExport>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportsControllerExport>>, {id: string;data: RunReportDto}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  reportsControllerExport(id,)
+          return  reportsControllerExport(id,data,)
         }
 
         
@@ -317,18 +330,18 @@ const {mutation: mutationOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ReportsControllerExportMutationResult = NonNullable<Awaited<ReturnType<typeof reportsControllerExport>>>
-    
+    export type ReportsControllerExportMutationBody = RunReportDto
     export type ReportsControllerExportMutationError = unknown
 
     /**
  * @summary Export CSV — cùng đường lọc cột với run (§4.4c nơi 2+3)
  */
 export const useReportsControllerExport = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportsControllerExport>>, TError,{id: string;data: RunReportDto}, TContext>, }
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof reportsControllerExport>>,
         TError,
-        {id: string},
+        {id: string;data: RunReportDto},
         TContext
       > => {
 

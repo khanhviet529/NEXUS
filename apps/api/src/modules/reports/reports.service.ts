@@ -12,7 +12,7 @@ import { REPORTS } from './report-registry';
 import type { ReportDef } from './report.types';
 
 export interface ReportRunResult {
-  columns: Array<{ key: string; label: string; type?: string }>;
+  columns: Array<Pick<import('./report.types').ReportColumnDef, 'key' | 'label' | 'type' | 'summary'>>;
   rows: Array<Record<string, unknown>>;
   summary: Record<string, string>;
   drilldowns: Array<string | null>;
