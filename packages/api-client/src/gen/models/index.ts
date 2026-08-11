@@ -69,6 +69,7 @@ export * from './orderListResponseDto';
 export * from './orderResponseDto';
 export * from './orderResponseDtoCustomer';
 export * from './orderResponseDtoStatus';
+export * from './ordersControllerExportParams';
 export * from './ordersControllerListParams';
 export * from './paginationMetaDto';
 export * from './presignDto';

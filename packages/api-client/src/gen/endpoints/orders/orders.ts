@@ -28,6 +28,7 @@ import type {
   CreateOrderDto,
   OrderListResponseDto,
   OrderResponseDto,
+  OrdersControllerExportParams,
   OrdersControllerListParams,
   TransitionDto,
   UpdateOrderDto
@@ -385,6 +386,69 @@ const {mutation: mutationOptions} = options ?
       > => {
 
       const mutationOptions = getOrdersControllerRemoveMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * @summary Export CSV STREAMING theo ĐÚNG bộ lọc hiện tại (§5.5) — scope + field-level áp như list
+ */
+export const ordersControllerExport = (
+    params?: OrdersControllerExportParams,
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<void>(
+      {url: `/api/v1/orders/export`, method: 'POST',
+        params, signal
+    },
+      );
+    }
+  
+
+
+export const getOrdersControllerExportMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerExport>>, TError,{params?: OrdersControllerExportParams}, TContext>, }
+): UseMutationOptions<Awaited<ReturnType<typeof ordersControllerExport>>, TError,{params?: OrdersControllerExportParams}, TContext> => {
+
+const mutationKey = ['ordersControllerExport'];
+const {mutation: mutationOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ordersControllerExport>>, {params?: OrdersControllerExportParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  ordersControllerExport(params,)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OrdersControllerExportMutationResult = NonNullable<Awaited<ReturnType<typeof ordersControllerExport>>>
+    
+    export type OrdersControllerExportMutationError = unknown
+
+    /**
+ * @summary Export CSV STREAMING theo ĐÚNG bộ lọc hiện tại (§5.5) — scope + field-level áp như list
+ */
+export const useOrdersControllerExport = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerExport>>, TError,{params?: OrdersControllerExportParams}, TContext>, }
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof ordersControllerExport>>,
+        TError,
+        {params?: OrdersControllerExportParams},
+        TContext
+      > => {
+
+      const mutationOptions = getOrdersControllerExportMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

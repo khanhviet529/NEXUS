@@ -273,6 +273,67 @@ export class OrdersRepository {
     });
   }
 
+  /**
+   * V11 — export STREAMING theo đúng bộ lọc hiện tại (§5.5 + §5B.3/C1):
+   * keyset cursor, callback từng batch — RAM O(batch). where ĐÃ gồm scope
+   * (caller trộn Ability.scopeWhere — không lọc sau §4.4).
+   */
+  async iterateForExport(
+    where: Record<string, unknown>,
+    onBatch: (
+      rows: Array<{
+        code: string;
+        status: string;
+        customerCode: string;
+        subtotal: string;
+        taxTotal: string;
+        total: string;
+        margin: string | null;
+        createdAt: Date;
+      }>,
+    ) => Promise<void>,
+    batchSize = 1_000,
+  ): Promise<number> {
+    let lastId = '00000000-0000-0000-0000-000000000000';
+    let total = 0;
+    for (;;) {
+      const rows = await this.prisma.client.order.findMany({
+        where: {
+          AND: [where as Prisma.OrderWhereInput, { id: { gt: lastId } }],
+        },
+        select: {
+          id: true,
+          code: true,
+          status: true,
+          subtotal: true,
+          taxTotal: true,
+          total: true,
+          margin: true,
+          createdAt: true,
+          customer: { select: { code: true } },
+        },
+        orderBy: { id: 'asc' },
+        take: batchSize,
+      });
+      if (rows.length === 0) break;
+      await onBatch(
+        rows.map((r) => ({
+          code: r.code,
+          status: r.status,
+          customerCode: r.customer?.code ?? '',
+          subtotal: r.subtotal.toString(),
+          taxTotal: r.taxTotal.toString(),
+          total: r.total.toString(),
+          margin: r.margin?.toString() ?? null,
+          createdAt: r.createdAt,
+        })),
+      );
+      total += rows.length;
+      lastId = rows[rows.length - 1]!.id;
+    }
+    return total;
+  }
+
   /** Delete guard A2: Product đang được order item nào tham chiếu? */
   countItemsOfProduct(productId: string) {
     return this.prisma.client.orderItem.count({ where: { productId } });
