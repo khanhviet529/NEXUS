@@ -21,13 +21,13 @@
 
 > Đích đo được: độ phủ pattern 3/15 → **13/15**; check #11 chuyển ADVISORY → `checks`.
 
-- [ ] **V9** `orders/[id]` chi tiết 4 tab: thông tin (DetailLayout — gỡ vi phạm #11) · items (bảng con) · AuditTimeline · file đính kèm
-- [ ] **V10** `products` sinh qua `pnpm gen:module` (dogfood generator) — trong lúc làm, **vá luôn 3 bước thiếu của checklist generator**: nhắc build `@nexus/shared` · nhắc gán quyền vào `seed-roles.ts` · liệt kê cột `*_search`
-- [ ] **V11** Nối FilterBar (gỡ vi phạm #11) + ExportDialog + saved-views vào trang `orders`
-- [ ] **V12** Trang `audit-logs` (tra cứu, filter theo entity/actor/khoảng ngày) + trang `settings` (đọc/ghi theo quyền `setting:update`)
-- [ ] **V13** Notification dropdown (đọc + đánh dấu đã đọc) · recent/favorites vào Cmd+K · StatusBadge vào orders list (gỡ vi phạm #11 cuối)
-- [ ] **V14** SỬA dark-chroma TRƯỚC (`--brand-c-preset` + `calc(... - 0.02)` ở dark — inline không được thắng stylesheet), RỒI chụp lại toàn bộ baseline MỘT LẦN (cả `-linux` lẫn `-win32`) + a11y 2 tổ hợp cho màn mới *(gộp từ Phase 5 cũ — hai việc cùng đòi chụp baseline, tách ra là chụp hai lần)*
-- [ ] Chuyển check #11 từ `ADVISORY` sang `checks` trong `run-all.mjs` — **điều kiện đóng Phase 1**
+- [x] **V9** `orders/[id]` chi tiết 4 tab: thông tin (DetailLayout — gỡ vi phạm #11) · items (bảng con) · AuditTimeline · file đính kèm
+- [x] **V10** `products` sinh qua `pnpm gen:module` (dogfood generator) — trong lúc làm, **vá luôn 3 bước thiếu của checklist generator**: nhắc build `@nexus/shared` · nhắc gán quyền vào `seed-roles.ts` · liệt kê cột `*_search`
+- [x] **V11** Nối FilterBar (gỡ vi phạm #11) + ExportDialog + saved-views vào trang `orders`
+- [x] **V12** Trang `audit-logs` (tra cứu, filter theo entity/actor/khoảng ngày) + trang `settings` (đọc/ghi theo quyền `setting:update`)
+- [x] **V13** Notification dropdown (đọc + đánh dấu đã đọc) · recent/favorites vào Cmd+K · StatusBadge vào orders list (gỡ vi phạm #11 cuối)
+- [x] **V14** SỬA dark-chroma TRƯỚC (`--brand-c-preset` + `calc(... - 0.02)` ở dark — inline không được thắng stylesheet), RỒI chụp lại toàn bộ baseline MỘT LẦN (cả `-linux` lẫn `-win32`) + a11y 2 tổ hợp cho màn mới *(gộp từ Phase 5 cũ — hai việc cùng đòi chụp baseline, tách ra là chụp hai lần)*
+- [x] Chuyển check #11 từ `ADVISORY` sang `checks` trong `run-all.mjs` — **điều kiện đóng Phase 1**
 
 ## Phase 2 — Màn quản trị CORE còn thiếu *(~2 ngày, 2 PR)*
 
