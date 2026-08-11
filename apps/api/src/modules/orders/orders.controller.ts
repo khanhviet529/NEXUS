@@ -49,6 +49,7 @@ import { RequestContextService } from '../../infra/cls/request-context';
 import { AbilityService } from '../auth/ability.service';
 import { IdempotencyService } from '../idempotency/idempotency.service';
 import { OrdersService } from './orders.service';
+import { OrdersRepository } from './orders.repository';
 
 const ORDER_QUERY: QueryConfig = {
   filterable: {
@@ -271,6 +272,7 @@ function toOrderResponse(
 export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
+    private readonly ordersRepo: OrdersRepository,
     private readonly idempotency: IdempotencyService,
     private readonly ability: AbilityService,
     private readonly ctx: RequestContextService,
@@ -368,6 +370,54 @@ export class OrdersController {
   @RequirePermission('order:delete')
   async remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.orders.remove(user, id);
+  }
+
+  @Post('export')
+  @RequirePermission('order:export')
+  @ApiOperation({
+    summary:
+      'Export CSV STREAMING theo ĐÚNG bộ lọc hiện tại (§5.5) — scope + field-level áp như list',
+  })
+  async export(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListOrdersQueryDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const locale = this.locale;
+    const where = new FilterParser(ORDER_QUERY, locale).parse(
+      req.query as Record<string, unknown>,
+    );
+    const ability = await this.ability.forUser(user);
+    const scopeWhere = await ability.scopeWhere('order:export'); // scope trong WHERE (§4.4)
+    const showCost = ability.grantedFieldGroups().has('cost'); // §4.4c nơi 2
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
+    const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const header = ['code', 'status', 'customer_code', 'subtotal', 'tax_total', 'total']
+      .concat(showCost ? ['margin'] : [])
+      .concat(['created_at'])
+      .join(',');
+    res.write(header + '\n');
+
+    await this.ordersRepo.iterateForExport(
+      { AND: [where, scopeWhere] },
+      async (rows) => {
+        const chunk = rows
+          .map((r) =>
+            [esc(r.code), r.status, esc(r.customerCode), r.subtotal, r.taxTotal, r.total]
+              .concat(showCost ? [r.margin ?? ''] : [])
+              .concat([r.createdAt.toISOString()])
+              .join(','),
+          )
+          .join('\n');
+        if (!res.write(chunk + '\n')) {
+          await new Promise((resolve) => res.once('drain', resolve)); // backpressure
+        }
+      },
+    );
+    res.end();
   }
 
   @Post('bulk-approve')

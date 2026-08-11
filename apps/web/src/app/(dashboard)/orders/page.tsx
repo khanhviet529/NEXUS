@@ -12,7 +12,9 @@ import { ordersControllerList, getApiError } from '@nexus/api-client';
 import type { OrderResponseDto } from '@nexus/api-client';
 import type { OrderState } from '@nexus/shared';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FilterBar } from '@/components/common/filter-bar';
+import { ExportButton } from '@/features/exports/export-button';
+import { ORDER_STATE_LABEL } from '@/design-system/state-tones';
 import { OrderStatusBadge } from '@/components/common/status-badge';
 import {
   ActionContextMenu,
@@ -34,6 +36,8 @@ import { SavedViewsBar } from '@/features/saved-views/saved-views-bar';
  * chuột phải + bulk bar khi chọn nhiều, (4) Cmd+K.
  * DataTable §5.5 đầy đủ thay bảng này ở lát FE tổng thể.
  */
+const ORDER_STATES = ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
+
 function RowActions({ record, meId }: OrderActionCtx) {
   const ctx = useMemo(() => ({ record, meId }), [record, meId]);
   const actions = useActions(orderActions, ctx);
@@ -64,6 +68,7 @@ function OrdersPage() {
     page: parseAsInteger.withDefault(1),
     limit: parseAsInteger.withDefault(20),
     q: parseAsString.withDefault(''),
+    status: parseAsString.withDefault(''),
   });
 
   // Type sinh từ OpenAPI (§2.4) — hết cast `as unknown as` viết tay
@@ -74,6 +79,7 @@ function OrdersPage() {
         page: params.page,
         limit: params.limit,
         q: params.q || undefined,
+        filter: params.status ? { status: { eq: params.status } } : undefined,
       }),
     placeholderData: (prev) => prev,
   });
@@ -101,6 +107,15 @@ function OrdersPage() {
 
   const runBulkApprove = useBulkAction(bulkApproveOrders);
 
+  // Export theo ĐÚNG bộ lọc hiện tại (§5.5) — cùng cú pháp filter DSL với list
+  const exportEndpoint = useMemo(() => {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set('q', params.q);
+    if (params.status) qs.set('filter[status][eq]', params.status);
+    const suffix = qs.toString();
+    return '/api/v1/orders/export' + (suffix ? '?' + suffix : '');
+  }, [params.q, params.status]);
+
   return (
     <main className="mx-auto max-w-6xl space-y-4 p-6">
       <header className="flex items-center justify-between gap-4">
@@ -119,18 +134,49 @@ function OrdersPage() {
         </div>
       </header>
 
-      {/* Saved views §5.5 — lưu bộ lọc hiện tại thành view đặt tên */}
-      <SavedViewsBar entity="Order" membershipId={me.data?.membershipId} />
-
-      <Input
-        placeholder={tc('search')}
-        defaultValue={params.q}
-        className="max-w-xs"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter')
-            void setParams({ q: (e.target as HTMLInputElement).value, page: 1 });
-        }}
-      />
+      {/* V11 — FilterBar §5.5: bộ lọc đang bật NHÌN THẤY được (chip),
+          search debounce, saved views cắm vào slot, export theo ĐÚNG bộ lọc */}
+      <FilterBar
+        search={params.q}
+        onSearchChange={(q) => void setParams({ q, page: 1 })}
+        searchPlaceholder={tc('search')}
+        chips={
+          params.status
+            ? [
+                {
+                  id: 'status',
+                  label: t('columns.status'),
+                  value: params.status,
+                  onRemove: () => void setParams({ status: '', page: 1 }),
+                },
+              ]
+            : []
+        }
+        onClearAll={() => void setParams({ q: '', status: '', page: 1 })}
+        savedViews={<SavedViewsBar entity="Order" membershipId={me.data?.membershipId} />}
+      >
+        <select
+          aria-label={t('columns.status')}
+          className="rounded-md border border-input bg-background px-2 text-sm"
+          style={{ height: 'var(--input-h)' }}
+          value={params.status}
+          onChange={(e) => void setParams({ status: e.target.value, page: 1 })}
+        >
+          <option value="">{t('columns.status')}: —</option>
+          {ORDER_STATES.map((st) => (
+            <option key={st} value={st}>
+              {ORDER_STATE_LABEL[st]}
+            </option>
+          ))}
+        </select>
+        {can('order:export') && (
+          <ExportButton
+            endpoint={exportEndpoint}
+            label={t('export')}
+            fallbackFilename="orders.csv"
+          />
+        )}
+      </FilterBar>
 
       {/* Bulk bar — hiện khi chọn ≥1 dòng (nơi 3 cùng context menu) */}
       {selectedRows.length > 0 && (

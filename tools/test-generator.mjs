@@ -312,6 +312,11 @@ CREATE UNIQUE INDEX "${PLURAL}_tenant_id_code_key" ON "${PLURAL}" ("tenant_id", 
 } finally {
   cleanup();
   originals.clear();
+  // Test đã BUILD @nexus/shared với registry tạm (#3a0); cleanup trả SOURCE
+  // về nhưng DIST vẫn chở model tạm → app/test sau đó chết ở vét cạn
+  // "model không tồn tại trong schema". Đây đúng loại lỗi mà checklist
+  // generator cảnh báo (app đọc DIST, check đọc SOURCE) — build lại cho khớp.
+  run('pnpm', ['--filter', '@nexus/shared', 'build']);
 }
 
 console.log('');

@@ -22,6 +22,9 @@
     "reject": "Từ chối",
     "cancel": "Huỷ đơn",
     "export": "Xuất CSV",
-    "bulkApprove": "Duyệt hàng loạt"
+    "bulkApprove": "Duyệt hàng loạt",
+    "columns": {
+      "status": "Trạng thái"
+    }
   }
 }
