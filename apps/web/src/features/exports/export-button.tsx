@@ -24,11 +24,14 @@ import { Button } from '@/components/ui/button';
  */
 export function ExportButton({
   endpoint,
+  body,
   label = 'Xuất CSV',
   fallbackFilename = 'export.csv',
 }: {
   /** Ví dụ '/api/v1/products/export' */
   endpoint: string;
+  /** Body POST — reports cần { params } (Phase 4a); list export dùng query string thì bỏ trống */
+  body?: unknown;
   label?: string;
   fallbackFilename?: string;
 }) {
@@ -37,7 +40,7 @@ export function ExportButton({
   const run = async () => {
     setBusy(true);
     try {
-      const res = await apiAxios.post(endpoint, undefined, { responseType: 'blob' });
+      const res = await apiAxios.post(endpoint, body, { responseType: 'blob' });
       const filename =
         filenameFromDisposition(String(res.headers['content-disposition'] ?? '')) ??
         fallbackFilename;

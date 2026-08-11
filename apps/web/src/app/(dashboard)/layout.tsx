@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  BarChart3,
   Building2,
   Command,
   Languages,
@@ -39,6 +40,8 @@ const NAV: (NavItem & { permission?: string })[] = [
   { href: '/orders', label: 'Đơn hàng', icon: ShoppingCart, permission: 'order:read' },
   { href: '/customers', label: 'Khách hàng', icon: Users, permission: 'customer:read' },
   { href: '/users', label: 'Người dùng', icon: User, permission: 'user:read' },
+  // Không gate permission: danh sách report tự lọc theo quyền TỪNG report (A1)
+  { href: '/reports', label: 'Báo cáo', icon: BarChart3 },
   { href: '/roles', label: 'Vai trò', icon: ShieldCheck, permission: 'role:read' },
   { href: '/org-units', label: 'Đơn vị', icon: Network, permission: 'org_unit:read' },
   { href: '/audit-logs', label: 'Nhật ký', icon: ScrollText, permission: 'audit:read' },

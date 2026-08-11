@@ -42,7 +42,7 @@
 
 ## Phase 4 — Reports · Inventory · Import wizard *(~1,5 ngày, 2 PR)*
 
-- [ ] **PR 4a**: trang `reports` — render ĐỘNG từ `GET /reports/:id/meta` (form filter tự sinh theo `params`, bảng + dòng tổng theo `columns`, drill-down là link thật, nút export). Đây là phép thử "khai báo báo cáo mới < 2 giờ" của A1 ở phía FE. **Ranh giới chống form-builder**: form CHỈ switch trên union ĐÓNG `ReportParamType` (4 loại: dateRange · select · orgUnit · text) — muốn loại mới phải sửa type ở BE trước, FE đỏ compile
+- [x] **PR 4a**: trang `reports` — render ĐỘNG từ `GET /reports/:id/meta` (form filter tự sinh theo `params`, bảng + dòng tổng theo `columns`, drill-down là link thật, nút export). Đây là phép thử "khai báo báo cáo mới < 2 giờ" của A1 ở phía FE. **Ranh giới chống form-builder**: form CHỈ switch trên union ĐÓNG `ReportParamType` (4 loại: dateRange · select · orgUnit · text) — muốn loại mới phải sửa type ở BE trước, FE đỏ compile
 - [ ] **PR 4b**: trang `inventory` (balances + form nhập/xuất kho, hiện lỗi `STOCK.INSUFFICIENT` tử tế) · Import wizard nối job thật (upload rows → poll `import-jobs/:id` → bảng lỗi từng dòng + tải lại)
 
 ## Phase 5 — Trả nợ kỹ thuật đã ghi sổ *(~1 ngày, 3 PR nhỏ)*
