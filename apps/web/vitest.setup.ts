@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+/**
+ * findBy + waitFor mặc định 1000ms — dưới nghẽn CPU (máy dev chạy kèm Docker,
+ * CI chạy 3 job song song) các test tương tác đỏ NGẪU NHIÊN từng cái khác
+ * nhau mỗi lượt dù chạy cô lập đều xanh. Nới trần KHÔNG che lỗi thật:
+ * element không bao giờ xuất hiện thì 1s hay 5s đều đỏ.
+ */
+configure({ asyncUtilTimeout: 5_000 });
 import { setProjectAnnotations } from '@storybook/react';
 import * as previewAnnotations from './.storybook/preview';
 import { server } from './src/mocks/server';
