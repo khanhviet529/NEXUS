@@ -13,7 +13,9 @@
     "placeholder": "Type a command or search…",
     "actions": "Actions",
     "results": "Search results",
-    "hint": "Ctrl+K to open"
+    "hint": "Ctrl+K to open",
+    "favorites": "Pinned",
+    "recent": "Recently viewed"
   },
   "orders": {
     "title": "Orders",

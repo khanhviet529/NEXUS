@@ -10,6 +10,7 @@ import { AuditTimeline } from '@/components/common/audit-timeline';
 import { AttachmentList } from '@/components/common/attachment-list';
 import { ActionToolbar, useActions, useActionShortcuts } from '@/lib/actions';
 import { useCurrentUser } from '@/lib/auth/use-can';
+import { useTouchRecent } from '@/lib/personalization/use-touch-recent';
 import { orderActions } from '@/features/orders/actions';
 import { formatMoney } from '@/lib/format/money';
 import type { OrderState } from '@nexus/shared';
@@ -35,6 +36,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 export function OrderDetailScreen({ id }: { id: string }) {
   const router = useRouter();
   const order = useOrdersControllerDetail(id);
+  useTouchRecent('Order', id); // "vừa xem" cho Cmd+K (§5C.7)
 
   if (order.isPending) return <p className="p-4 text-sm text-muted-foreground">Đang tải…</p>;
   if (order.isError) {
