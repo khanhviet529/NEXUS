@@ -4,10 +4,10 @@
  * Nexus API
  * OpenAPI spec version: 1.0
  */
-import type { OrderCustomerDtoName } from './orderCustomerDtoName';
 
 export interface OrderCustomerDto {
   id: string;
   code: string;
-  name: OrderCustomerDtoName;
+  /** ĐÃ resolve theo locale, fallback vi (§3.10) */
+  name: string;
 }

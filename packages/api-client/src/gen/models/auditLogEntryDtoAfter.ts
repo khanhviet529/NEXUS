@@ -8,4 +8,4 @@
 /**
  * @nullable
  */
-export type OrderResponseDtoCreatedById = { [key: string]: unknown } | null;
+export type AuditLogEntryDtoAfter = { [key: string]: unknown } | null;

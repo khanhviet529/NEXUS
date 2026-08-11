@@ -6,9 +6,6 @@
  */
 import type { OrderResponseDtoStatus } from './orderResponseDtoStatus';
 import type { OrderResponseDtoCustomer } from './orderResponseDtoCustomer';
-import type { OrderResponseDtoMargin } from './orderResponseDtoMargin';
-import type { OrderResponseDtoApprovedAt } from './orderResponseDtoApprovedAt';
-import type { OrderResponseDtoCreatedById } from './orderResponseDtoCreatedById';
 import type { OrderItemResponseDto } from './orderItemResponseDto';
 
 export interface OrderResponseDto {
@@ -27,13 +24,13 @@ export interface OrderResponseDto {
    * CHỈ khi có field:cost (§4.4c)
    * @nullable
    */
-  margin?: OrderResponseDtoMargin;
+  margin?: string | null;
   /** Optimistic lock (§12 #17) */
   version: number;
   /** @nullable */
-  approvedAt?: OrderResponseDtoApprovedAt;
+  approvedAt?: string | null;
   /** @nullable */
-  createdById?: OrderResponseDtoCreatedById;
+  createdById?: string | null;
   createdAt: string;
   items: OrderItemResponseDto[];
 }

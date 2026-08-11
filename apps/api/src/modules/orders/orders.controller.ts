@@ -40,7 +40,11 @@ import { CurrentUser, type AuthUser } from '../../common/decorators/current-user
 import { buildMeta, PaginationMetaDto } from '../../common/dto/paginated.dto';
 import { FilterParser, parseSort } from '../../common/query/filter-parser';
 import type { QueryConfig } from '../../common/query/query-config';
-import type { Locale } from '../../common/query/localized';
+import {
+  resolveLocalizedValue,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from '../../common/query/localized';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { AbilityService } from '../auth/ability.service';
 import { IdempotencyService } from '../idempotency/idempotency.service';
@@ -169,8 +173,8 @@ class ListOrdersQueryDto {
 class OrderItemResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() productId!: string;
-  @ApiProperty({ type: Object, description: 'Snapshot tên JSONB tại thời điểm tạo (§3.10)' })
-  productNameSnapshot!: Record<string, string>;
+  @ApiProperty({ description: 'Tên CHỐT tại thời điểm tạo — TEXT, không phải JSONB (§3.10 luật 2)' })
+  productNameSnapshot!: string;
   @ApiProperty({ description: 'Số lượng — CHUỖI (§3.7)' }) quantity!: string;
   @ApiProperty() uom!: string;
   @ApiProperty() unitPrice!: string;
@@ -178,14 +182,14 @@ class OrderItemResponseDto {
   @ApiProperty() taxRate!: string;
   @ApiProperty() amount!: string;
   @ApiProperty() lineNo!: number;
-  @ApiPropertyOptional({ nullable: true, description: 'CHỈ khi có field:cost (§4.4c)' })
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'CHỈ khi có field:cost (§4.4c)' })
   costPrice?: string | null;
 }
 
 class OrderCustomerDto {
   @ApiProperty() id!: string;
   @ApiProperty() code!: string;
-  @ApiProperty({ type: Object }) name!: Record<string, string>;
+  @ApiProperty({ description: 'ĐÃ resolve theo locale, fallback vi (§3.10)' }) name!: string;
 }
 
 class OrderResponseDto {
@@ -200,11 +204,11 @@ class OrderResponseDto {
   @ApiProperty() discountTotal!: string;
   @ApiProperty() taxTotal!: string;
   @ApiProperty() total!: string;
-  @ApiPropertyOptional({ nullable: true, description: 'CHỈ khi có field:cost (§4.4c)' })
+  @ApiPropertyOptional({ nullable: true, type: String, description: 'CHỈ khi có field:cost (§4.4c)' })
   margin?: string | null;
   @ApiProperty({ description: 'Optimistic lock (§12 #17)' }) version!: number;
-  @ApiPropertyOptional({ nullable: true }) approvedAt?: string | null;
-  @ApiPropertyOptional({ nullable: true }) createdById?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) approvedAt?: string | null;
+  @ApiPropertyOptional({ nullable: true, type: String }) createdById?: string | null;
   @ApiProperty() createdAt!: string;
   @ApiProperty({ type: [OrderItemResponseDto] }) items!: OrderItemResponseDto[];
 }
@@ -215,7 +219,14 @@ class OrderListResponseDto {
 }
 
 /** Serialize order → response (tiền là CHUỖI §3.7; margin/costPrice cần field:cost) */
-function toOrderResponse(order: Record<string, unknown>, showCost: boolean) {
+function toOrderResponse(
+  order: Record<string, unknown>,
+  showCost: boolean,
+  locale: Locale,
+) {
+  const rawCustomer = order['customer'] as
+    | { id: string; code: string; name: unknown }
+    | null;
   const items = (order['items'] as Array<Record<string, unknown>>).map((i) => ({
     id: i['id'],
     productId: i['productId'],
@@ -234,7 +245,14 @@ function toOrderResponse(order: Record<string, unknown>, showCost: boolean) {
     code: order['code'],
     status: order['status'],
     currency: order['currency'],
-    customer: order['customer'],
+    // §3.10: BE trả ĐÃ resolve theo locale, không trả cả object JSONB
+    customer: rawCustomer
+      ? {
+          id: rawCustomer.id,
+          code: rawCustomer.code,
+          name: resolveLocalizedValue(rawCustomer.name, locale) ?? rawCustomer.code,
+        }
+      : null,
     subtotal: String(order['subtotal']),
     discountTotal: String(order['discountTotal']),
     taxTotal: String(order['taxTotal']),
@@ -258,6 +276,12 @@ export class OrdersController {
     private readonly ctx: RequestContextService,
   ) {}
 
+  /** Locale request (CLS §3.1c) — kẹp về union hỗ trợ, lạ thì rơi về vi */
+  private get locale(): Locale {
+    const raw = this.ctx.locale;
+    return (SUPPORTED_LOCALES as readonly string[]).includes(raw) ? (raw as Locale) : 'vi';
+  }
+
   private async showCost(user: AuthUser): Promise<boolean> {
     const ability = await this.ability.forUser(user);
     return ability.grantedFieldGroups().has('cost');
@@ -280,7 +304,7 @@ export class OrdersController {
     });
     const showCost = await this.showCost(user);
     return {
-      data: data.map((o) => toOrderResponse(o as unknown as Record<string, unknown>, showCost)),
+      data: data.map((o) => toOrderResponse(o as unknown as Record<string, unknown>, showCost, locale)),
       meta: buildMeta(query.page, query.limit, total),
     };
   }
@@ -290,7 +314,7 @@ export class OrdersController {
   @ApiOkResponse({ type: OrderResponseDto })
   async detail(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const order = await this.orders.detail(user, id);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 
   @Post()
@@ -308,7 +332,7 @@ export class OrdersController {
       const order = await this.orders.create(user, dto);
       return {
         status: 201,
-        body: toOrderResponse(order as unknown as Record<string, unknown>, showCost),
+        body: toOrderResponse(order as unknown as Record<string, unknown>, showCost, this.locale),
       };
     };
 
@@ -336,7 +360,7 @@ export class OrdersController {
     @Body() dto: UpdateOrderDto,
   ) {
     const order = await this.orders.update(user, id, dto);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 
   @Delete(':id')
@@ -364,7 +388,7 @@ export class OrdersController {
     @Body() dto: TransitionDto,
   ) {
     const order = await this.orders.submit(user, id, dto.version);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 
   @Post(':id/approve')
@@ -376,7 +400,7 @@ export class OrdersController {
     @Body() dto: TransitionDto,
   ) {
     const order = await this.orders.approve(user, id, dto.version);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 
   @Post(':id/reject')
@@ -388,7 +412,7 @@ export class OrdersController {
     @Body() dto: TransitionDto,
   ) {
     const order = await this.orders.reject(user, id, dto.version);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 
   @Post(':id/cancel')
@@ -400,6 +424,6 @@ export class OrdersController {
     @Body() dto: TransitionDto,
   ) {
     const order = await this.orders.cancel(user, id, dto.version);
-    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user));
+    return toOrderResponse(order as unknown as Record<string, unknown>, await this.showCost(user), this.locale);
   }
 }

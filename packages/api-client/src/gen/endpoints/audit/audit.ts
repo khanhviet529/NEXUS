@@ -20,7 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  AuditControllerListParams
+  AuditControllerListParams,
+  AuditListResponseDto
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -37,7 +38,7 @@ export const auditControllerList = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<AuditListResponseDto>(
       {url: `/api/v1/audit-logs`, method: 'GET',
         params, signal
     },

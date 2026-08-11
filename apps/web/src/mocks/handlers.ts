@@ -77,7 +77,8 @@ export const handlers = [
           code: 'ORD-2026-00001',
           status: 'PENDING',
           currency: 'VND',
-          customer: { id: 'cus-1', code: 'KH001', name: { vi: 'Công ty A' } },
+          // §3.10: name ĐÃ resolve theo locale (contract đổi ở V9)
+          customer: { id: 'cus-1', code: 'KH001', name: 'Công ty A' },
           subtotal: '200000',
           discountTotal: '0',
           taxTotal: '20000',
@@ -91,4 +92,97 @@ export const handlers = [
       ]),
     ),
   ),
+
+  // ---- V9: trang chi tiết đơn ----
+  http.get(`${API}/api/v1/orders/:id`, ({ params }) =>
+    HttpResponse.json({
+      id: String(params.id),
+      code: 'ORD-2026-00001',
+      status: 'PENDING',
+      currency: 'VND',
+      customer: { id: 'cus-1', code: 'KH001', name: 'Công ty A' },
+      subtotal: '245000',
+      discountTotal: '5000',
+      taxTotal: '24500',
+      total: '269500',
+      margin: '45000', // có mặt = user có field:cost — BE quyết (§4.4c)
+      version: 2,
+      approvedAt: null,
+      createdById: 'user-1',
+      createdAt: '2026-08-05T00:00:00.000Z',
+      items: [
+        {
+          id: 'item-1',
+          productId: 'prd-1',
+          productNameSnapshot: 'Sản phẩm A',
+          quantity: '2',
+          uom: 'CAI',
+          unitPrice: '100000',
+          discountPercent: '0',
+          taxRate: '10',
+          amount: '220000',
+          lineNo: 1,
+        },
+        {
+          id: 'item-2',
+          productId: 'prd-2',
+          productNameSnapshot: 'Sản phẩm B (đã đổi tên sau khi tạo đơn)',
+          quantity: '1',
+          uom: 'HOP',
+          unitPrice: '50000',
+          discountPercent: '10',
+          taxRate: '10',
+          amount: '49500',
+          lineNo: 2,
+        },
+      ],
+    }),
+  ),
+
+  http.get(`${API}/api/v1/audit-logs`, () =>
+    HttpResponse.json(
+      paginated([
+        {
+          id: 'aud-2',
+          entity: 'Order',
+          entityId: 'ord-1',
+          action: 'SUBMIT',
+          actorId: 'user-1',
+          actorName: 'Nhân viên A',
+          before: { status: 'DRAFT' },
+          after: { status: 'PENDING' },
+          traceId: 't-2',
+          createdAt: '2026-08-05T01:00:00.000Z',
+        },
+        {
+          id: 'aud-1',
+          entity: 'Order',
+          entityId: 'ord-1',
+          action: 'CREATE',
+          actorId: 'user-1',
+          actorName: 'Nhân viên A',
+          before: null,
+          after: { code: 'ORD-2026-00001' },
+          traceId: 't-1',
+          createdAt: '2026-08-05T00:00:00.000Z',
+        },
+      ]),
+    ),
+  ),
+
+  http.get(`${API}/api/v1/files/by-entity/:entity/:entityId`, () =>
+    HttpResponse.json([
+      {
+        attachmentId: 'att-1',
+        fileId: 'file-1',
+        filename: 'bao-gia.pdf',
+        mime: 'application/pdf',
+        size: 245_760,
+        category: null,
+        createdAt: '2026-08-05T00:30:00.000Z',
+      },
+    ]),
+  ),
+
+  http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
 ];

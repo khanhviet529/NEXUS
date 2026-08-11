@@ -1,5 +1,12 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
-import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 import { IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 import { v7 as uuidv7 } from 'uuid';
 import { AUDIT_ACTIONS, ALL_ENTITY_TYPES } from '@nexus/shared';
@@ -12,6 +19,27 @@ import { S3Service } from '../../infra/s3/s3.service';
 import { FilesRepository } from './files.repository';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB — cột size là int4 (schema ghi chú)
+
+/** Một tệp đính kèm của bản ghi — nguồn cho AttachmentList FE */
+export class AttachmentDto {
+  @ApiProperty() @Expose() attachmentId!: string;
+  @ApiProperty() @Expose() fileId!: string;
+  @ApiProperty() @Expose() filename!: string;
+  @ApiProperty() @Expose() mime!: string;
+  @ApiProperty() @Expose() size!: number;
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @Expose()
+  category!: string | null;
+  @ApiProperty() @Expose() createdAt!: Date;
+}
+
+/** Presigned GET — FE mở url trực tiếp, file KHÔNG đi qua API server (§2.3) */
+export class FileDownloadDto {
+  @ApiProperty() @Expose() url!: string;
+  @ApiProperty() @Expose() filename!: string;
+  @ApiProperty() @Expose() mime!: string;
+  @ApiProperty() @Expose() size!: number;
+}
 
 class PresignDto {
   @ApiProperty({ example: 'bao-gia.pdf' })
@@ -132,6 +160,7 @@ export class FilesController {
   @AllowAuthenticated()
   @Get('by-entity/:entity/:entityId')
   @ApiOperation({ summary: 'Tệp đính kèm của một bản ghi — kiểm quyền entity gốc' })
+  @ApiOkResponse({ type: [AttachmentDto] })
   async listByEntity(
     @CurrentUser() user: AuthUser,
     @Param('entity') entity: string,
@@ -159,6 +188,7 @@ export class FilesController {
   @ApiOperation({
     summary: 'Presigned GET — quyền KẾ THỪA entity đính kèm; file trôi nổi: chỉ người upload',
   })
+  @ApiOkResponse({ type: FileDownloadDto })
   async download(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const file = await this.repo.findFile(id);
     if (!file || file.deletedAt) throw new AppException('COMMON.NOT_FOUND');

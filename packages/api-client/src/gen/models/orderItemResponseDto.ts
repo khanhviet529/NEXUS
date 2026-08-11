@@ -4,14 +4,12 @@
  * Nexus API
  * OpenAPI spec version: 1.0
  */
-import type { OrderItemResponseDtoProductNameSnapshot } from './orderItemResponseDtoProductNameSnapshot';
-import type { OrderItemResponseDtoCostPrice } from './orderItemResponseDtoCostPrice';
 
 export interface OrderItemResponseDto {
   id: string;
   productId: string;
-  /** Snapshot tên JSONB tại thời điểm tạo (§3.10) */
-  productNameSnapshot: OrderItemResponseDtoProductNameSnapshot;
+  /** Tên CHỐT tại thời điểm tạo — TEXT, không phải JSONB (§3.10 luật 2) */
+  productNameSnapshot: string;
   /** Số lượng — CHUỖI (§3.7) */
   quantity: string;
   uom: string;
@@ -24,5 +22,5 @@ export interface OrderItemResponseDto {
    * CHỈ khi có field:cost (§4.4c)
    * @nullable
    */
-  costPrice?: OrderItemResponseDtoCostPrice;
+  costPrice?: string | null;
 }

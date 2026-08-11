@@ -1,11 +1,61 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
-import { buildMeta } from '../../common/dto/paginated.dto';
+import { buildMeta, PaginationMetaDto } from '../../common/dto/paginated.dto';
 import { AuditQueryRepository } from './audit-query.repository';
+
+/** Một dòng audit — nguồn cho AuditTimeline FE (§4.9). before/after ĐÃ che từ lúc ghi */
+export class AuditLogEntryDto {
+  @ApiProperty() @Expose() id!: string;
+  @ApiProperty() @Expose() entity!: string;
+  @ApiProperty() @Expose() entityId!: string;
+  @ApiProperty({ description: 'AuditAction registry hoặc DB_INSERT/DB_UPDATE/DB_DELETE (trigger)' })
+  @Expose()
+  action!: string;
+
+  @ApiPropertyOptional({ nullable: true, type: String, description: "uuid | 'system:<job>' | 'db:direct'" })
+  @Expose()
+  actorId!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @Expose()
+  actorName!: string | null;
+
+  @ApiPropertyOptional({ nullable: true, type: Object })
+  @Expose()
+  before!: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ nullable: true, type: Object })
+  @Expose()
+  after!: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @Expose()
+  traceId!: string | null;
+
+  @ApiProperty() @Expose() createdAt!: Date;
+}
+
+export class AuditListResponseDto {
+  @ApiProperty({ type: [AuditLogEntryDto] })
+  @Expose()
+  @Type(() => AuditLogEntryDto)
+  data!: AuditLogEntryDto[];
+
+  @ApiProperty({ type: PaginationMetaDto })
+  @Expose()
+  @Type(() => PaginationMetaDto)
+  meta!: PaginationMetaDto;
+}
 
 class ListAuditDto {
   @ApiPropertyOptional({ description: 'Lọc theo entity (EntityType)' })
@@ -52,6 +102,7 @@ export class AuditController {
   @Get()
   @RequirePermission('audit:read')
   @ApiOperation({ summary: 'Tra cứu audit — lọc entity/entityId/action, phân trang' })
+  @ApiOkResponse({ type: AuditListResponseDto })
   async list(@CurrentUser() user: AuthUser, @Query() q: ListAuditDto) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 20;

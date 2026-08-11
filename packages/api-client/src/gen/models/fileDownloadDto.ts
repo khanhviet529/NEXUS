@@ -5,4 +5,9 @@
  * OpenAPI spec version: 1.0
  */
 
-export type OrderCustomerDtoName = { [key: string]: unknown };
+export interface FileDownloadDto {
+  url: string;
+  filename: string;
+  mime: string;
+  size: number;
+}
