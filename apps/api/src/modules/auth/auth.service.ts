@@ -236,7 +236,12 @@ export class AuthService {
     if (!membership) throw new AppException('AUTH.TENANT_MEMBERSHIP_REQUIRED');
     const account = await this.repo.findUserById(user.sub);
     if (!account) throw new AppException('AUTH.UNAUTHENTICATED');
-    return { account, membership };
+    // Danh sách tenant cho switch-tenant ở header (Phase 3) — chỉ tenant ACTIVE,
+    // cùng nguồn với màn chọn tenant lúc login
+    const memberships = (await this.repo.findActiveMemberships(user.sub))
+      .filter((m) => m.tenant.status === 'ACTIVE')
+      .map((m) => ({ id: m.tenantId, code: m.tenant.code, name: m.tenant.name }));
+    return { account, membership, memberships };
   }
 
   /** Màn "thiết bị đang đăng nhập" — metadata từ DB (§4.3d) */

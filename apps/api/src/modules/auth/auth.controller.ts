@@ -231,7 +231,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Thông tin người dùng hiện tại trong tenant hiện hành' })
   @ApiOkResponse({ type: MeResponseDto })
   async me(@CurrentUser() user: AuthUser): Promise<MeResponseDto> {
-    const { account, membership } = await this.auth.getMe(user);
+    const { account, membership, memberships } = await this.auth.getMe(user);
     const permissionSet = await this.permissions.getPermissionSet(user.tenantId, user.sub);
     return plainToInstance(MeResponseDto, {
       id: account.id,
@@ -242,6 +242,7 @@ export class AuthController {
       orgUnit: membership.orgUnit ?? null,
       roles: membership.userRoles.map((ur) => ({ code: ur.role.code, name: ur.role.name })),
       permissions: [...permissionSet].sort(),
+      memberships,
     });
   }
 

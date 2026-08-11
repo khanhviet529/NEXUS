@@ -20,4 +20,6 @@ export interface MeResponseDto {
   roles: MeRoleDto[];
   /** Tập permission — nguồn cho useCan() ở FE */
   permissions: string[];
+  /** MỌI tenant user là thành viên ACTIVE — nguồn cho switch-tenant ở header (Phase 3). >1 phần tử mới hiện nút chuyển */
+  memberships: MeTenantDto[];
 }

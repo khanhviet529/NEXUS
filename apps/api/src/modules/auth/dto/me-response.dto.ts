@@ -75,4 +75,13 @@ export class MeResponseDto {
   @ApiProperty({ type: [String], description: 'Tập permission — nguồn cho useCan() ở FE' })
   @Expose()
   permissions!: string[];
+
+  @ApiProperty({
+    type: [MeTenantDto],
+    description:
+      'MỌI tenant user là thành viên ACTIVE — nguồn cho switch-tenant ở header (Phase 3). >1 phần tử mới hiện nút chuyển',
+  })
+  @Expose()
+  @Type(() => MeTenantDto)
+  memberships!: MeTenantDto[];
 }

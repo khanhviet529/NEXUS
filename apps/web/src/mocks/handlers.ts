@@ -49,6 +49,7 @@ export const handlers = [
       orgUnit: null,
       roles: [{ code: 'STAFF', name: 'STAFF' }],
       permissions: ['order:read', 'order:create', 'customer:read', 'customer:create'],
+      memberships: [{ id: 'tenant-a', code: 'TENANT-A', name: 'Tenant A' }],
     }),
   ),
 
