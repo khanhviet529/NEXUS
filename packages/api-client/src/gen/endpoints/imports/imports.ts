@@ -24,7 +24,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ImportProductsDto
+  ImportJobCreatedDto,
+  ImportJobStatusDto,
+  ImportProductsDto,
+  ImportRowErrorDto
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -41,7 +44,7 @@ export const importsControllerImportProducts = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<ImportJobCreatedDto>(
       {url: `/api/v1/products/import`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: importProductsDto, signal
@@ -96,13 +99,16 @@ export const useImportsControllerImportProducts = <TError = unknown,
 
       return useMutation(mutationOptions, queryClient);
     }
-    export const importsControllerJobStatus = (
+    /**
+ * @summary Trạng thái job — wizard poll tới COMPLETED/FAILED (§4.7)
+ */
+export const importsControllerJobStatus = (
     id: string,
  signal?: AbortSignal
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<ImportJobStatusDto>(
       {url: `/api/v1/import-jobs/${id}`, method: 'GET', signal
     },
       );
@@ -164,6 +170,9 @@ export function useImportsControllerJobStatus<TData = Awaited<ReturnType<typeof 
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof importsControllerJobStatus>>, TError, TData>>, }
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Trạng thái job — wizard poll tới COMPLETED/FAILED (§4.7)
+ */
 
 export function useImportsControllerJobStatus<TData = Awaited<ReturnType<typeof importsControllerJobStatus>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof importsControllerJobStatus>>, TError, TData>>, }
@@ -191,7 +200,7 @@ export const importsControllerJobErrors = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<ImportRowErrorDto[]>(
       {url: `/api/v1/import-jobs/${id}/errors`, method: 'GET', signal
     },
       );

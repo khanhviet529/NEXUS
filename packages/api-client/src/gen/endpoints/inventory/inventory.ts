@@ -27,7 +27,10 @@ import type {
   CreateLotDto,
   CreateSerialsDto,
   CreateWarehouseDto,
-  MovementDto
+  MovementDto,
+  MovementResultDto,
+  StockBalanceDto,
+  WarehouseDto
 } from '../../models';
 
 import { apiMutator } from '../../../mutator';
@@ -44,7 +47,7 @@ export const inventoryControllerReceive = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<MovementResultDto>(
       {url: `/api/v1/inventory/receipts`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: movementDto, signal
@@ -108,7 +111,7 @@ export const inventoryControllerIssue = (
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<MovementResultDto>(
       {url: `/api/v1/inventory/issues`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: movementDto, signal
@@ -163,13 +166,16 @@ export const useInventoryControllerIssue = <TError = unknown,
 
       return useMutation(mutationOptions, queryClient);
     }
-    export const inventoryControllerBalances = (
+    /**
+ * @summary Số dư tồn — nhãn kho/sản phẩm ĐÃ resolve để FE hiển thị (4b)
+ */
+export const inventoryControllerBalances = (
     
  signal?: AbortSignal
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<StockBalanceDto[]>(
       {url: `/api/v1/inventory/balances`, method: 'GET', signal
     },
       );
@@ -231,6 +237,9 @@ export function useInventoryControllerBalances<TData = Awaited<ReturnType<typeof
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerBalances>>, TError, TData>>, }
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Số dư tồn — nhãn kho/sản phẩm ĐÃ resolve để FE hiển thị (4b)
+ */
 
 export function useInventoryControllerBalances<TData = Awaited<ReturnType<typeof inventoryControllerBalances>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerBalances>>, TError, TData>>, }
@@ -249,13 +258,105 @@ export function useInventoryControllerBalances<TData = Awaited<ReturnType<typeof
 
 
 
+/**
+ * @summary Danh sách kho — select của form nhập/xuất (4b)
+ */
+export const inventoryControllerListWarehouses = (
+    
+ signal?: AbortSignal
+) => {
+      
+      
+      return apiMutator<WarehouseDto[]>(
+      {url: `/api/v1/inventory/warehouses`, method: 'GET', signal
+    },
+      );
+    }
+  
+
+
+
+export const getInventoryControllerListWarehousesQueryKey = () => {
+    return [
+    `/api/v1/inventory/warehouses`
+    ] as const;
+    }
+
+    
+export const getInventoryControllerListWarehousesQueryOptions = <TData = Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData>>, }
+) => {
+
+const {query: queryOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInventoryControllerListWarehousesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>> = ({ signal }) => inventoryControllerListWarehouses(signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type InventoryControllerListWarehousesQueryResult = NonNullable<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>>
+export type InventoryControllerListWarehousesQueryError = unknown
+
+
+export function useInventoryControllerListWarehouses<TData = Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof inventoryControllerListWarehouses>>,
+          TError,
+          Awaited<ReturnType<typeof inventoryControllerListWarehouses>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInventoryControllerListWarehouses<TData = Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof inventoryControllerListWarehouses>>,
+          TError,
+          Awaited<ReturnType<typeof inventoryControllerListWarehouses>>
+        > , 'initialData'
+      >, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInventoryControllerListWarehouses<TData = Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData>>, }
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Danh sách kho — select của form nhập/xuất (4b)
+ */
+
+export function useInventoryControllerListWarehouses<TData = Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof inventoryControllerListWarehouses>>, TError, TData>>, }
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getInventoryControllerListWarehousesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
 export const inventoryControllerCreateWarehouse = (
     createWarehouseDto: CreateWarehouseDto,
  signal?: AbortSignal
 ) => {
       
       
-      return apiMutator<void>(
+      return apiMutator<WarehouseDto>(
       {url: `/api/v1/inventory/warehouses`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createWarehouseDto, signal

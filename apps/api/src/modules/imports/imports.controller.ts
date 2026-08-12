@@ -1,5 +1,12 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
-import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 import { ArrayNotEmpty, IsArray, IsIn, IsOptional } from 'class-validator';
 import type { Response } from 'express';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
@@ -30,6 +37,36 @@ class ImportProductsDto {
   onDuplicate?: string;
 }
 
+export class ImportJobCreatedDto {
+  @ApiProperty() @Expose() jobId!: string;
+  @ApiProperty() @Expose() totalRows!: number;
+}
+
+export class ImportJobStatusDto {
+  @ApiProperty() @Expose() id!: string;
+  @ApiProperty({ enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'] })
+  @Expose()
+  status!: string;
+
+  @ApiProperty() @Expose() totalRows!: number;
+  @ApiProperty() @Expose() validRows!: number;
+  @ApiProperty() @Expose() errorRows!: number;
+  @ApiProperty({ description: 'Checkpoint — wizard vẽ progress từ đây (§4.7 #27)' })
+  @Expose()
+  lastProcessedRow!: number;
+}
+
+export class ImportRowErrorDto {
+  @ApiProperty() @Expose() rowNumber!: number;
+  @ApiProperty({ type: Object, description: 'Dòng gốc user gửi lên' })
+  @Expose()
+  raw!: Record<string, unknown>;
+
+  @ApiProperty({ type: Object, description: 'field → danh sách lỗi của dòng đó' })
+  @Expose()
+  errors!: Record<string, string[]>;
+}
+
 @ApiTags('imports')
 @Controller()
 export class ImportsController {
@@ -43,6 +80,7 @@ export class ImportsController {
   @HttpCode(202)
   @RequirePermission('product:import')
   @ApiOperation({ summary: 'Tạo import job — xử lý theo batch + checkpoint (§4.7, #27)' })
+  @ApiOkResponse({ type: ImportJobCreatedDto })
   async importProducts(@CurrentUser() user: AuthUser, @Body() dto: ImportProductsDto) {
     const job = await this.imports.createJob({
       tenantId: user.tenantId,
@@ -58,7 +96,12 @@ export class ImportsController {
 
   @Get('import-jobs/:id')
   @RequirePermission('product:import')
-  async jobStatus(@CurrentUser() _user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  @ApiOperation({ summary: 'Trạng thái job — wizard poll tới COMPLETED/FAILED (§4.7)' })
+  @ApiOkResponse({ type: ImportJobStatusDto })
+  async jobStatus(
+    @CurrentUser() _user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ImportJobStatusDto> {
     const job = await this.imports.findJob(id);
     if (!job) throw new AppException('COMMON.NOT_FOUND');
     return {
@@ -74,13 +117,22 @@ export class ImportsController {
   @Get('import-jobs/:id/errors')
   @RequirePermission('product:import')
   @ApiOperation({ summary: 'Lỗi TỪNG DÒNG (§4.7) — file lỗi che field theo quyền người tải' })
-  async jobErrors(@CurrentUser() _user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  @ApiOkResponse({ type: [ImportRowErrorDto] })
+  async jobErrors(
+    @CurrentUser() _user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ImportRowErrorDto[]> {
     // Không kiểm job thì id của tenant khác trả `[]` với mã 200 — trong khi
     // `GET /import-jobs/:id` cùng id lại trả 404. Hai mã khác nhau cho cùng
     // một sự thật là chỗ để suy ra sự tồn tại (§3.6).
     const job = await this.imports.findJob(id);
     if (!job) throw new AppException('COMMON.NOT_FOUND');
-    return this.imports.listErrors(id);
+    const rows = await this.imports.listErrors(id);
+    return rows.map((r) => ({
+      rowNumber: r.rowNumber,
+      raw: r.raw as Record<string, unknown>,
+      errors: r.errors as Record<string, string[]>,
+    }));
   }
 
   @Post('products/export')

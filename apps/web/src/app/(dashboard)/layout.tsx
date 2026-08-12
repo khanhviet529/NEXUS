@@ -18,6 +18,7 @@ import {
   Sun,
   User,
   Users,
+  Warehouse,
 } from 'lucide-react';
 import { useAuthControllerLogout } from '@nexus/api-client';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ const NAV: (NavItem & { permission?: string })[] = [
   { href: '/orders', label: 'Đơn hàng', icon: ShoppingCart, permission: 'order:read' },
   { href: '/customers', label: 'Khách hàng', icon: Users, permission: 'customer:read' },
   { href: '/users', label: 'Người dùng', icon: User, permission: 'user:read' },
+  { href: '/inventory', label: 'Tồn kho', icon: Warehouse, permission: 'stock:read' },
   // Không gate permission: danh sách report tự lọc theo quyền TỪNG report (A1)
   { href: '/reports', label: 'Báo cáo', icon: BarChart3 },
   { href: '/roles', label: 'Vai trò', icon: ShieldCheck, permission: 'role:read' },
