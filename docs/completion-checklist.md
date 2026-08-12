@@ -47,9 +47,9 @@
 
 ## Phase 5 — Trả nợ kỹ thuật đã ghi sổ *(~1 ngày, 3 PR nhỏ)*
 
-- [ ] ~~B7~~ **ĐÍNH CHÍNH (rev 2)**: B7 ĐÃ merge vào main (commit `9ce5796`, `features/saved-views/` có sẵn) — dòng "chưa mở PR" trong progress.md là số liệu ôi. Việc còn lại: xoá nhánh remote `feat/saved-views-b7` + sửa dòng progress.md
+- [x] ~~B7~~ **ĐÍNH CHÍNH (rev 2)**: B7 ĐÃ merge vào main (commit `9ce5796`, `features/saved-views/` có sẵn) — dòng "chưa mở PR" trong progress.md là số liệu ôi. Việc còn lại: xoá nhánh remote `feat/saved-views-b7` + sửa dòng progress.md
 - [ ] ~~Dark chroma~~ → ĐÃ GỘP vào V14 (Phase 1) — tránh chụp baseline hai lần
-- [ ] **Image 1,17GB**: `pnpm deploy --prod` hoặc prune devDependency ở tầng runtime của Dockerfile; đích < 400MB, đo bằng `du -sh` in trong CI
+- [x] **Image 1,17GB**: `pnpm deploy --prod` hoặc prune devDependency ở tầng runtime của Dockerfile; đích < 400MB, đo bằng `du -sh` in trong CI
 
 ## Phase 6 — Tài liệu-là-sản-phẩm + quét phủ *(~1 ngày)*
 
