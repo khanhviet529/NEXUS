@@ -316,6 +316,11 @@ Chín trên mười lần nguyên nhân nằm ở bước 2, 3 hoặc 4.
 Chạy khi bạn CỐ Ý đổi hình thức (token, bố cục, preset mới). Diff ảnh bất ngờ
 thì ĐỌC ảnh diff trước, đừng update mù — nó có thể là lỗi thật.
 
+**LUẬT (R3): PR chạm UI phải có baseline CẢ HAI nền tảng (`-win32` LẪN `-linux`)
+trước khi merge.** Chỉ chụp một bên thì dev Windows và CI Linux lệch nhau mãi:
+khi CI đỏ không ai phân biệt được "đỏ vì lệch nền tảng" với "đỏ vì UI thật hỏng"
+— thành công trông giống thất bại. Chụp CHỦ ĐỘNG, đừng chờ CI đỏ rồi mới chụp.
+
 ```bash
 # 1. Baseline cho máy phát triển (Windows/macOS của bạn)
 pnpm --filter @nexus/web e2e:update-snapshots
@@ -323,11 +328,15 @@ pnpm --filter @nexus/web e2e:update-snapshots
 # 2. Baseline cho CI (ubuntu). CI chạy Linux nên tên ảnh khác;
 #    thiếu bản này CI đỏ "snapshot doesn't exist".
 #    Next chạy trên máy host, trình duyệt chạy trong container.
+#    (chạy từ THƯ MỤC GỐC repo — mount chính thư mục đó, đừng hardcode ổ đĩa)
 cd apps/web
 ENABLE_DESIGN_PREVIEW=1 npx next build
 ENABLE_DESIGN_PREVIEW=1 npx next start --port 3100 --hostname 0.0.0.0 &
 
-MSYS_NO_PATHCONV=1 docker run --rm --add-host=host.docker.internal:host-gateway   -v "E:/NEXUS:/work" -w /work/apps/web   -e PW_EXTERNAL_SERVER=1 -e PW_BASE_URL=http://host.docker.internal:3100 -e CI=1   -e NODE_PATH=/usr/lib/node_modules   mcr.microsoft.com/playwright:v1.62.1-noble   sh -c "npm i -g --silent @playwright/test@1.62.1 @axe-core/playwright;          playwright test visual-presets --update-snapshots"
+MSYS_NO_PATHCONV=1 docker run --rm --add-host=host.docker.internal:host-gateway   -v "$(git rev-parse --show-toplevel):/work" -w /work/apps/web   -e PW_EXTERNAL_SERVER=1 -e PW_BASE_URL=http://host.docker.internal:3100 -e CI=1   -e NODE_PATH=/usr/lib/node_modules   mcr.microsoft.com/playwright:v1.62.1-noble   sh -c "npm i -g --silent @playwright/test@1.62.1 @axe-core/playwright;          playwright test visual-presets --update-snapshots"
+
+# 3. Soát diff: nếu ảnh -linux ĐỔI mà bạn không cố ý đổi UI → điều tra trước khi commit
+git status --porcelain apps/web/e2e
 ```
 
 Phiên bản trong tên image PHẢI khớp `@playwright/test` của repo — lệch phiên
