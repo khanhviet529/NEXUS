@@ -68,10 +68,10 @@ canh tự động. Phase 5–6 để cuối vì độc lập, không chặn ai.
 ## Định nghĩa "99% xong"
 
 - [ ] Mọi module BE có màn hình FE tương ứng HOẶC dòng ghi rõ "API-only, màn hình thuộc dự án cụ thể" trong bảng cắt gọt §11
-- [ ] Check #11 nằm trong `checks` (chặn), 0 vi phạm
-- [ ] 10/10 check xanh (9 hiện có + `check-cut-table`)
+- [x] Check #11 nằm trong `checks` (chặn), 0 vi phạm
+- [x] 10/10 check xanh (9 hiện có + `check-cut-table`) — thực tế **11/11** (thêm cả #11 component-usage vào chặn)
 - [ ] Toàn bộ suite BE + FE + e2e + a11y + visual xanh trên CI
-- [ ] `progress.md` không còn dòng ⏳ nào ngoài B8 (chờ hạ tầng) và các mục đã CẮT có chủ đích
+- [x] `progress.md` không còn dòng ⏳ nào ngoài B8 (chờ hạ tầng) và các mục đã CẮT có chủ đích — 4 dòng ⏳ ôi đã đính chính
 
 ---
 
