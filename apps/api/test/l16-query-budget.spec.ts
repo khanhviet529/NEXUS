@@ -115,6 +115,10 @@ describe('L16 — số query không tăng theo số dòng (test-catalog §3.1)',
       '/api/v1/admin/ops/queues',
       '/api/v1/approval-authorities/check',
       '/api/v1/tenants/current',
+      // Danh sách nhỏ KHÔNG phân trang: settings merge theo tenant (V12),
+      // kho của tenant (4b) — vài chục dòng là kịch trần, không có limit
+      '/api/v1/settings',
+      '/api/v1/inventory/warehouses',
       // Máy tính lịch làm việc — nhận tham số, trả một con số
       '/api/v1/business-calendar/add-working-days',
       '/api/v1/business-calendar/working-minutes',

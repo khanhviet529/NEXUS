@@ -40,6 +40,7 @@ const checks = [
   // màn hình thật (điều kiện nghiệm thu GĐ A2, progress.md). Từ đây component
   // mới trong design-system/ hoặc components/common/ mà không màn nào dùng là ĐỎ.
   'check-component-usage.mjs',
+  'check-cut-table.mjs', // V5: bảng cắt gọt §11 khớp thư mục thật (bài học F-05/F-07)
 ];
 
 /**
