@@ -106,6 +106,21 @@ jobs:
           echo "image ${{ steps.meta.outputs.image }} pushed, digest $DIGEST"
           echo "image ${{ steps.meta.outputs.image }} pushed, digest $DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
+      # Cổng kích thước (Phase 5): image từng phình 1,17GB vì runtime ôm cả
+      # devDependencies. Đo GIẢI NÉN (docker image inspect .Size) và CHẶN nếu
+      # vượt ngưỡng — con số in ra mỗi lần build để hồi quy lộ ngay trong log.
+      - name: Đo kích thước image (ngưỡng 400MB)
+        run: |
+          docker pull '${{ steps.meta.outputs.image }}' --quiet
+          BYTES=$(docker image inspect '${{ steps.meta.outputs.image }}' --format '{{.Size}}')
+          MB=$((BYTES / 1024 / 1024))
+          echo "image size: ${MB}MB (uncompressed)"
+          echo "image size: ${MB}MB (uncompressed)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MB" -ge 400 ]; then
+            echo "::error::Image ${MB}MB vượt ngưỡng 400MB — kiểm tra devDependencies lọt vào runtime (apps/api/Dockerfile stage prod-deps)"
+            exit 1
+          fi
+
   migrate:
     name: Chạy migration (bằng chính image vừa build)
     needs: [guard, build-image]
