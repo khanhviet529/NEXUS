@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useMemo } from 'react';
+import Link from 'next/link';
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -8,6 +9,7 @@ import { productsControllerList } from '@nexus/api-client';
 import type { ProductResponseDto } from '@nexus/api-client';
 import { DataTable } from '@/components/common/data-table';
 import { Input } from '@/components/ui/input';
+import { useCan } from '@/lib/auth/use-can';
 
 /**
  * V10 — trang products SINH TỪ `pnpm gen:module-fe product` (dogfood
@@ -19,6 +21,7 @@ import { Input } from '@/components/ui/input';
  * hiện cột khi dữ liệu có, không tự hỏi quyền.
  */
 function ProductsPage() {
+  const can = useCan();
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     limit: parseAsInteger.withDefault(20),
@@ -71,7 +74,14 @@ function ProductsPage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-4 p-6">
-      <h1 className="text-xl font-semibold">Sản phẩm</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Sản phẩm</h1>
+        {can('product:import') && (
+          <Link href="/products/import" className="text-sm underline">
+            Import CSV →
+          </Link>
+        )}
+      </div>
       <Input
         placeholder="Tìm theo mã / tên (không dấu cũng ra — §3.10)…"
         defaultValue={params.q}

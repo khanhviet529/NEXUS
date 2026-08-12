@@ -187,6 +187,48 @@ export const handlers = [
 
   http.get(`${API}/api/v1/search`, () => HttpResponse.json({ groups: [] })),
 
+  // Phase 4b — inventory + import wizard
+  http.get(`${API}/api/v1/inventory/balances`, () =>
+    HttpResponse.json([
+      {
+        warehouseId: 'wh-1',
+        warehouseCode: 'KHO-A',
+        productId: 'prd-1',
+        productCode: 'SP-001',
+        productName: 'Sản phẩm A',
+        lotId: '00000000-0000-0000-0000-000000000000',
+        onHand: '10',
+        reserved: '2',
+        available: '8',
+        inTransit: '0',
+        version: 3,
+      },
+    ]),
+  ),
+  http.get(`${API}/api/v1/inventory/warehouses`, () =>
+    HttpResponse.json([{ id: 'wh-1', code: 'KHO-A', name: 'Kho trung tâm' }]),
+  ),
+  http.post(`${API}/api/v1/inventory/receipts`, () =>
+    HttpResponse.json({ movementId: 'mv-1', duplicate: false }, { status: 201 }),
+  ),
+  http.post(`${API}/api/v1/inventory/issues`, () =>
+    HttpResponse.json({ movementId: 'mv-2', duplicate: false }, { status: 201 }),
+  ),
+  http.post(`${API}/api/v1/products/import`, () =>
+    HttpResponse.json({ jobId: 'job-1', totalRows: 2 }, { status: 202 }),
+  ),
+  http.get(`${API}/api/v1/import-jobs/:id`, () =>
+    HttpResponse.json({
+      id: 'job-1',
+      status: 'COMPLETED',
+      totalRows: 2,
+      validRows: 2,
+      errorRows: 0,
+      lastProcessedRow: 2,
+    }),
+  ),
+  http.get(`${API}/api/v1/import-jobs/:id/errors`, () => HttpResponse.json([])),
+
   // Phase 4a — reports
   http.get(`${API}/api/v1/reports`, () =>
     HttpResponse.json([{ id: 'sales-by-customer', name: 'Doanh thu theo khách hàng' }]),

@@ -298,6 +298,22 @@ export class InventoryRepository {
     return this.prisma.client.warehouse.create({ data: { tenantId, code, name } });
   }
 
+  listWarehouses(tenantId: string) {
+    return this.prisma.client.warehouse.findMany({
+      where: { tenantId },
+      orderBy: { code: 'asc' },
+      select: { id: true, code: true, name: true },
+    });
+  }
+
+  /** Nhãn hiển thị cho balances (4b) — StockBalance không có relation Prisma (raw SQL) */
+  findProductRefs(ids: string[]) {
+    return this.prisma.client.product.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, code: true, name: true },
+    });
+  }
+
   createLot(tenantId: string, productId: string, lotNo: string, expiryDate?: Date) {
     return this.prisma.client.lot.create({
       data: { tenantId, productId, lotNo, expiryDate },
