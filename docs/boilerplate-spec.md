@@ -2465,35 +2465,35 @@ Outbox không có cách nào biết bước 2 đã thành công. Vì vậy:
 6. Rà lại docs/conventions.md, bổ sung quy ước riêng của dự án
 ```
 
-**Bảng cắt gọt** — phủ ĐỦ 25 module trong `apps/api/src/modules/` (V5 Phase 6; CI `check-cut-table.mjs` đối chiếu bảng ↔ thư mục thật, lệch là đỏ):
+**Bảng cắt gọt** — phủ ĐỦ 25 module trong `apps/api/src/modules/` (V5 Phase 6; CI `check-cut-table.mjs` đối chiếu bảng ↔ thư mục thật, lệch là đỏ; cột **Màn hình** khai `API-only` hoặc đường dẫn UI CÓ THẬT — R2: module lặng lẽ không màn hình là đỏ):
 
-| Module | Nhãn | Lệnh xoá | File cần sửa kèm |
-|---|---|---|---|
-| `admin` | CORE nhẹ | **Không xoá** nếu còn multi-tenant — sysadmin tạo/suspend tenant (§5C.1) | — |
-| `approval-authorities` | OPT | `rm -rf apps/api/src/modules/approval-authorities` | `app.module.ts`, seed-roles, permission registry |
-| `audit` | **CORE** | **Không xoá** — ADR-0004, CI `check-audit-coverage` phụ thuộc | — |
-| `auth` | **CORE** | **Không xoá** | — |
-| `calendar` | CORE nhẹ | `rm -rf apps/api/src/modules/calendar` nếu không có SLA/ngày làm việc (§5C.4) | `app.module.ts` |
-| `customers` | REF | xoá CÙNG `orders` sau khi copy mẫu: `rm -rf apps/api/src/modules/customers apps/web/src/features/customers "apps/web/src/app/(dashboard)/customers"` | `app.module.ts`, nav layout, seed, MSW handlers |
-| `exports` | **CORE** | **Không xoá** — export streaming là CORE (#7, §5B.3/C1) | — |
-| `files` | CORE nhẹ | `rm -rf apps/api/src/modules/files` nếu không có đính kèm | `app.module.ts`, `attachment-list.tsx`, trang chi tiết |
-| `health` | **CORE** | **Không xoá** — CD healthcheck phụ thuộc (§9) | — |
-| `idempotency` | **CORE** | **Không xoá** — ba lớp idempotency (#20, §3.9) | — |
-| `imports` | OPT | `rm -rf apps/api/src/modules/imports apps/web/src/features/imports "apps/web/src/app/(dashboard)/products/import"` | `app.module.ts`, link ở trang products |
-| `inventory` | CORE nếu có kho | KHÔNG có kho/tồn: `rm -rf apps/api/src/modules/inventory "apps/web/src/app/(dashboard)/inventory"` + migration bỏ `movements`/`stock_balances` (#3, #4) | `app.module.ts`, nav layout, TENANCY_POLICY, §6.5 |
-| `notifications` | OPT | `rm -rf apps/api/src/modules/notifications` | `app.module.ts`, `notification-dropdown.tsx`, header layout, outbox consumer |
-| `orders` | **REF** | **xoá sau khi đã copy làm mẫu** (§1.2): `rm -rf apps/api/src/modules/orders apps/web/src/features/orders "apps/web/src/app/(dashboard)/orders"` | `app.module.ts`, nav, seed, permission registry, report mẫu |
-| `org-units` | **CORE** | **Không xoá** — scope department/descendants đi theo cây (§4.4b) | — |
-| `outbox` | **CORE** | **Không xoá** — #21: side-effect ngoài transaction phải qua outbox | — |
-| `personalization` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/personalization` | `app.module.ts`, Cmd+K palette (nhóm Đã ghim/Vừa xem), `use-touch-recent.ts` |
-| `products` | REF | xoá CÙNG `orders`: `rm -rf apps/api/src/modules/products apps/web/src/features/products "apps/web/src/app/(dashboard)/products"` | `app.module.ts`, nav, seed, MSW handlers |
-| `reports` | **CORE** (framework) | Framework A1 **không xoá**; report MẪU `sales-by-customer` xoá cùng `orders` (sửa `report-registry.ts`) | `report-registry.ts` |
-| `roles` | **CORE** | **Không xoá** — quyết định #61: vai trò là dữ liệu | — |
-| `saved-views` | CORE nhẹ | `rm -rf apps/api/src/modules/saved-views apps/web/src/features/saved-views` nếu bỏ saved views (§5C.2) | `app.module.ts`, DataTable slot savedViews |
-| `search` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/search` | `app.module.ts`, Cmd+K palette (nhóm kết quả tìm) |
-| `settings` | **CORE** (hạ tầng) | **Không xoá** bảng + service (#32); màn hình quản lý muốn bỏ: `rm -rf "apps/web/src/app/(dashboard)/settings"` | nav layout |
-| `users` | **CORE** | **Không xoá** — mô hình định danh #16 | — |
-| `webhooks` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/webhooks` | `app.module.ts`, outbox consumer, permission registry |
+| Module | Nhãn | Lệnh xoá | File cần sửa kèm | Màn hình |
+|---|---|---|---|---|
+| `admin` | CORE nhẹ | **Không xoá** nếu còn multi-tenant — sysadmin tạo/suspend tenant (§5C.1) | — | `apps/web/src/app/(dashboard)/admin/tenants/page.tsx` |
+| `approval-authorities` | OPT | `rm -rf apps/api/src/modules/approval-authorities` | `app.module.ts`, seed-roles, permission registry | API-only — màn hình thuộc dự án cụ thể |
+| `audit` | **CORE** | **Không xoá** — ADR-0004, CI `check-audit-coverage` phụ thuộc | — | `apps/web/src/app/(dashboard)/audit-logs/page.tsx` |
+| `auth` | **CORE** | **Không xoá** | — | `apps/web/src/app/login/page.tsx` (+ me, me/sessions, forgot/reset/accept-invitation) |
+| `calendar` | CORE nhẹ | `rm -rf apps/api/src/modules/calendar` nếu không có SLA/ngày làm việc (§5C.4) | `app.module.ts` | API-only — màn hình thuộc dự án cụ thể |
+| `customers` | REF | xoá CÙNG `orders` sau khi copy mẫu: `rm -rf apps/api/src/modules/customers apps/web/src/features/customers "apps/web/src/app/(dashboard)/customers"` | `app.module.ts`, nav layout, seed, MSW handlers | `apps/web/src/app/(dashboard)/customers/page.tsx` |
+| `exports` | **CORE** | **Không xoá** — export streaming là CORE (#7, §5B.3/C1) | — | UI: `apps/web/src/features/exports/export-button.tsx` (nút, dùng ở orders/products/reports) |
+| `files` | CORE nhẹ | `rm -rf apps/api/src/modules/files` nếu không có đính kèm | `app.module.ts`, `attachment-list.tsx`, trang chi tiết | UI: `apps/web/src/components/common/attachment-list.tsx` (khối aside trang chi tiết) |
+| `health` | **CORE** | **Không xoá** — CD healthcheck phụ thuộc (§9) | — | API-only — CD healthcheck tiêu thụ (§9) |
+| `idempotency` | **CORE** | **Không xoá** — ba lớp idempotency (#20, §3.9) | — | API-only — hạ tầng, không có UI theo thiết kế |
+| `imports` | OPT | `rm -rf apps/api/src/modules/imports apps/web/src/features/imports "apps/web/src/app/(dashboard)/products/import"` | `app.module.ts`, link ở trang products | `apps/web/src/app/(dashboard)/products/import/page.tsx` |
+| `inventory` | CORE nếu có kho | KHÔNG có kho/tồn: `rm -rf apps/api/src/modules/inventory "apps/web/src/app/(dashboard)/inventory"` + migration bỏ `movements`/`stock_balances` (#3, #4) | `app.module.ts`, nav layout, TENANCY_POLICY, §6.5 | `apps/web/src/app/(dashboard)/inventory/page.tsx` |
+| `notifications` | OPT | `rm -rf apps/api/src/modules/notifications` | `app.module.ts`, `notification-dropdown.tsx`, header layout, outbox consumer | UI: `apps/web/src/components/common/notification-dropdown.tsx` (chuông header) |
+| `orders` | **REF** | **xoá sau khi đã copy làm mẫu** (§1.2): `rm -rf apps/api/src/modules/orders apps/web/src/features/orders "apps/web/src/app/(dashboard)/orders"` | `app.module.ts`, nav, seed, permission registry, report mẫu | `apps/web/src/app/(dashboard)/orders/page.tsx` (+ orders/[id]) |
+| `org-units` | **CORE** | **Không xoá** — scope department/descendants đi theo cây (§4.4b) | — | `apps/web/src/app/(dashboard)/org-units/page.tsx` |
+| `outbox` | **CORE** | **Không xoá** — #21: side-effect ngoài transaction phải qua outbox | — | API-only — hạ tầng, không có UI theo thiết kế (#21) |
+| `personalization` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/personalization` | `app.module.ts`, Cmd+K palette (nhóm Đã ghim/Vừa xem), `use-touch-recent.ts` | UI: `apps/web/src/providers/command-palette/index.tsx` (nhóm Đã ghim/Vừa xem) |
+| `products` | REF | xoá CÙNG `orders`: `rm -rf apps/api/src/modules/products apps/web/src/features/products "apps/web/src/app/(dashboard)/products"` | `app.module.ts`, nav, seed, MSW handlers | `apps/web/src/app/(dashboard)/products/page.tsx` |
+| `reports` | **CORE** (framework) | Framework A1 **không xoá**; report MẪU `sales-by-customer` xoá cùng `orders` (sửa `report-registry.ts`) | `report-registry.ts` | `apps/web/src/app/(dashboard)/reports/page.tsx` |
+| `roles` | **CORE** | **Không xoá** — quyết định #61: vai trò là dữ liệu | — | `apps/web/src/app/(dashboard)/roles/page.tsx` |
+| `saved-views` | CORE nhẹ | `rm -rf apps/api/src/modules/saved-views apps/web/src/features/saved-views` nếu bỏ saved views (§5C.2) | `app.module.ts`, DataTable slot savedViews | UI: `apps/web/src/features/saved-views` (SavedViewsBar trong orders) |
+| `search` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/search` | `app.module.ts`, Cmd+K palette (nhóm kết quả tìm) | UI: `apps/web/src/providers/command-palette/index.tsx` (nhóm kết quả tìm) |
+| `settings` | **CORE** (hạ tầng) | **Không xoá** bảng + service (#32); màn hình quản lý muốn bỏ: `rm -rf "apps/web/src/app/(dashboard)/settings"` | nav layout | `apps/web/src/app/(dashboard)/settings/page.tsx` |
+| `users` | **CORE** | **Không xoá** — mô hình định danh #16 | — | `apps/web/src/app/(dashboard)/users/page.tsx` |
+| `webhooks` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/webhooks` | `app.module.ts`, outbox consumer, permission registry | API-only — màn hình thuộc dự án cụ thể |
 
 ---
 
