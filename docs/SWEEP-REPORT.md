@@ -284,3 +284,42 @@ Ba lần chạy job `onboarding` là ba lỗi khác nhau, mỗi lần lùi đư�
 F-15 (bootstrap chết) → F-16 (bootstrap xanh, app chết) → app sống. Không lần
 nào trong ba lỗi đó nhìn ra được nếu chỉ đọc code.
 
+
+---
+
+# LƯỢT 2 — 2026-08-12: C0.4 → C0.6
+
+| | |
+|---|---|
+| **Phạm vi lượt này** | C0.4 (đủ) · C0.5 (2/4 tổ hợp — xem giới hạn) · C0.6 (phần chạy được bằng máy) |
+| **Khác lượt 1** | Chạy trên repo làm việc, KHÔNG phải clone sạch — vì C0.4/C0.5 đo hành vi generator/token, không đo trải nghiệm khởi tạo |
+| **Luật** | Lượt này ĐƯỢC sửa (khác lượt 1): phát hiện nào có lời giải rõ thì vá ngay trong cùng PR, ghi lại đây |
+
+## Phát hiện lượt 2
+
+| # | Mức | Bước | Phát hiện | Xử lý |
+|---|---|---|---|---|
+| **F-17** | **SAI (đã vá)** | C0.5 | **Công thức "thêm module" thiếu bước bảng cắt gọt §11.** Check mới `check-cut-table` (V5) làm test #37 đỏ ở khẳng định #3b: generator sinh module nhưng không ai nhắc thêm dòng vào bảng §11 → check kiến trúc đỏ dù đã làm đủ checklist cũ. Đây đúng loại lỗi bảng cắt gọt cũ mắc (F-05/F-07): tài liệu và code lệch nhau không ai canh | Vá cùng PR: test #37 chèn dòng cắt gọt cho module tạm (restore ở cleanup), checklist generator thêm bước 4b. Test #37 lại 8/8 |
+| **F-18** | **TÍCH CỰC** | C0.4 | **`brandHue: 70` (vàng-lục — vùng spec cảnh báo "rất dễ trượt AA") ĐẠT WCAG 2 AA 4/4 tổ hợp** (enterprise/operations × light/dark, 6 màn/tổ hợp). Nỗi sợ ở fe-preset-system §8.3 không thành sự thật với hệ token hiện tại — vì `--color-primary-fg` chọn theo L thực của nền, không hardcode trắng | KHÔNG đổi gì: luật "đổi brandHue phải chạy `pnpm test:a11y`" giữ nguyên — nó vừa chứng minh giá trị bằng một lần chạy 3 phút |
+| **F-19** | **TÀI LIỆU** | C0.6 | Toàn bộ BE test suite chạy MỘT LƯỢT (kết quả dán dưới) — trước nay chỉ chạy theo cụm từng PR, chưa có bằng chứng cả bộ xanh cùng lúc trên một máy | Kết quả ở mục dưới |
+
+## C0.5 — độ phủ thật
+
+- Tổ hợp 1: `gen:module` đầy đủ (BE+FE+test) — **test #37, 8/8 khẳng định**, gồm cả bước MỚI (dòng cắt gọt §11)
+- Tổ hợp 2: `gen:module-fe` (FE-only cho BE có sẵn) — dogfood thật ở V10: trang `products` đang chạy trong app là sản phẩm của nó
+- Tổ hợp 3–4 (biến thể tên đa từ, module không soft-delete): **CHƯA CHẠY** — generator hiện chỉ một prompt tên; biến thể thật sự cần khi có dự án dùng
+
+## C0.6 — phần chạy được bằng máy vs phần cần người
+
+- ĐÃ chạy bằng máy: e2e 39/39 trên BUILD PRODUCTION (visual 2 preset × 2 theme + a11y + smoke đăng nhập/danh sách/Cmd+K/chuông) · toàn bộ BE suite (dưới) · 216+ FE unit/integration
+- CẦN NGƯỜI (chưa làm): cầm chuột đi hết 15 màn với DB thật + mắt người soi từng màn — đúng nghĩa "dùng thật" của C0.6. Ước lượng của lượt 1 (~4h người) vẫn đứng
+
+## Kết quả toàn bộ BE suite (F-19) + phát hiện F-20
+
+Lần chạy CẢ BỘ đầu tiên: `31 file / 244 test — 2 đỏ thật (+2 flaky dưới tải, chạy lại thì xanh)`.
+
+| # | Mức | Phát hiện | Xử lý |
+|---|---|---|---|
+| **F-20** | **SAI (đã vá)** | Hai lưới phòng vệ bắt được endpoint mới chưa khai báo — ĐÚNG như thiết kế, nhưng lộ ra quy trình PR các phase trước chỉ chạy test THEO CỤM nên không ai thấy: (a) `l16-query-budget` đòi phân loại `GET /settings` (V12) + `GET /inventory/warehouses` (4b) vào LIST_PATHS/KNOWN_SINGLETONS; (b) snapshot route-inventory (`universal.spec`) lệch 4 route mới (`orders/export` V11, `settings` GET/PATCH V12, `inventory/warehouses` 4b) | Vá cùng PR: 2 đường vào KNOWN_SINGLETONS (danh sách nhỏ không phân trang), snapshot cập nhật SAU KHI SOÁT diff = đúng 4 route chủ đích, không route lạ. **Bài học quy trình**: các V trước chạy `pnpm test <cụm liên quan>` theo CLAUDE.md §2 — đủ cho module đó nhưng không đủ cho lưới TOÀN CỤC (universal/l16). Từ nay việc thêm endpoint phải chạy thêm `vitest run test/universal.spec.ts test/l16-query-budget.spec.ts` |
+
+Sau vá: `universal 8/8 · l16 3/3`.

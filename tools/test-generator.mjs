@@ -173,13 +173,22 @@ model ${MODEL} {
   const NL = '\n';
   const afterHeader = spec.indexOf(NL, at) + 1;
   const lineEnd = spec.indexOf(NL, afterHeader); // hết dòng `|---|---|`
-  writeFileSync(
-    SPEC,
+  // Hai dòng spec cho module mới: (a) ma trận §6.5, (b) bảng cắt gọt §11
+  // (check-cut-table V5 bắt mọi thư mục modules/ phải có dòng trong bảng)
+  let specPatched =
     spec.slice(0, lineEnd + 1) +
-      `| \`${PLURAL}\` | TENANT | TenantAudited | ✅ | ✅ | — |${NL}` +
-      spec.slice(lineEnd + 1),
-    'utf8',
-  );
+    `| \`${PLURAL}\` | TENANT | TenantAudited | ✅ | ✅ | — |${NL}` +
+    spec.slice(lineEnd + 1);
+  const cutHeader = '| Module | Nhãn | Lệnh xoá | File cần sửa kèm |';
+  const cutAt = specPatched.indexOf(cutHeader);
+  if (cutAt < 0) throw new Error('không thấy header bảng cắt gọt §11 trong boilerplate-spec.md');
+  const cutAfterHeader = specPatched.indexOf(NL, cutAt) + 1;
+  const cutLineEnd = specPatched.indexOf(NL, cutAfterHeader); // hết dòng |---|
+  specPatched =
+    specPatched.slice(0, cutLineEnd + 1) +
+    `| \`${PLURAL}\` | OPT | \`rm -rf apps/api/src/modules/${PLURAL}\` | \`app.module.ts\` |${NL}` +
+    specPatched.slice(cutLineEnd + 1);
+  writeFileSync(SPEC, specPatched, 'utf8');
 
   // Model có deletedAt → phải khai soft-delete, nếu không check vét cạn đỏ
   remember(SOFTDEL);

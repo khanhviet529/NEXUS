@@ -2465,18 +2465,35 @@ Outbox không có cách nào biết bước 2 đã thành công. Vì vậy:
 6. Rà lại docs/conventions.md, bổ sung quy ước riêng của dự án
 ```
 
-**Bảng cắt gọt:**
+**Bảng cắt gọt** — phủ ĐỦ 25 module trong `apps/api/src/modules/` (V5 Phase 6; CI `check-cut-table.mjs` đối chiếu bảng ↔ thư mục thật, lệch là đỏ):
 
 | Module | Nhãn | Lệnh xoá | File cần sửa kèm |
 |---|---|---|---|
-| approvals | OPT | `rm -rf apps/api/src/modules/approvals apps/web/src/features/approvals` | `app.module.ts`, sidebar config |
-| imports | OPT | `rm -rf .../imports` | `app.module.ts`, sidebar config |
-| notifications | OPT | `rm -rf .../notifications` | `app.module.ts`, header component |
-| settings — **hạ tầng** | **CORE** | **Không xoá.** Bảng `settings`, service đọc/ghi có cache, audit trigger đều là nền tảng | — |
-| settings — **màn hình quản lý** | OPT | `rm -rf apps/web/src/features/settings` | sidebar config |
-| packages/vn | OPT | `rm -rf packages/vn` | các form dùng cascader tỉnh/xã |
-| SSO / 2FA | OPT | tắt bằng ENV trước, xoá sau | `auth.module.ts` |
-| **orders** | **REF** | **xoá sau khi đã copy** | `app.module.ts`, sidebar, seed |
+| `admin` | CORE nhẹ | **Không xoá** nếu còn multi-tenant — sysadmin tạo/suspend tenant (§5C.1) | — |
+| `approval-authorities` | OPT | `rm -rf apps/api/src/modules/approval-authorities` | `app.module.ts`, seed-roles, permission registry |
+| `audit` | **CORE** | **Không xoá** — ADR-0004, CI `check-audit-coverage` phụ thuộc | — |
+| `auth` | **CORE** | **Không xoá** | — |
+| `calendar` | CORE nhẹ | `rm -rf apps/api/src/modules/calendar` nếu không có SLA/ngày làm việc (§5C.4) | `app.module.ts` |
+| `customers` | REF | xoá CÙNG `orders` sau khi copy mẫu: `rm -rf apps/api/src/modules/customers apps/web/src/features/customers "apps/web/src/app/(dashboard)/customers"` | `app.module.ts`, nav layout, seed, MSW handlers |
+| `exports` | **CORE** | **Không xoá** — export streaming là CORE (#7, §5B.3/C1) | — |
+| `files` | CORE nhẹ | `rm -rf apps/api/src/modules/files` nếu không có đính kèm | `app.module.ts`, `attachment-list.tsx`, trang chi tiết |
+| `health` | **CORE** | **Không xoá** — CD healthcheck phụ thuộc (§9) | — |
+| `idempotency` | **CORE** | **Không xoá** — ba lớp idempotency (#20, §3.9) | — |
+| `imports` | OPT | `rm -rf apps/api/src/modules/imports apps/web/src/features/imports "apps/web/src/app/(dashboard)/products/import"` | `app.module.ts`, link ở trang products |
+| `inventory` | CORE nếu có kho | KHÔNG có kho/tồn: `rm -rf apps/api/src/modules/inventory "apps/web/src/app/(dashboard)/inventory"` + migration bỏ `movements`/`stock_balances` (#3, #4) | `app.module.ts`, nav layout, TENANCY_POLICY, §6.5 |
+| `notifications` | OPT | `rm -rf apps/api/src/modules/notifications` | `app.module.ts`, `notification-dropdown.tsx`, header layout, outbox consumer |
+| `orders` | **REF** | **xoá sau khi đã copy làm mẫu** (§1.2): `rm -rf apps/api/src/modules/orders apps/web/src/features/orders "apps/web/src/app/(dashboard)/orders"` | `app.module.ts`, nav, seed, permission registry, report mẫu |
+| `org-units` | **CORE** | **Không xoá** — scope department/descendants đi theo cây (§4.4b) | — |
+| `outbox` | **CORE** | **Không xoá** — #21: side-effect ngoài transaction phải qua outbox | — |
+| `personalization` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/personalization` | `app.module.ts`, Cmd+K palette (nhóm Đã ghim/Vừa xem), `use-touch-recent.ts` |
+| `products` | REF | xoá CÙNG `orders`: `rm -rf apps/api/src/modules/products apps/web/src/features/products "apps/web/src/app/(dashboard)/products"` | `app.module.ts`, nav, seed, MSW handlers |
+| `reports` | **CORE** (framework) | Framework A1 **không xoá**; report MẪU `sales-by-customer` xoá cùng `orders` (sửa `report-registry.ts`) | `report-registry.ts` |
+| `roles` | **CORE** | **Không xoá** — quyết định #61: vai trò là dữ liệu | — |
+| `saved-views` | CORE nhẹ | `rm -rf apps/api/src/modules/saved-views apps/web/src/features/saved-views` nếu bỏ saved views (§5C.2) | `app.module.ts`, DataTable slot savedViews |
+| `search` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/search` | `app.module.ts`, Cmd+K palette (nhóm kết quả tìm) |
+| `settings` | **CORE** (hạ tầng) | **Không xoá** bảng + service (#32); màn hình quản lý muốn bỏ: `rm -rf "apps/web/src/app/(dashboard)/settings"` | nav layout |
+| `users` | **CORE** | **Không xoá** — mô hình định danh #16 | — |
+| `webhooks` | OPT ưu tiên cao | `rm -rf apps/api/src/modules/webhooks` | `app.module.ts`, outbox consumer, permission registry |
 
 ---
 

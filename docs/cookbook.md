@@ -82,6 +82,11 @@ Generator sinh ra BE (module, controller, service, repository, DTO, test) và FE
 - Endpoint danh sách **bắt buộc** có test đếm query, nếu không CI đỏ
 - Mỗi endpoint phải có `@RequirePermission`, CI quét và chặn nếu thiếu
 - Module có endpoint ghi mà không tham chiếu `AuditRepository` → CI đỏ (ADR-0004)
+- Thêm dòng cho module vào **bảng cắt gọt spec §11** — `check-cut-table` chặn nếu thiếu (F-17)
+- **Endpoint MỚI (kể cả trong module cũ)** phải chạy hai lưới toàn cục trước khi báo xong,
+  vì test theo cụm không đụng tới chúng (bài học F-20):
+  `npx vitest run test/universal.spec.ts test/l16-query-budget.spec.ts`
+  — GET mới phải phân loại LIST_PATHS/KNOWN_SINGLETONS; snapshot route soát diff rồi mới `-u`
 
 ---
 
