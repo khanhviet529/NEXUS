@@ -212,6 +212,14 @@ describe('Auth GĐ2 — test §8.2 #4, #5, #6, #7', () => {
 
   it('#7 luồng reset đầy đủ: token 1 lần, thu hồi mọi phiên, mật khẩu mới dùng được', async () => {
     const email = 'staff@tenant-b.local';
+    // R1: test này ĐỔI mật khẩu của user SEED DÙNG CHUNG. Không khôi phục thì
+    // file nào chạy SAU và login user này bằng mật khẩu seed sẽ 401 — flaky
+    // theo thứ tự file (sequencer xếp theo cache thời lượng, đổi giữa các lần).
+    // Chụp hash trước, khôi phục ở cuối test.
+    const seedHashRow = await h.rawPrisma.user.findUniqueOrThrow({
+      where: { email },
+      select: { passwordHash: true },
+    });
     // Có phiên đang sống
     const before = await request(h.app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -276,6 +284,17 @@ describe('Auth GĐ2 — test §8.2 #4, #5, #6, #7', () => {
       .post('/api/v1/auth/login')
       .send({ email, password: newPassword });
     expect(newPw.status).toBe(201);
+
+    // KHÔI PHỤC mật khẩu seed cho các file chạy sau (xem chú thích đầu test).
+    // Thu hồi luôn phiên vừa tạo bằng mật khẩu tạm — không để phiên "mồ côi".
+    await h.rawPrisma.user.update({
+      where: { email },
+      data: { passwordHash: seedHashRow.passwordHash },
+    });
+    const restored = await request(h.app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email, password: h.seed.password });
+    expect(restored.status, 'mật khẩu seed phải dùng lại được sau khi khôi phục').toBe(201);
   });
 
   // ==================== Invitation (§4.3c) ====================

@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { PilotTraceInterceptor } from './common/interceptors/pilot-trace.interceptor';
 import { ConfigModule } from '@nestjs/config';
 import { ClsModule } from 'nestjs-cls';
 import { randomUUID } from 'node:crypto';
@@ -125,6 +126,11 @@ import { HealthRepository } from './modules/health/health.repository';
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
     { provide: APP_INTERCEPTOR, useClass: SerializeInterceptor },
+    // PILOT_TRACE=1 mới ghi (sweep C0.0 tầng 2) — useClass luôn khai để DI
+    // ổn định, interceptor tự thành no-op khi env tắt
+    ...(process.env.PILOT_TRACE === '1'
+      ? [{ provide: APP_INTERCEPTOR, useClass: PilotTraceInterceptor }]
+      : []),
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })

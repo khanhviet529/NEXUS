@@ -4,8 +4,16 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     }
   },
-  "include": ["src", "test", "prisma/seed.ts", "tools"]
+  "include": [
+    "src",
+    "test",
+    "prisma/seed.ts",
+    "prisma/seed-canary.ts",
+    "tools"
+  ]
 }
