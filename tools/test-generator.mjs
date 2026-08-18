@@ -186,7 +186,7 @@ model ${MODEL} {
   const cutLineEnd = specPatched.indexOf(NL, cutAfterHeader); // hết dòng |---|
   specPatched =
     specPatched.slice(0, cutLineEnd + 1) +
-    `| \`${PLURAL}\` | OPT | \`rm -rf apps/api/src/modules/${PLURAL}\` | \`app.module.ts\` |${NL}` +
+    `| \`${PLURAL}\` | OPT | \`rm -rf apps/api/src/modules/${PLURAL}\` | \`app.module.ts\` | API-only — module tạm của test #37 |${NL}` +
     specPatched.slice(cutLineEnd + 1);
   writeFileSync(SPEC, specPatched, 'utf8');
 

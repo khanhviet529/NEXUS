@@ -448,3 +448,13 @@ KET QUA: 100/100 xanh (lượt 21 lần đầu VOID vì hạ tầng reaper, đã
 - Bốn vòng tổng cộng để tới đây: vòng 1 bắt F-21/F-22 (lượt 17), vòng 2 bắt
   F-23 (lượt 50... thực tế thứ tự phát hiện: F-21/22 tất định bằng seed,
   F-23 lượt 17, F-24 lượt 50→12→6), mỗi lần vá gốc là vòng khởi động LẠI TỪ ĐẦU.
+
+## F-25 — CI bắt tương tác R2 × test #37 (job "Test" đỏ ở CI #76, xanh ở #74/#75)
+
+| # | Mức | Gốc | Vá |
+|---|---|---|---|
+| **F-25** | **SAI (đã vá)** | R2 thêm cột "Màn hình" vào bảng cắt gọt §11 nhưng dòng tạm test #37 chèn vẫn 4 cột → check #12 luật 3 đỏ → khẳng định #3b sập. Lỗi quy trình lặp lại đúng bài F-20: sau R2 đã chạy check #12 độc lập nhưng KHÔNG chạy lại test #37 — hai lưới giao nhau mà chỉ kiểm một | Dòng chèn 5 cột (`API-only — module tạm của test #37`) + checklist generator nhắc cột Màn hình. Test #37 lại 8/8. Bằng chứng quy hồi: job Test xanh #74/#75 (chưa có R2), chỉ đỏ #76 |
+
+Ghi chú tên job: YAML nuốt `#37 — generator...` thành comment → job hiện tên cụt "Test".
+Job BE đỏ từ #74 (TRƯỚC R1) — local không tái hiện ở mọi thứ tự (244/244 ×2 lần,
+kể cả xoá cache vitest) → chờ log Failed Tests từ người có quyền admin repo (F-26 nếu có).
