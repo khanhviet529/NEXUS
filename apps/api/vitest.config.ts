@@ -18,6 +18,9 @@ export default defineConfig({
   test: {
     include: ['test/**/*.spec.ts'],
     globalSetup: ['test/setup/global-setup.ts'],
+    // F-26: chạy trong TỪNG worker file — tắt keep-alive http.globalAgent
+    // (globalSetup chạy ở process riêng nên không đặt được thứ này)
+    setupFiles: ['test/setup/per-file-setup.ts'],
     // Integration test dùng chung 1 container DB → chạy tuần tự theo file
     fileParallelism: false,
     testTimeout: 60_000,

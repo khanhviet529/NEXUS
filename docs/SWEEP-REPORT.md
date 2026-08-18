@@ -458,3 +458,16 @@ KET QUA: 100/100 xanh (lượt 21 lần đầu VOID vì hạ tầng reaper, đã
 Ghi chú tên job: YAML nuốt `#37 — generator...` thành comment → job hiện tên cụt "Test".
 Job BE đỏ từ #74 (TRƯỚC R1) — local không tái hiện ở mọi thứ tự (244/244 ×2 lần,
 kể cả xoá cache vitest) → chờ log Failed Tests từ người có quyền admin repo (F-26 nếu có).
+
+## F-26 — job "Backend + kiến trúc" đỏ CI #74-#76: keep-alive race Node ≥19
+
+Log CI (người dùng dán): `inventory-gd5b #22 (20 request xuất SONG SONG) → Error: read ECONNRESET`.
+Local KHÔNG tái hiện ở mọi điều kiện (244/244 ×2, kể cả xoá cache vitest ép thứ tự runner sạch).
+
+| # | Mức | Gốc | Vá |
+|---|---|---|---|
+| **F-26** | **SAI (đã vá)** | Node ≥19 bật keep-alive mặc định cho `http.globalAgent` (idle 5s); supertest không truyền agent riêng → TÁI DÙNG socket. Server Node `keepAliveTimeout` 5s → client rút socket từ pool đúng lúc server FIN = `read ECONNRESET` (race kinh điển). Chỉ hiện trên runner 2-core vì suite phình to (lô 26 commit) làm khoảng nghỉ giữa request vượt 5s nhiều lần mỗi lượt; máy dev nhanh không bao giờ chạm ngưỡng — vì thế đỏ CI từ #74 mà local xanh tuyệt đối | `test/setup/per-file-setup.ts` (vitest setupFiles): `http.globalAgent = new Agent({ keepAlive: false })` — mỗi request test một socket. Phía CLIENT test, không đụng server prod. KHÔNG chọn `server.keepAliveTimeout = 0`: socket keep-alive còn mở làm `app.close()` treo ở afterAll từng file |
+
+Họ hàng ADR-0005: một biến thể nữa của "hai bên không cùng giả định" — ở đây là
+hai đầu socket không cùng chính sách vòng đời kết nối. Cùng bài: chọn MỘT phía
+sở hữu quyết định và ép tường minh, không dựa mặc định của môi trường.
