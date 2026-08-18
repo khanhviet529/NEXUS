@@ -50,6 +50,13 @@ export class OutboxRepository {
         aggregateId: event.aggregateId,
         payload: event.payload as Prisma.InputJsonValue,
         status: 'PENDING',
+        // F-24 (gốc #4 của R1): KHÔNG để engine sinh default. `@default(now())`
+        // do query engine Rust đánh giá với MICRO giây; phía claim so bằng JS
+        // Date (MILI giây). Insert và claim rơi cùng một ms là available_at
+        // mang đuôi micro giây LỚN HƠN now của claim → event tàng hình dưới
+        // 1ms — autopsy bắt được: available_at .038xxx vs now .038000.
+        // Cùng đồng hồ CHƯA đủ — phải cùng ĐỘ PHÂN GIẢI: đặt bằng JS Date (ms).
+        availableAt: new Date(),
       },
     });
   }
@@ -61,10 +68,18 @@ export class OutboxRepository {
    * mỗi event tự mang tenantId (§4.4b).
    */
   async claimBatch(workerId: string, limit = 100): Promise<OutboxEventRow[]> {
+    // MỘT ĐỒNG HỒ cho hàng đợi (F-23): `available_at` do Prisma đặt PHÍA APP
+    // (@default(now()) là client-side, dù DDL có DEFAULT CURRENT_TIMESTAMP) —
+    // so nó với now() CỦA DB là trộn hai đồng hồ. Khi app nhanh hơn DB (đo
+    // được ~1,4s trên Docker Desktop lúc máy tải nặng), event vừa insert
+    // "tàng hình" đúng bằng độ lệch: worker claim 0, retry sau đó xử lý —
+    // đúng at-least-once nhưng DELAY vô hình, và test giả định "insert xong
+    // claim được ngay" thì flaky. Đồng hồ nào ĐẶT thì đồng hồ đó SO SÁNH.
+    const now = new Date();
     return this.prisma.client.$transaction(async (tx) => {
       const ids = await tx.$queryRaw<Array<{ id: string }>>(
         Prisma.sql`SELECT id FROM outbox_events
-                   WHERE status = 'PENDING' AND available_at <= now()
+                   WHERE status = 'PENDING' AND available_at <= ${now}
                    ORDER BY created_at
                    FOR UPDATE SKIP LOCKED
                    LIMIT ${limit}`,
@@ -121,11 +136,12 @@ export class OutboxRepository {
       );
       return;
     }
-    const backoffSeconds = Math.round((backoffBaseMs * 2 ** (attempts - 1)) / 1000);
+    // Backoff cũng đặt bằng ĐỒNG HỒ APP — cùng đồng hồ với insert và claim (F-23)
+    const nextAvailable = new Date(Date.now() + backoffBaseMs * 2 ** (attempts - 1));
     await this.prisma.client.$executeRaw(
       Prisma.sql`UPDATE outbox_events
                  SET status = 'PENDING', attempts = ${attempts},
-                     available_at = now() + (${backoffSeconds}::int * interval '1 second'),
+                     available_at = ${nextAvailable},
                      locked_at = NULL, locked_by = NULL, updated_at = now()
                  WHERE id = ${id}::uuid`,
     );

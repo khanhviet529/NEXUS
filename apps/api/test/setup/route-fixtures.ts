@@ -1,7 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { ENTITY_TYPES } from '@nexus/shared';
+import type { ConfigService } from '@nestjs/config';
 import type { PrismaService } from '../../src/infra/prisma/prisma.service';
 import type { RequestContextService } from '../../src/infra/cls/request-context';
+import { CryptoService } from '../../src/infra/crypto/crypto.service';
+
+/**
+ * Secret của webhook trong DB là BẢN MÃ AES-GCM (§4.11) — fixture ghi thẳng
+ * bằng Prisma nên phải tự mã hoá đúng định dạng. Shim config đọc process.env
+ * = cùng đường suy ra key với app (fallback dev khi không đặt ENV).
+ *
+ * Bài học R1: bản cũ ghi secret PLAINTEXT 'u6-secret'. Dòng đó nằm lại DB,
+ * `deliverDue()` (quét XUYÊN tenant) của file test khác nuốt phải →
+ * decrypt ném → flaky theo THỨ TỰ FILE. Fixture ghi tắt qua Prisma thì phải
+ * ghi ĐÚNG bất biến dữ liệu mà tầng service vẫn giữ.
+ */
+const fixtureCrypto = new CryptoService({
+  get: (k: string) => process.env[k],
+} as ConfigService);
 
 /**
  * Fixture cho ca U6 — test-catalog §2.3.
@@ -139,7 +155,7 @@ const seedImportJob = async (c: FixtureCtx): Promise<SeededEntity> =>
 const seedWebhookEndpoint = async (c: FixtureCtx): Promise<SeededEntity> =>
   c.inTenant(c.tenantB, async () => {
     const e = await c.prisma.client.webhookEndpoint.create({
-      data: { tenantId: c.tenantB, url: 'https://u6.invalid/hook', secret: 'u6-secret' },
+      data: { tenantId: c.tenantB, url: 'https://u6.invalid/hook', secret: fixtureCrypto.encrypt('u6-secret') },
     });
     return { id: e.id };
   });
@@ -147,7 +163,7 @@ const seedWebhookEndpoint = async (c: FixtureCtx): Promise<SeededEntity> =>
 const seedWebhookDelivery = async (c: FixtureCtx): Promise<SeededEntity> =>
   c.inTenant(c.tenantB, async () => {
     const e = await c.prisma.client.webhookEndpoint.create({
-      data: { tenantId: c.tenantB, url: 'https://u6d.invalid/hook', secret: 'u6-secret' },
+      data: { tenantId: c.tenantB, url: 'https://u6d.invalid/hook', secret: fixtureCrypto.encrypt('u6-secret') },
     });
     const d = await c.prisma.client.webhookDelivery.create({
       data: {

@@ -160,7 +160,22 @@ export class WebhooksRepository {
             include: { endpoint: true },
           });
           if (!delivery || delivery.endpoint.status !== 'ACTIVE') return null;
-          return this.sendOne(delivery);
+          try {
+            return await this.sendOne(delivery);
+          } catch (err) {
+            // MỘT dòng độc (secret hỏng định dạng, row rác…) không được giết
+            // CẢ vòng gửi của mọi tenant — flaky R1 lộ đúng lỗi này: endpoint
+            // secret không decrypt được làm deliverDue ném xuyên loop.
+            // Đánh FAILED hẳn (không retry: lỗi dữ liệu, retry vô ích) rồi đi tiếp.
+            await this.prisma.client.webhookDelivery.update({
+              where: { id: delivery.id },
+              data: { status: 'FAILED', attempts: delivery.attempts + 1, nextRetryAt: null },
+            });
+            this.logger.error(
+              `webhook delivery ${delivery.id} hỏng dữ liệu, đánh FAILED: ${String(err)}`,
+            );
+            return false;
+          }
         },
       );
       if (ok === null) continue;

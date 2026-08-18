@@ -323,3 +323,128 @@ Lần chạy CẢ BỘ đầu tiên: `31 file / 244 test — 2 đỏ thật (+2 
 | **F-20** | **SAI (đã vá)** | Hai lưới phòng vệ bắt được endpoint mới chưa khai báo — ĐÚNG như thiết kế, nhưng lộ ra quy trình PR các phase trước chỉ chạy test THEO CỤM nên không ai thấy: (a) `l16-query-budget` đòi phân loại `GET /settings` (V12) + `GET /inventory/warehouses` (4b) vào LIST_PATHS/KNOWN_SINGLETONS; (b) snapshot route-inventory (`universal.spec`) lệch 4 route mới (`orders/export` V11, `settings` GET/PATCH V12, `inventory/warehouses` 4b) | Vá cùng PR: 2 đường vào KNOWN_SINGLETONS (danh sách nhỏ không phân trang), snapshot cập nhật SAU KHI SOÁT diff = đúng 4 route chủ đích, không route lạ. **Bài học quy trình**: các V trước chạy `pnpm test <cụm liên quan>` theo CLAUDE.md §2 — đủ cho module đó nhưng không đủ cho lưới TOÀN CỤC (universal/l16). Từ nay việc thêm endpoint phải chạy thêm `vitest run test/universal.spec.ts test/l16-query-budget.spec.ts` |
 
 Sau vá: `universal 8/8 · l16 3/3`.
+
+---
+
+# HƯỚNG DẪN BẬT INTERCEPTOR + CANARY CHO PILOT (C0.6 phần người)
+
+Chuẩn bị sẵn cho lượt pilot "dùng thật 1–2h" — hai tầng C0.0 còn thiếu nay BẬT ĐƯỢC:
+
+## 1. Canary (C0.0 tầng 1 — phát hiện rò rỉ chéo tenant bằng mắt)
+
+```bash
+# Sau khi setup môi trường pilot (bootstrap + migrate + seed):
+pnpm --filter @nexus/api exec tsx prisma/seed-canary.ts
+```
+
+Tạo tenant `CANARY-C` (đăng nhập được: `admin@canary.local` / `Passw0rd!`) với
+3 sản phẩm + 3 khách hàng mà TÊN NÀO CŨNG chứa `CANARY`. Luật đọc trong buổi
+pilot: **đăng nhập tenant A/B mà thấy chữ "CANARY" ở BẤT KỲ đâu** (danh sách,
+tìm kiếm, Cmd+K, báo cáo, export CSV, thông báo) = **rò rỉ chéo tenant** —
+chụp màn hình, ghi F-xx, phân loại sau. Script idempotent, chạy lại vô hại.
+
+## 2. Interceptor request (C0.0 tầng 2 — dấu vết mọi request trong buổi dùng thật)
+
+```bash
+# Bật khi khởi động API của môi trường pilot:
+PILOT_TRACE=1 PILOT_TRACE_FILE=./pilot-trace.ndjson pnpm --filter @nexus/api start
+```
+
+Mỗi request một dòng NDJSON: `ts · method · url · status · ms · tenantId ·
+userId · errCode/errMessage` (mã nguồn: `src/common/interceptors/pilot-trace.interceptor.ts`,
+chỉ gắn khi `PILOT_TRACE=1` — prod/test thường KHÔNG bị ảnh hưởng).
+
+Sau buổi pilot, file này trả lời ba câu không dựa vào trí nhớ người bấm:
+
+```bash
+# (a) Đã đụng endpoint nào / route nào CHƯA từng được gọi
+jq -r '"\(.method) \(.url | split("?")[0])"' pilot-trace.ndjson | sort -u
+
+# (b) Request nào lỗi, mã gì
+jq -c 'select(.status >= 400)' pilot-trace.ndjson
+
+# (c) Request nào chậm bất thường (>1s)
+jq -c 'select(.ms > 1000)' pilot-trace.ndjson
+```
+
+Đối chiếu (a) với snapshot route-inventory (`test/__snapshots__/universal.spec.ts.snap`)
+để biết độ phủ thật của buổi đi 15 màn.
+
+---
+
+# R1 — HAI TEST FLAKY: GỐC, VÁ, VÀ BẰNG CHỨNG
+
+Dạng thứ TƯ của "check có mà không tin được": KHÔNG XÁC ĐỊNH (bổ sung vào
+ba dạng đã tổng kết: không chạy #6 · dương tính giả #11 · hướng dẫn vô tác dụng #9).
+
+| # | Mức | Phát hiện | Gốc | Vá |
+|---|---|---|---|---|
+| **F-21** | **SAI (đã vá)** | `personalization-v13` đỏ khi `auth-gd2` chạy TRƯỚC nó | Test reset-password của auth-gd2 ĐỔI mật khẩu user seed dùng chung `staff@tenant-b.local` thành `MatKhauMoi123!` và không khôi phục — file chạy sau login user này bằng mật khẩu seed nhận 401. Flaky vì sequencer của vitest xếp file theo cache thời lượng, THỨ TỰ ĐỔI giữa các lần chạy | auth-gd2 chụp `passwordHash` trước, khôi phục cuối test + assert đăng nhập lại được bằng mật khẩu seed. Luật rút ra: test MUTATE fixture seed dùng chung thì phải trả lại nguyên trạng |
+| **F-22** | **SAI (đã vá) + BUG PROD THẬT** | `gd10` webhook đỏ khi `u6-tenant-isolation` chạy TRƯỚC | Fixture U6 ghi webhook endpoint bằng Prisma với secret PLAINTEXT `'u6-secret'` (bất biến §4.11: cột này là BẢN MÃ AES-GCM) + delivery PENDING nằm lại DB. `deliverDue()` quét XUYÊN TENANT nuốt phải → `decrypt()` ném → **giết cả vòng gửi**. Hai lỗi lồng nhau: (a) fixture ghi tắt phá bất biến dữ liệu; (b) **production bug**: MỘT dòng độc làm chết hàng đợi webhook của MỌI tenant | (a) fixture mã hoá secret bằng chính `CryptoService`; (b) `deliverDue` bọc try/catch từng dòng — dòng hỏng dữ liệu đánh FAILED (không retry) + log, vòng đi tiếp |
+
+**Tái hiện tất định** (trước khi vá): `--sequence.shuffle.files --sequence.seed=N`
+— cặp A seed 1/2 đỏ, seed 3 xanh; cặp B seed 3 đỏ, seed 1 xanh. Sau vá: cả hai
+thứ tự từng đỏ đều xanh. **Bằng chứng cuối: 100 lượt liên tiếp, mỗi lượt shuffle
+seed khác nhau (quét mọi thứ tự), 4 file liên quan — kết quả dán dưới khi vòng
+chạy xong.**
+
+## F-23 — vòng 100 lượt bắt thêm MỘT GỐC THỨ BA (lượt 17/100 của vòng đầu)
+
+| # | Mức | Phát hiện | Gốc | Vá |
+|---|---|---|---|---|
+| **F-23** | **SAI (đã vá) + BUG HẠ TẦNG THẬT** | gd10 đỏ dạng MỚI: rotation nhận 0 delivery (`second=0`) + retry đếm 2 thay vì 1 (`failCount=2`) — không liên quan hai gốc trước | **Trộn hai đồng hồ trong hàng đợi outbox.** Prisma đánh giá `@default(now())` PHÍA CLIENT → `available_at` mang giờ APP; `claimBatch` lại so `available_at <= now()` của DB. Đo thật tại chỗ: Docker Desktop VM chậm hơn host **~1,4s** lúc máy tải nặng → event vừa insert "tàng hình" đúng bằng độ lệch → `runOnce` claim 0 (không fan-out → `second=0`); vài giây sau test kế claim lại → fan-out KÉP sang cả endpoint của test trước → `failCount=2`. Prod: không mất event (at-least-once) nhưng worker bị DELAY vô hình đúng bằng drift giữa app-server và DB-server | Luật **"đồng hồ nào ĐẶT giá trị thì đồng hồ đó SO SÁNH"**: claimBatch so `available_at` với `new Date()` phía app; backoff của markFailed cũng đặt phía app. (webhook_deliveries đã nhất quán app-clock từ đầu — vì thế tầng đó không lộ.) `requeueStale` giữ nguyên: `locked_at` do DB đặt, so với DB now() — nhất quán sẵn |
+
+Ba gốc, ba tầng khác nhau (fixture seed dùng chung · bất biến dữ liệu khi ghi tắt ·
+đồng hồ hỗn hợp trong queue) — cùng lộ ra chỉ vì chạy đủ nhiều lượt với thứ tự
+xáo trộn. Vòng 100 lượt khởi động LẠI TỪ ĐẦU trên code cuối; kết quả dán dưới.
+
+## F-24 — gốc #4: cùng đồng hồ chưa đủ, phải cùng ĐỘ PHÂN GIẢI (autopsy nguyên văn)
+
+Vòng săn sau F-23 vẫn đỏ (lượt 17→50→12→6 của bốn vòng — tần suất tăng khi máy
+nhanh vì insert/claim càng dễ rơi cùng mili giây). Instrumentation từng bước +
+autopsy tại chỗ cho bằng chứng kết luận:
+
+```
+runOnce order2 claim 0.
+app_now      = 2026-08-12T06:08:57.038Z
+rows = [{ status: "PENDING", attempts: 0, locked_by: null,
+          available_at: "2026-08-12T06:08:57.038Z",   ← CÙNG ms với app_now
+          db_now:       "2026-08-12T06:08:57.054Z" }]
+```
+
+| # | Mức | Gốc | Vá |
+|---|---|---|---|
+| **F-24** | **SAI (đã vá) + BUG HẠ TẦNG THẬT** | `@default(now())` của Prisma do query engine RUST đánh giá với MICRO giây; claim so bằng JS Date (MILI giây). Insert và claim cùng một ms → `available_at .038xxx > now .038000` → event tàng hình DƯỚI 1ms. JSON dump in `.038Z` trông "bằng nhau" — đuôi micro giây chỉ hiện khi hiểu ai sinh giá trị | `enqueueInTx` đặt `availableAt: new Date()` TƯỜNG MINH — không để engine sinh default. Luật ADR-0005 mở rộng: cùng đồng hồ VÀ cùng độ phân giải |
+
+Bài học phương pháp: gốc #4 KHÔNG thể đoán từ đọc code (ba vòng suy luận đều
+trượt) — nó chỉ chịu thua khi test tự mang autopsy: assert từng bước trung gian
++ dump trạng thái hàng đợi ngay tại chỗ hụt. "Nest Logger bị nuốt trong test"
+là điều kiện khiến mọi triệu chứng trước đó đều câm.
+
+## R1 — BẰNG CHỨNG CUỐI: 100 lượt liên tiếp xanh
+
+Vòng chính thức trên code cuối (sau F-21→F-24), mỗi lượt = 4 file liên quan
+với `--sequence.shuffle.files --sequence.seed=<i>` (i = 1..100 — quét mọi
+thứ tự file). Output thật (đầu/cuối, log đầy đủ 102 dòng):
+
+```
+luot 1: XANH (seed 1)
+luot 2: XANH (seed 2)
+luot 3: XANH (seed 3)
+...
+luot 21: VOID-INFRA (Reaper testcontainers chet truoc khi chay test nao - Ryuk disabled tu day)
+luot 21: XANH (seed 21)
+...
+luot 99: XANH (seed 99)
+luot 100: XANH (seed 100)
+KET QUA: 100/100 xanh (lượt 21 lần đầu VOID vì hạ tầng reaper, đã chạy lại)
+```
+
+- Lượt 21 lần đầu VOID vì HẠ TẦNG vòng lặp (Reaper của Testcontainers chết
+  sau 20 lần churn container — chế độ CI thường không gặp; global setup chết
+  TRƯỚC khi một test nào chạy). Không đổi code/test — tắt Ryuk cho harness
+  (teardown đã tự stop container), chạy lại seed 21: XANH. Khai báo minh bạch
+  để không ai đọc nhầm thành "101 lượt đều sạch".
+- Bốn vòng tổng cộng để tới đây: vòng 1 bắt F-21/F-22 (lượt 17), vòng 2 bắt
+  F-23 (lượt 50... thực tế thứ tự phát hiện: F-21/22 tất định bằng seed,
+  F-23 lượt 17, F-24 lượt 50→12→6), mỗi lần vá gốc là vòng khởi động LẠI TỪ ĐẦU.

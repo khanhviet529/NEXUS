@@ -181,15 +181,21 @@ describe('GĐ10 — approval authorities + webhooks + personalization', () => {
       expect(JSON.stringify(list.body)).not.toContain(secret);
 
       // Duyệt một đơn → outbox event ORDER_APPROVED
+      // R1: MỌI bước trung gian đều assert — Nest Logger bị nuốt trong test,
+      // nên bước nào hụt mà không assert là hụt CÂM (bài học gốc #4)
       const order = await makeOrder('1000000');
-      await agent()
+      const approve1 = await agent()
         .post(`/api/v1/orders/${order.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ version: 2 });
+      expect(approve1.status, JSON.stringify(approve1.body)).toBe(201);
 
       const outbox = h.app.get(OutboxWorkerService);
-      await outbox.runOnce('worker-gd10'); // fan-out tạo delivery
-      await outbox.runOnce('worker-gd10'); // at-least-once: chạy lại KHÔNG tạo trùng
+      const ob1 = await outbox.runOnce('worker-gd10'); // fan-out tạo delivery
+      expect(ob1.failed, `runOnce lần 1 có event lỗi: ${JSON.stringify(ob1)}`).toBe(0);
+      expect(ob1.processed).toBeGreaterThanOrEqual(1);
+      const ob1b = await outbox.runOnce('worker-gd10'); // at-least-once: chạy lại KHÔNG tạo trùng
+      expect(ob1b.failed, `runOnce lần 2 có event lỗi: ${JSON.stringify(ob1b)}`).toBe(0);
 
       const webhooks = h.app.get(WebhooksRepository);
       const result = await webhooks.deliverDue();
@@ -214,12 +220,25 @@ describe('GĐ10 — approval authorities + webhooks + personalization', () => {
       expect(rotated.body.secret).not.toBe(secret);
 
       const order2 = await makeOrder('1200000');
-      await agent()
+      const approve2 = await agent()
         .post(`/api/v1/orders/${order2.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ version: 2 });
-      await outbox.runOnce('worker-gd10');
-      await webhooks.deliverDue();
+      expect(approve2.status, JSON.stringify(approve2.body)).toBe(201);
+      const ob2 = await outbox.runOnce('worker-gd10');
+      expect(ob2.failed, `runOnce order2 có event lỗi: ${JSON.stringify(ob2)}`).toBe(0);
+      if (ob2.processed < 1) {
+        // AUTOPSY gốc #4: claim 0 dù approve 201 đã commit — dump thẳng trạng
+        // thái hàng đợi để lần đỏ kế tiếp mang đủ dữ liệu kết luận
+        const rows = await h.rawPrisma.$queryRaw`
+          SELECT id, status, attempts, available_at, locked_by, locked_at, now() AS db_now
+          FROM outbox_events WHERE aggregate_id = ${order2.id}::uuid`;
+        expect.fail(
+          `runOnce order2 claim 0. app_now=${new Date().toISOString()} rows=${JSON.stringify(rows)}`,
+        );
+      }
+      const dd2 = await webhooks.deliverDue();
+      expect(dd2.sent, `deliverDue order2 không gửi gì: ${JSON.stringify(dd2)}`).toBeGreaterThanOrEqual(1);
       const second = received.filter((r) => r.body.includes(order2.id));
       expect(second).toHaveLength(1);
       expect(second[0]!.signature).toContain('v1prev='); // HAI secret cùng hiệu lực
@@ -247,25 +266,40 @@ describe('GĐ10 — approval authorities + webhooks + personalization', () => {
         .post('/api/v1/webhooks/endpoints')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ url: `http://127.0.0.1:${port}/hooks` });
-      await agent()
+      expect(endpoint.status, JSON.stringify(endpoint.body)).toBe(201);
+      const sub2 = await agent()
         .post(`/api/v1/webhooks/endpoints/${endpoint.body.id}/subscriptions`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ eventType: 'ORDER_APPROVED' });
+      expect(sub2.status, JSON.stringify(sub2.body)).toBe(201);
 
       const order = await makeOrder('1500000');
-      await agent()
+      const approve = await agent()
         .post(`/api/v1/orders/${order.id}/approve`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ version: 2 });
+      expect(approve.status, JSON.stringify(approve.body)).toBe(201);
       const outbox = h.app.get(OutboxWorkerService);
-      await outbox.runOnce('worker-gd10b');
+      const ob = await outbox.runOnce('worker-gd10b');
+      expect(ob.failed, `runOnce có event lỗi: ${JSON.stringify(ob)}`).toBe(0);
+      if (ob.processed < 1) {
+        const rows = await h.rawPrisma.$queryRaw`
+          SELECT id, status, attempts, available_at, locked_by, locked_at, now() AS db_now
+          FROM outbox_events WHERE aggregate_id = ${order.id}::uuid`;
+        expect.fail(
+          `runOnce claim 0. app_now=${new Date().toISOString()} rows=${JSON.stringify(rows)}`,
+        );
+      }
       const webhooks = h.app.get(WebhooksRepository);
-      await webhooks.deliverDue();
+      const dd = await webhooks.deliverDue();
+      expect(dd.sent + dd.failed, `deliverDue không đụng delivery nào: ${JSON.stringify(dd)}`).toBeGreaterThanOrEqual(1);
 
       const deliveries = await agent()
         .get(`/api/v1/webhooks/deliveries?endpointId=${endpoint.body.id}`)
         .set('Authorization', `Bearer ${adminToken}`);
       const row = deliveries.body.find((d: { eventType: string }) => d.eventType === 'ORDER_APPROVED');
+      // Gốc #4 từng chết CÂM ở đây (row undefined) — dump body để lần sau đỏ là thấy dữ liệu
+      expect(row, `không có delivery ORDER_APPROVED cho endpoint: ${JSON.stringify(deliveries.body)}`).toBeDefined();
       expect(row.status).toBe('PENDING'); // chưa cạn attempts
       expect(row.attempts).toBe(1);
       expect(row.responseStatus).toBe(500);

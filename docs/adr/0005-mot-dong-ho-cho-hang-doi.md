@@ -45,6 +45,20 @@ Ghi chú chọn phía: đồng hồ **app** là mặc định cho hàng đợi v
 đặt `@default(now())` phía app — đổi phía đặt khó hơn đổi phía so. Lease
 (`locked_at`) giữ đồng hồ DB vì cả đặt lẫn so đều là SQL thuần.
 
+## Bổ sung F-24 (cùng ngày): cùng đồng hồ CHƯA đủ — phải cùng ĐỘ PHÂN GIẢI
+
+Sau khi vá F-23, vòng săn vẫn bắt được biến thể dưới-mili-giây (autopsy dán ở
+SWEEP-REPORT): `@default(now())` do **query engine Rust** của Prisma đánh giá
+với độ phân giải **micro giây**, còn phía claim so bằng **JS Date (mili giây)**.
+Khi insert và claim rơi cùng một ms, `available_at = .038xxx > now = .038000`
+→ event tàng hình dưới 1ms — đủ để test bắn liền tay trượt, và ở prod là một
+"lỗ nháy" phi tất định mỗi lần enqueue-rồi-poll-ngay.
+
+**Luật đầy đủ:** giá trị thời gian dùng để so sánh phải được ĐẶT **tường minh
+từ tầng ứng dụng** (`new Date()` — ms), KHÔNG để engine sinh default — cùng
+đồng hồ VÀ cùng độ phân giải với phía so. `enqueueInTx` nay đặt `availableAt`
+tường minh.
+
 ## Hệ quả
 
 - Module tương lai thêm cột `*_at` có so sánh: chọn MỘT đồng hồ ngay lúc
