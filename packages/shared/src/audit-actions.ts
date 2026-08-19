@@ -37,6 +37,8 @@ export const AUDIT_ACTIONS = {
   ACTIVATE_TENANT: 'ACTIVATE_TENANT',
   SET_FEATURES: 'SET_FEATURES',
   // --- Vận hành (§5C.8) + import/webhook ---
+  /** F11 (C1): PermissionSync tự cấp quyền MỚI trong registry cho TENANT_ADMIN lúc boot */
+  PERMISSION_AUTO_GRANT: 'PERMISSION_AUTO_GRANT',
   CACHE_CLEARED: 'CACHE_CLEARED',
   QUEUE_RETRY_FAILED: 'QUEUE_RETRY_FAILED',
   IMPORT_COMPLETED: 'IMPORT_COMPLETED',
@@ -68,6 +70,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   SUSPEND_TENANT: 'Đình chỉ tenant',
   ACTIVATE_TENANT: 'Kích hoạt tenant',
   SET_FEATURES: 'Đổi tính năng tenant',
+  PERMISSION_AUTO_GRANT: 'Tự cấp quyền mới (đồng bộ registry)',
   CACHE_CLEARED: 'Xoá cache',
   QUEUE_RETRY_FAILED: 'Retry job lỗi',
   IMPORT_COMPLETED: 'Nhập dữ liệu xong',
