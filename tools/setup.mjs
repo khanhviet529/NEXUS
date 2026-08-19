@@ -24,7 +24,7 @@
  * initialize`. Tài liệu nói "chạy một lệnh" thì lệnh đó phải làm hết.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, copyFileSync } from 'node:fs';
+import { existsSync, copyFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
