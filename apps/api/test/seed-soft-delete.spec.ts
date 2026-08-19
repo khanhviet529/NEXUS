@@ -59,6 +59,12 @@ describe('F12 — re-seed không trỏ userRole vào role đã soft-delete', () 
     const deadLinksAfter = await raw.userRole.count({ where: { roleId: dead.id } });
     expect(deadLinksAfter).toBe(deadLinksBefore);
 
-    // Trả hiện trường: các file test sau dùng seed bình thường (role sống đã có)
+    // TRẢ HIỆN TRƯỜNG THẬT — file chạy chung một DB (fileParallelism:false):
+    // để lại xác STAFF là file sau vớ phải nó (đúng bẫy F12 mà test này mô tả).
+    // Xoá role MỚI (kèm liên kết seed vừa tạo) rồi hồi sinh role gốc.
+    await raw.userRole.deleteMany({ where: { roleId: live.id } });
+    await raw.rolePermission.deleteMany({ where: { roleId: live.id } });
+    await raw.role.delete({ where: { id: live.id } });
+    await raw.role.update({ where: { id: dead.id }, data: { deletedAt: null } });
   });
 });

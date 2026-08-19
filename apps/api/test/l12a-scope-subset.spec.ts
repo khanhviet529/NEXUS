@@ -76,12 +76,17 @@ describe('L12a — narrow ⊆ broad cho mọi endpoint danh sách', () => {
       expect(broad.status, `${routeKey(r)} — admin scope all phải 200`).toBe(200);
       const broadSet = new Set(broad.ids);
 
+      // Tập-con CHỈ so được khi broad lấy TRỌN tập (total ≤ limit) — khi dữ
+      // liệu > 1 trang, trang-1 của narrow hợp lệ chứa dòng nằm sâu trong tập
+      // broad (phát hiện khi audit-logs vượt 100 dòng ở full-suite).
+      const broadComplete = broad.total === null || broad.total <= 100;
+
       for (const [actor, token] of Object.entries(narrowTokens)) {
         const narrow = await fetchList(r.path, token);
         if (narrow.status !== 200) continue; // không có quyền — lưới khác lo
         compared++;
 
-        const escaped = narrow.ids.filter((id) => !broadSet.has(id));
+        const escaped = broadComplete ? narrow.ids.filter((id) => !broadSet.has(id)) : [];
         if (escaped.length > 0) {
           offenders.push(
             `${routeKey(r)} [${actor}] — ${escaped.length} id ngoài tập broad: ${escaped
@@ -89,7 +94,7 @@ describe('L12a — narrow ⊆ broad cho mọi endpoint danh sách', () => {
               .join(', ')}`,
           );
         }
-        if (narrow.ids.length > broad.ids.length) {
+        if (broadComplete && narrow.ids.length > broad.ids.length) {
           offenders.push(
             `${routeKey(r)} [${actor}] — narrow ${narrow.ids.length} dòng > broad ${broad.ids.length}`,
           );

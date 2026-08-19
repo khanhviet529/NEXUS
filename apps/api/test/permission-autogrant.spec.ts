@@ -53,14 +53,20 @@ describe('F11 — PermissionSync auto-grant cho TENANT_ADMIN', () => {
     prisma = h.app.get(PrismaService);
     ctx = h.app.get(RequestContextService);
     sync = h.app.get(PermissionSyncService);
-    tenantIds = (await prisma.client.tenant.findMany({ select: { id: true } })).map((t) => t.id);
+    // CHỈ 2 tenant seed — file khác trong full-suite có thể provision thêm tenant
+    tenantIds = (
+      await prisma.client.tenant.findMany({
+        where: { code: { in: ['TENANT-A', 'TENANT-B'] } },
+        select: { id: true },
+      })
+    ).map((t) => t.id);
     expect(tenantIds.length).toBe(2);
   });
   afterAll(async () => {
     await h.close();
   });
 
-  it('sau boot: TENANT_ADMIN của CẢ 2 tenant có đủ mọi quyền tenant-level, KHÔNG có quyền system*', async () => {
+  it('sau boot: TENANT_ADMIN của cả 2 tenant SEED đủ quyền tenant-level, KHÔNG có system*', async () => {
     for (const tenantId of tenantIds) {
       const role = await adminRoleOf(tenantId);
       const grants = await grantsOf(tenantId, role.id);

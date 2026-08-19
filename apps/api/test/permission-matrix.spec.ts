@@ -174,7 +174,8 @@ describe('Ma trận quyền (§8.2 #8)', () => {
 
   it('vai trò is_system: sửa/xoá → 403', async () => {
     const role = await h.rawPrisma.role.findFirstOrThrow({
-      where: { tenantId: h.seed.tenantA.tenantId, code: 'STAFF' },
+      // F12: client trần thấy cả role soft-delete — lọc tay
+      where: { tenantId: h.seed.tenantA.tenantId, code: 'STAFF', deletedAt: null },
     });
     const patch = await request(h.app.getHttpServer())
       .patch(`/api/v1/roles/${role.id}`)
