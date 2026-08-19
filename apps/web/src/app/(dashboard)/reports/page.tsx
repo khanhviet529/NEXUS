@@ -130,6 +130,9 @@ function ParamField({
 function formatCell(value: unknown, type?: string): string {
   if (value === null || value === undefined) return '—';
   if (type === 'money') return formatMoney(String(value));
+  // F14 (C1): SUM của BE trả decimal string — cột number in "15.00" như tiền.
+  // Format theo type cột: number là số đếm/đo, không phải tiền.
+  if (type === 'number') return new Intl.NumberFormat('vi-VN').format(Number(value));
   if (type === 'date') return new Date(String(value)).toLocaleDateString('vi');
   return String(value);
 }

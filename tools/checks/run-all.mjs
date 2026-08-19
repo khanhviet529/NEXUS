@@ -75,10 +75,20 @@ for (const check of checks) {
 }
 
 console.log('');
-console.log(`— ${ran.length}/${checks.length} check ĐÃ CHẠY —`);
+// F09 (C1): BA trạng thái — PASS · FAIL · CANNOT-RUN-hợp-lệ. Clone sạch không
+// có nhánh gốc để so diff là trạng thái HỢP LỆ ở local → tính ĐẠT kèm ghi chú,
+// không phải "10/11" gây hoang mang. Ở CI thì CANNOT-RUN vẫn là lỗi cấu hình (đỏ).
+const okCount = ran.length + (IN_CI ? 0 : skipped.length);
+console.log(
+  `— ${okCount}/${checks.length} check ĐẠT` +
+    (skipped.length && !IN_CI
+      ? ` (${ran.length} chạy + ${skipped.length} CANNOT-RUN hợp lệ ở local)`
+      : '') +
+    ' —',
+);
 
 if (skipped.length) {
-  console.log(`   ${skipped.length} check KHÔNG chạy được: ${skipped.join(', ')}`);
+  console.log(`   CANNOT-RUN: ${skipped.join(', ')}`);
 }
 if (failed.length) {
   console.error(`   ${failed.length} check ĐỎ: ${failed.join(', ')}`);
