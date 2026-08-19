@@ -7,30 +7,40 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
  * [GEN] Repository {{pascalCase name}} — khuôn [REF] modules/orders.
  * Mọi truy vấn qua PrismaService: extension tự inject tenant_id (§4.4b)
  * + soft delete (§4.5). KHÔNG gọi Prisma client trần ngoài file này.
+ * scopeWhere caller lấy từ Ability — row-level scope NẰM TRONG QUERY
+ * (§4.4 quy tắc 3); count CÙNG where với findMany (L10: total áp scope,
+ * thiếu là phân trang sai âm thầm).
  */
 @Injectable()
 export class {{pascalCase name}}sRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(page: number, limit: number) {
+  async list(params: { scopeWhere: Record<string, unknown>; page: number; limit: number }) {
+    const where = params.scopeWhere as Prisma.{{pascalCase name}}WhereInput;
     return Promise.all([
       this.prisma.client.{{camelCase name}}.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (params.page - 1) * params.limit,
+        take: params.limit,
       }),
-      this.prisma.client.{{camelCase name}}.count(),
+      this.prisma.client.{{camelCase name}}.count({ where }),
     ]);
   }
 
-  findById(id: string) {
-    return this.prisma.client.{{camelCase name}}.findFirst({ where: { id } });
+  /** Detail/update/delete PHẢI qua đây — id ngoài scope → null → 404 (IDOR §4.10) */
+  findInScope(scopeWhere: Record<string, unknown>, id: string) {
+    return this.prisma.client.{{camelCase name}}.findFirst({
+      where: { AND: [scopeWhere as Prisma.{{pascalCase name}}WhereInput, { id }] },
+    });
   }
 
-  create(tenantId: string, input: { code: string; name: LocalizedText }) {
+  create(input: { tenantId: string; createdById: string; code: string; name: LocalizedText }) {
     return this.prisma.client.{{camelCase name}}.create({
       data: {
-        tenantId,
+        tenantId: input.tenantId,
+        // scope `own` so trên createdById — không ghi cột này là mù scope
+        createdById: input.createdById,
         code: input.code,
         name: input.name as Prisma.InputJsonValue,
         // Cột *_search chuẩn hoá Ở TẦNG ỨNG DỤNG (§3.10, quyết định #41)

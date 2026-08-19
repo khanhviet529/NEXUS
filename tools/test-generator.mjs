@@ -6,7 +6,7 @@
  * chèn model vào schema, chạy migration) rồi dọn lại. Chạy chung tiến trình
  * với vitest thì một lần đỏ giữa chừng sẽ để lại rác cho mọi test sau.
  *
- * BỐN KHẲNG ĐỊNH — khẳng định 2 là cái dễ bị bỏ nhất:
+ * NĂM KHẲNG ĐỊNH — khẳng định 2 là cái dễ bị bỏ nhất:
  *
  *   1. Sinh ĐỦ 7 file, đúng đường dẫn
  *   2. CHECK KIẾN TRÚC PHẢI ĐỎ NGAY SAU KHI SINH
@@ -16,6 +16,10 @@
  *   3. Khai registry → check xanh, migrate được, typecheck xanh
  *   4. TEST SINH KÈM PHẢI CHẠY VÀ XANH
  *      Điều duy nhất chứng minh code HOẠT ĐỘNG, không chỉ BIÊN DỊCH.
+ *   5. MODULE VỪA SINH PHẢI ÁP SCOPE ROW-LEVEL (F06 của C1)
+ *      Khuôn cũ list/detail không có scopeWhere/getInScope → user scope `own`
+ *      thấy TOÀN BỘ bản ghi trong tenant. Cách ly TENANT thì extension lo,
+ *      nhưng cách ly SCOPE là việc của khuôn — và đây là chỗ khuôn từng rò.
  *
  * Dọn dẹp: khôi phục mọi file đã sửa. Bước cuối của job CI chạy
  * `git diff --exit-code` để kiểm CHÍNH hàm dọn dẹp này — dọn sót thì đỏ.
@@ -81,6 +85,7 @@ function assert(label, ok, detail = '') {
 function cleanup() {
   for (const [file, content] of originals) writeFileSync(file, content, 'utf8');
   for (const f of EXPECTED_FILES) rmSync(join(ROOT, f), { force: true });
+  rmSync(join(ROOT, `apps/api/test/${PLURAL}-scope.spec.ts`), { force: true }); // spec tạm của #5
   rmSync(join(ROOT, `apps/api/src/modules/${PLURAL}`), { recursive: true, force: true });
   rmSync(join(ROOT, `apps/web/src/features/${PLURAL}`), { recursive: true, force: true });
   rmSync(join(ROOT, `apps/web/src/app/(dashboard)/${PLURAL}`), { recursive: true, force: true });
@@ -219,7 +224,19 @@ model ${MODEL} {
   const grants = ['read', 'create', 'update', 'delete']
     .map((a) => `    { code: '${NAME}:${a}', scope: 'all' },`)
     .join(NL);
-  writeFileSync(SEEDROLES, roles.replace(roleAnchor, `${roleAnchor}${NL}${grants}`), 'utf8');
+  // Khẳng định #5 cần một actor scope HẸP: STAFF được read/create scope `own`
+  const staffAnchor = '  [SEED_ROLES.STAFF]: [';
+  if (!roles.includes(staffAnchor)) throw new Error('không thấy khối STAFF trong seed-roles');
+  const staffGrants = ['read', 'create']
+    .map((a) => `    { code: '${NAME}:${a}', scope: 'own' },`)
+    .join(NL);
+  writeFileSync(
+    SEEDROLES,
+    roles
+      .replace(roleAnchor, `${roleAnchor}${NL}${grants}`)
+      .replace(staffAnchor, `${staffAnchor}${NL}${staffGrants}`),
+    'utf8',
+  );
 
   remember(APPMODULE);
   const am = readFileSync(APPMODULE, 'utf8');
@@ -315,6 +332,85 @@ CREATE UNIQUE INDEX "${PLURAL}_tenant_id_code_key" ON "${PLURAL}" ("tenant_id", 
     '#4 test sinh kèm CHẠY và XANH',
     genSpec.status === 0 && ran,
     genSpec.status === 0 && ran ? '' : genSpec.out.slice(-500),
+  );
+
+  // ══ KHẲNG ĐỊNH 5 — scope row-level của module VỪA SINH, CHƯA SỬA TAY ═════
+  // Cách ly tenant thì Prisma extension lo hộ; cách ly SCOPE (own/department)
+  // là trách nhiệm của khuôn controller/repository. Spec tạm này viết SAU #4
+  // (pattern `sweepwidgets` của #4 sẽ khớp cả file này nếu viết sớm hơn).
+  const scopeSpec = join(ROOT, `apps/api/test/${PLURAL}-scope.spec.ts`);
+  writeFileSync(
+    scopeSpec,
+    `import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { createTestApp, type TestHarness } from './setup/test-app';
+
+// Spec TẠM của test #37 khẳng định 5 — cleanup xoá file này.
+describe('${MODEL} — scope row-level của khuôn generator', () => {
+  let h: TestHarness;
+  const agent = () => request(h.app.getHttpServer());
+  let adminA = '';
+  let staffA = '';
+  let adminB = '';
+
+  beforeAll(async () => {
+    h = await createTestApp();
+    adminA = await h.login('admin@tenant-a.local');
+    staffA = await h.login('staff@tenant-a.local');
+    adminB = await h.login('admin@tenant-b.local');
+  });
+  afterAll(async () => {
+    await h.close();
+  });
+
+  it('staff scope own KHÔNG thấy bản ghi người khác; id tenant khác → 404', async () => {
+    const mk = (token: string, code: string) =>
+      agent()
+        .post('/api/v1/${PLURAL}')
+        .set('Authorization', \`Bearer \${token}\`)
+        .send({ code, name: { vi: code } });
+    const rAdmin = await mk(adminA, 'SCOPE-ADMIN-A');
+    const rStaff = await mk(staffA, 'SCOPE-STAFF-A');
+    const rB = await mk(adminB, 'SCOPE-ADMIN-B');
+    expect(rAdmin.status, JSON.stringify(rAdmin.body)).toBe(201);
+    expect(rStaff.status, JSON.stringify(rStaff.body)).toBe(201);
+    expect(rB.status, JSON.stringify(rB.body)).toBe(201);
+
+    // list của staff (scope own) — chỉ bản ghi MÌNH tạo
+    const list = await agent()
+      .get('/api/v1/${PLURAL}')
+      .set('Authorization', \`Bearer \${staffA}\`);
+    expect(list.status).toBe(200);
+    const codes = list.body.data.map((r: { code: string }) => r.code);
+    expect(codes).toContain('SCOPE-STAFF-A');
+    expect(codes, 'RÒ SCOPE: staff thấy bản ghi của admin').not.toContain('SCOPE-ADMIN-A');
+    // total của phân trang cũng phải áp scope (§3.3)
+    expect(list.body.meta.total).toBe(1);
+
+    // detail ngoài scope → 404 (IDOR §4.10), không phải 200/403
+    const outOfScope = await agent()
+      .get(\`/api/v1/${PLURAL}/\${rAdmin.body.id}\`)
+      .set('Authorization', \`Bearer \${staffA}\`);
+    expect(outOfScope.status, 'RÒ SCOPE: staff đọc được bản ghi của admin').toBe(404);
+
+    // id thuộc tenant B → 404 với mọi token tenant A
+    const crossTenant = await agent()
+      .get(\`/api/v1/${PLURAL}/\${rB.body.id}\`)
+      .set('Authorization', \`Bearer \${adminA}\`);
+    expect(crossTenant.status).toBe(404);
+  });
+});
+`,
+    'utf8',
+  );
+  const scopeRun = run('npx', ['vitest', 'run', `${PLURAL}-scope`], { cwd: join(ROOT, 'apps/api') });
+  writeFileSync(join(ROOT, 'test37-scope-spec.log'), scopeRun.out, 'utf8');
+  // Cùng fallback với #4: output vitest có mã màu ANSI chen giữa chữ và số
+  const scopeRan = /Tests\s+\d+\s+passed/.test(scopeRun.out) || /\d+ passed/.test(scopeRun.out);
+  assert(
+    '#5 module vừa sinh áp scope row-level (own ⊄ all, IDOR 404)',
+    scopeRun.status === 0 && scopeRan,
+    scopeRun.status === 0 && scopeRan ? '' : scopeRun.out.slice(-500),
   );
 } catch (e) {
   assert('chạy trọn kịch bản', false, e instanceof Error ? e.message : String(e));

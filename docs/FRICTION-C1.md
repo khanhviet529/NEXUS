@@ -18,8 +18,11 @@
 
 | # | Số đo | Ngưỡng | Thực tế | Đạt? |
 |---|---|---|---|---|
-| M3 | File hạ tầng phải sửa | ≤ 5 | **10** (chi tiết mục 4) | ❌ VƯỢT — nhưng 10/10 là "theo công thức", 0 file là vá lỗi |
+| M3a | Sửa vì hạ tầng THIẾU/HỎNG | ≤ 5 | **0** | ✅ — đây mới là số đo "đủ tổng quát" |
+| M3b | Khai module vào registry tập trung (theo công thức) | — | **10** (chi tiết mục 4) | Đo CHI PHÍ THÊM MODULE, không phải lỗi boilerplate. Ngưỡng cũ M3≤5 gộp hai thứ khác nhau — đã tách sau đính chính lượt 2 |
 | M4 | Số lần đọc source vì docs thiếu | ≤ 10 | **2** (chi tiết mục 6) | ✅ |
+
+_M3b nối thẳng với bảng cắt gọt §11: thêm module = sửa 10 file registry, XOÁ module = dọn lại đúng 10 file đó — cùng một vấn đề. Nếu registry chuyển sang module-tự-khai thì §11 rút về `rm -rf modules/x`. Quyết định kiến trúc lớn → ADR, chờ dữ liệu dự án thứ hai (SỔ NỢ mục 11)._
 
 ## 2. Thời gian từng bước vs tài liệu
 
@@ -70,11 +73,11 @@
 | packages/shared/src/entity-types.ts | 4 entity type mới — attachments/comments/audit cần whitelist | TỔNG QUÁT theo thiết kế (bước 3) |
 | docs/boilerplate-spec.md (§6.5 + §11) | check-matrix + check-cut-table bắt buộc | TỔNG QUÁT theo thiết kế (bước 4) |
 
-**M3 = 10 file hạ tầng — VƯỢT ngưỡng 5 (gấp đôi).** Điểm mấu chốt: KHÔNG file nào là "vá lỗi"
-— tất cả là REGISTRY TẬP TRUNG mà thiết kế bắt mọi dự án sửa theo công thức.
-Ngưỡng M3≤5 và kiến trúc registry-trong-shared đang MÂU THUẪN NHAU — hoặc đổi
-ngưỡng, hoặc chuyển registry sang cơ chế module-tự-khai (mỗi module tự khai
-permission/state-machine/sensitive-fields của nó, boot gom lại).
+**M3a = 0 (sửa vì thiếu/hỏng) · M3b = 10 (khai theo công thức).** KHÔNG file nào
+là "vá lỗi" — tất cả là REGISTRY TẬP TRUNG mà thiết kế bắt mọi dự án sửa theo
+công thức; cột 3 của bảng trên chính là phân loại M3b cho từng file. Phương án
+module-tự-khai (mỗi module tự khai permission/state-machine/sensitive-fields,
+boot gom lại) là ADR chờ dữ liệu dự án thứ hai — xem SỔ NỢ.
 
 ## 5. Năm thăm dò — kết quả từng cái
 
@@ -138,6 +141,23 @@ DÙNG NHIỀU ngoài dự kiến: audit-timeline + attachment-list (aside mọi 
 | 14 | 2 vai trò mới qua UI, không sửa code | ⚠️ ✅ có sao | tạo 4 role qua đúng API màn /roles, KHÔNG sửa seed cho role mới — nhưng lộ F10+F11, và TENANT_ADMIN phải nhận quyền mới qua seed-roles trước |
 
 Lưới an toàn kế thừa: full BE suite + universal/l16/u6 cập nhật cho 27 route mới — output dán ở báo cáo cuối.
+
+## 9b. Rà scope 27 route sourcing (P0.4 — lượt 2)
+
+Sau khi vá khuôn generator (F06), rà TAY 27 route mới của sourcing:
+
+| Module | Route thiếu scope | Ghi chú |
+|---|---|---|
+| requisitions | **0/11** | copy thẳng orders [REF] → list scopeWhere + getInScope đủ |
+| suppliers | **5/6** (list, GET/:id, PATCH/:id, DELETE/:id, export) | copy khuôn gen CŨ → `findFirst({where:{id}})` |
+| materials | **5/6** | như trên |
+| material-categories | **3/4** (list, PATCH/:id, DELETE/:id) | như trên |
+
+**13/27 route thiếu scope — rò TIỀM ẨN, chưa lộ dữ liệu**: mọi grant danh mục
+trong pilot đều scope `all`, và cách ly TENANT vẫn kín nhờ Prisma extension.
+Nhưng cấp `supplier:read` scope `own` cho role nào là rò ngay. Đây là bằng
+chứng sống của F06: người copy KHUÔN thì dính, người copy ORDERS thì không.
+Sửa sourcing thuộc lượt vá riêng của repo đó (ngoài phạm vi lượt 2 NEXUS).
 
 ## 10. Việc còn treo sau lượt 1 (không tự quyết)
 

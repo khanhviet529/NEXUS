@@ -9,6 +9,7 @@ import { AppException } from '../../common/errors/app.exception';
 import { buildMeta } from '../../common/dto/paginated.dto';
 import { resolveLocalizedValue, type Locale, type LocalizedText } from '../../common/query/localized';
 import { RequestContextService } from '../../infra/cls/request-context';
+import { AbilityService } from '../auth/ability.service';
 import { AuditRepository } from '../audit/audit.repository';
 import { {{pascalCase name}}sRepository } from './{{dashCase name}}s.repository';
 
@@ -43,7 +44,9 @@ class List{{pascalCase name}}sDto {
 
 /**
  * [GEN] {{pascalCase name}}s — khuôn [REF] orders: @RequirePermission MỌI route
- * (check #5 quét), audit MỌI đường ghi (§4.9), locale resolve response (§3.10).
+ * (check #5 quét), row-level scope NHÚNG VÀO WHERE (§4.4 — list scopeWhere,
+ * detail findInScope, KHÔNG lọc sau khi query), audit MỌI đường ghi (§4.9),
+ * locale resolve response (§3.10).
  * TODO sau khi sinh: filter/sort whitelist qua QueryConfig (khuôn products).
  */
 @ApiTags('{{dashCase name}}s')
@@ -53,13 +56,24 @@ export class {{pascalCase name}}sController {
     private readonly repo: {{pascalCase name}}sRepository,
     private readonly audit: AuditRepository,
     private readonly ctx: RequestContextService,
+    private readonly ability: AbilityService,
   ) {}
+
+  private async scopeWhere(user: AuthUser, permission: string) {
+    const ability = await this.ability.forUser(user);
+    return ability.scopeWhere(permission);
+  }
 
   @Get()
   @RequirePermission('{{dashCase name}}:read')
   @ApiOperation({ summary: 'Danh sách — NHỚ viết test đếm query (#12)' })
-  async list(@Query() query: List{{pascalCase name}}sDto) {
-    const [data, total] = await this.repo.list(query.page, query.limit);
+  async list(@CurrentUser() user: AuthUser, @Query() query: List{{pascalCase name}}sDto) {
+    const scopeWhere = await this.scopeWhere(user, '{{dashCase name}}:read');
+    const [data, total] = await this.repo.list({
+      scopeWhere,
+      page: query.page,
+      limit: query.limit,
+    });
     const locale = this.ctx.locale as Locale;
     return {
       data: data.map((row) => ({
@@ -74,9 +88,10 @@ export class {{pascalCase name}}sController {
 
   @Get(':id')
   @RequirePermission('{{dashCase name}}:read')
-  async detail(@Param('id', ParseUUIDPipe) id: string) {
-    const row = await this.repo.findById(id);
-    if (!row) throw new AppException('COMMON.NOT_FOUND');
+  async detail(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    const scopeWhere = await this.scopeWhere(user, '{{dashCase name}}:read');
+    const row = await this.repo.findInScope(scopeWhere, id);
+    if (!row) throw new AppException('COMMON.NOT_FOUND'); // ngoài scope = 404, chống IDOR (§4.10)
     return {
       id: row.id,
       code: row.code,
@@ -89,7 +104,12 @@ export class {{pascalCase name}}sController {
   @HttpCode(201)
   @RequirePermission('{{dashCase name}}:create')
   async create(@CurrentUser() user: AuthUser, @Body() dto: Create{{pascalCase name}}Dto) {
-    const row = await this.repo.create(user.tenantId, dto);
+    const row = await this.repo.create({
+      tenantId: user.tenantId,
+      createdById: user.sub,
+      code: dto.code,
+      name: dto.name,
+    });
     // ADR-0004: action LẤY TỪ REGISTRY (không chuỗi tự do — timeline §4.9 phải
     // đọc được). Có transaction nghiệp vụ → chuyển sang audit.writeInTx(tx, …)
     // trong repository để audit cùng sống cùng chết với write (test #31).
