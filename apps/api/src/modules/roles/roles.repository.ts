@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { AUDIT_ACTIONS } from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { AuditRepository } from '../audit/audit.repository';
 
 @Injectable()
 export class RolesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditRepository,
+  ) {}
 
   list(tenantId: string) {
     return this.prisma.client.role.findMany({
@@ -20,8 +25,34 @@ export class RolesRepository {
     });
   }
 
-  create(tenantId: string, data: { code: string; name: string }) {
-    return this.prisma.client.role.create({ data: { tenantId, ...data } });
+  /**
+   * F10 (C1): tạo role + gán quyền + audit trong MỘT transaction — cấp quyền
+   * fail (luật §2.3, permission lạ…) thì KHÔNG để lại role mồ côi 0 quyền.
+   * Audit writeInTx theo ADR-0004: cùng sống cùng chết với write nghiệp vụ.
+   */
+  createWithPermissions(
+    tenantId: string,
+    data: { code: string; name: string },
+    entries: Array<{ permissionId: string; scope: string }>,
+    auditInput: { actorId?: string; after: Record<string, unknown> },
+  ) {
+    return this.prisma.client.$transaction(async (tx) => {
+      const role = await tx.role.create({ data: { tenantId, ...data } });
+      for (const e of entries) {
+        await tx.rolePermission.create({
+          data: { tenantId, roleId: role.id, permissionId: e.permissionId, scope: e.scope },
+        });
+      }
+      await this.audit.writeInTx(tx, {
+        tenantId,
+        entity: 'Role',
+        entityId: role.id,
+        action: AUDIT_ACTIONS.CREATE,
+        actorId: auditInput.actorId,
+        after: auditInput.after,
+      });
+      return role;
+    });
   }
 
   update(id: string, data: { name?: string }) {

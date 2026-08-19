@@ -8,6 +8,7 @@ import {
   VN_RECURRING_HOLIDAYS,
 } from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import type { TxClient } from '../outbox/outbox.repository';
 import { RequestContextService } from '../../infra/cls/request-context';
 import { OrgTreeRepository } from '../auth/org-tree.repository';
 
@@ -87,7 +88,11 @@ export class AdminRepository {
     defaultLocale?: string;
     defaultTimezone?: string;
   }) {
-    const tenant = await this.prisma.client.tenant.create({
+    // F10 mở rộng (C1 lượt 2): trước đây tenant tạo NGOÀI tx rồi mới seed —
+    // fail giữa chừng để lại tenant nửa vời (có tenant, thiếu role/lịch).
+    // Giờ: MỘT transaction, cùng sống cùng chết.
+    return this.prisma.client.$transaction(async (tx: TxClient) => {
+    const tenant = await tx.tenant.create({
       data: {
         code: input.code,
         name: input.name,
@@ -98,18 +103,18 @@ export class AdminRepository {
     });
 
     await this.ctx.runWith({ tenantId: tenant.id }, async () => {
-      const root = await this.prisma.client.orgUnit.create({
+      const root = await tx.orgUnit.create({
         data: { tenantId: tenant.id, code: 'ROOT', name: `${input.name} (gốc)` },
       });
-      await this.orgTree.setPathOnCreate(tenant.id, root.id, null);
+      await this.orgTree.setPathOnCreate(tenant.id, root.id, null, tx);
 
-      const allPermissions = await this.prisma.client.permission.findMany();
+      const allPermissions = await tx.permission.findMany();
       const byCode = new Map(allPermissions.map((p) => [p.code, p.id]));
 
       const roleIdByCode = new Map<string, string>();
       for (const [roleCode, perms] of Object.entries(SEED_ROLE_PERMISSIONS)) {
         if (roleCode === SEED_ROLES.SYSADMIN) continue;
-        const role = await this.prisma.client.role.create({
+        const role = await tx.role.create({
           data: { tenantId: tenant.id, code: roleCode, name: roleCode, isSystem: true },
         });
         roleIdByCode.set(roleCode, role.id);
@@ -120,7 +125,7 @@ export class AdminRepository {
         for (const e of entries) {
           const permissionId = byCode.get(e.code);
           if (!permissionId) continue;
-          await this.prisma.client.rolePermission.create({
+          await tx.rolePermission.create({
             data: { tenantId: tenant.id, roleId: role.id, permissionId, scope: e.scope },
           });
         }
@@ -130,7 +135,7 @@ export class AdminRepository {
       for (const roleCode of [SEED_ROLES.MANAGER, SEED_ROLES.TENANT_ADMIN]) {
         const roleId = roleIdByCode.get(roleCode);
         if (!roleId) continue;
-        await this.prisma.client.approvalAuthority.create({
+        await tx.approvalAuthority.create({
           data: {
             tenantId: tenant.id,
             documentType: 'ORDER',
@@ -145,10 +150,10 @@ export class AdminRepository {
       }
 
       // Business calendar mặc định (§5C.4, GĐ7) — CÙNG data với prisma/seed.ts
-      const calendar = await this.prisma.client.businessCalendar.create({
+      const calendar = await tx.businessCalendar.create({
         data: { tenantId: tenant.id, name: 'Lịch làm việc chuẩn', isDefault: true },
       });
-      await this.prisma.client.calendarWorkingHour.createMany({
+      await tx.calendarWorkingHour.createMany({
         data: VN_DEFAULT_WORKING_HOURS.flatMap((d) =>
           d.intervals.map((iv) => ({
             tenantId: tenant.id,
@@ -159,7 +164,7 @@ export class AdminRepository {
           })),
         ),
       });
-      await this.prisma.client.calendarHoliday.createMany({
+      await tx.calendarHoliday.createMany({
         data: [
           ...VN_RECURRING_HOLIDAYS.map((h) => ({
             tenantId: tenant.id,
@@ -180,5 +185,6 @@ export class AdminRepository {
     });
 
     return tenant;
+    });
   }
 }

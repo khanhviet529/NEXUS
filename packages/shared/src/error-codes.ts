@@ -115,6 +115,13 @@ export const ERROR_CODES = {
   // --- TENANT ---
   'TENANT.SUSPENDED': { status: 403, message: 'Đơn vị đang bị tạm khoá' },
   'TENANT.NOT_FOUND': { status: 404, message: 'Không tìm thấy đơn vị' },
+
+  // --- ROLE (F10 của C1) ---
+  'ROLE.CODE_EXISTS': {
+    status: 409,
+    message: 'Mã vai trò đã tồn tại trong đơn vị',
+    nextAction: 'REVIEW_INPUT',
+  },
 } as const satisfies Record<string, ErrorDef>;
 
 export type ErrorCode = keyof typeof ERROR_CODES;
