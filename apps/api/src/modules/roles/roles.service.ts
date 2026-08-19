@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AUDIT_ACTIONS, PERMISSION_SCOPES } from '@nexus/shared';
 import { AppException } from '../../common/errors/app.exception';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -36,18 +37,28 @@ export class RolesService {
     user: AuthUser,
     input: { code: string; name: string; permissions: RolePermissionInput[] },
   ) {
-    const role = await this.repo.create(user.tenantId, {
-      code: input.code,
-      name: input.name,
-    });
-    await this.setPermissions(user, role.id, input.permissions, { skipSystemGuard: true });
-    await this.audit.write({
-      tenantId: user.tenantId,
-      entity: 'Role',
-      entityId: role.id,
-      action: AUDIT_ACTIONS.CREATE,
-      after: { code: input.code, name: input.name, permissions: input.permissions },
-    });
+    // F10 (C1): validate TRƯỚC, rồi create + gán quyền + audit trong MỘT tx —
+    // fail ở bất kỳ đâu cũng không để lại role mồ côi 0 quyền
+    const entries = await this.prepareEntries(user, input.permissions);
+    let role;
+    try {
+      role = await this.repo.createWithPermissions(
+        user.tenantId,
+        { code: input.code, name: input.name },
+        entries,
+        {
+          actorId: user.sub,
+          after: { code: input.code, name: input.name, permissions: input.permissions },
+        },
+      );
+    } catch (e) {
+      // (tenant_id, code) đụng unique → 409 đọc được, không phải 500
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new AppException('ROLE.CODE_EXISTS');
+      }
+      throw e;
+    }
+    await this.resolver.invalidate(user.tenantId);
     return this.repo.findById(role.id);
   }
 
@@ -100,16 +111,11 @@ export class RolesService {
     });
   }
 
-  private async setPermissions(
+  /** Validate scope + tồn tại + luật §2.3, trả entries sẵn ghi — dùng cho cả create lẫn update */
+  private async prepareEntries(
     user: AuthUser,
-    roleId: string,
     permissions: RolePermissionInput[],
-    opts?: { skipSystemGuard?: boolean },
-  ): Promise<void> {
-    if (!opts?.skipSystemGuard) {
-      const role = await this.repo.findById(roleId);
-      if (role?.isSystem) throw new AppException('AUTH.FORBIDDEN');
-    }
+  ): Promise<Array<{ permissionId: string; scope: string }>> {
     for (const p of permissions) {
       if (!(PERMISSION_SCOPES as readonly string[]).includes(p.scope)) {
         throw new AppException('COMMON.VALIDATION_FAILED', {
@@ -137,11 +143,18 @@ export class RolesService {
         message: `Không thể cấp quyền bạn không có: ${exceeding.map((e) => e.permissionCode).join(', ')}`,
       });
     }
-    await this.repo.replacePermissions(
-      user.tenantId,
-      roleId,
-      permissions.map((p) => ({ permissionId: byCode.get(p.permissionCode)!, scope: p.scope })),
-    );
+    return permissions.map((p) => ({ permissionId: byCode.get(p.permissionCode)!, scope: p.scope }));
+  }
+
+  private async setPermissions(
+    user: AuthUser,
+    roleId: string,
+    permissions: RolePermissionInput[],
+  ): Promise<void> {
+    const role = await this.repo.findById(roleId);
+    if (role?.isSystem) throw new AppException('AUTH.FORBIDDEN');
+    const entries = await this.prepareEntries(user, permissions);
+    await this.repo.replacePermissions(user.tenantId, roleId, entries);
     // Quyền đổi NGAY cho mọi user giữ role (test #9)
     await this.resolver.invalidate(user.tenantId);
   }

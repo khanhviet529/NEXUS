@@ -32,9 +32,17 @@ export class OrgTreeRepository {
   }
 
   /** Set path lúc tạo: path cha + label mình (root: label mình) */
-  async setPathOnCreate(tenantId: string, id: string, parentId: string | null): Promise<void> {
+  async setPathOnCreate(
+    tenantId: string,
+    id: string,
+    parentId: string | null,
+    // Caller đang trong $transaction PHẢI truyền tx: chạy trên client riêng
+    // sẽ không thấy org_unit chưa commit (F10 mở rộng — provisionTenant)
+    db?: { $executeRaw: (sql: Prisma.Sql) => Promise<unknown> },
+  ): Promise<void> {
+    const client = db ?? this.prisma.client;
     if (parentId) {
-      await this.prisma.client.$executeRaw(
+      await client.$executeRaw(
         Prisma.sql`UPDATE org_units
                    SET path = (SELECT path FROM org_units
                                WHERE id = ${parentId}::uuid AND tenant_id = ${tenantId}::uuid)
@@ -42,7 +50,7 @@ export class OrgTreeRepository {
                    WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid`,
       );
     } else {
-      await this.prisma.client.$executeRaw(
+      await client.$executeRaw(
         Prisma.sql`UPDATE org_units
                    SET path = text2ltree(${OrgTreeRepository.label(id)})
                    WHERE id = ${id}::uuid AND tenant_id = ${tenantId}::uuid`,

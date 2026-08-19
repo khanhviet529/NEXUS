@@ -57,6 +57,7 @@ _M3b nối thẳng với bảng cắt gọt §11: thêm module = sửa 10 file r
 | F14 | UX (nhỏ) | báo cáo | Dòng tổng format cột `number` như tiền: countTotal in "15.00" | Chấp nhận | summary format theo type cột |
 | F15 | THIẾU | FE danh mục | Spec §5.4 hứa pattern `list-drawer` cho suppliers/material-categories nhưng FE KHÔNG có component/khuôn nào tên đó — chỉ có list-detail (orders) | Làm list + Dialog form thay drawer | hoặc xây list-drawer thật, hoặc spec §5.4 bỏ chữ list-drawer |
 | F16 | UX (bẫy) | full suite | `auth-gd2.spec` hardcode `ORIGIN='http://localhost:3000'` — clone đổi cổng (đúng lời hứa bootstrap) là test #5 logout ĐỎ 403 vì allowlist giờ là 3010. Bẫy chỉ lộ khi chạy FULL suite | Test đọc `ALLOWED_ORIGINS` từ env | test lấy origin từ env ngay trong NEXUS |
+| F17 | TÀI LIỆU (lượt 2) | vá F10 | Spec §4.5 mục "Transaction" kê `@nestjs-cls/transactional` + `@Transactional()` — plugin KHÔNG cài, 0 chỗ dùng; quy ước THẬT của repo là `$transaction` trong repository (7 repo, orders [REF]) | Vá F10 theo khuôn orders | spec §4.5 viết lại theo quy ước thật (sổ nợ — sửa docs ngoài phạm vi P0-P2 hiện tại) |
 
 ## 4. File boilerplate đã phải sửa → M3
 
