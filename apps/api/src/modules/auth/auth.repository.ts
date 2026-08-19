@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { AUDIT_ACTIONS, SEED_ROLES } from '@nexus/shared';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { RequestContextService } from '../../infra/cls/request-context';
+import { AuditRepository } from '../audit/audit.repository';
 
 /**
  * [CORE] Repository của auth — nơi DUY NHẤT của module này chạm Prisma (§4.9).
@@ -14,6 +16,7 @@ export class AuthRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ctx: RequestContextService,
+    private readonly audit: AuditRepository,
   ) {}
 
   /** User là GLOBAL — không cần tenant context */
@@ -300,6 +303,56 @@ export class AuthRepository {
         orgUnit: { select: { id: true, code: true, name: true } },
         userRoles: { include: { role: { select: { code: true, name: true } } } },
       },
+    });
+  }
+
+  /** Tenant là model GLOBAL — dùng cho vòng auto-grant lúc boot (F11) */
+  findAllTenantIds(): Promise<string[]> {
+    return this.prisma.client.tenant
+      .findMany({ select: { id: true } })
+      .then((rows) => rows.map((r) => r.id));
+  }
+
+  /**
+   * F11 (C1): cấp những quyền registry CÓ mà TENANT_ADMIN CHƯA có — gỡ khoá
+   * chết "quyền mới → không ai có → không ai cấp được qua UI (luật §2.3)".
+   * - Idempotent: chỉ chèn phần thiếu; không thiếu gì → không ghi gì
+   * - Audit PERMISSION_AUTO_GRANT trong CÙNG tx (ADR-0004)
+   * - Caller quyết danh sách codes (đã loại quyền nhà-cung-cấp system*)
+   * Trả về danh sách code vừa cấp.
+   */
+  autoGrantMissingToTenantAdmin(tenantId: string, codes: string[]): Promise<string[]> {
+    return this.ctx.runWith({ tenantId }, async () => {
+      const role = await this.prisma.client.role.findFirst({
+        where: { code: SEED_ROLES.TENANT_ADMIN, isSystem: true },
+      });
+      if (!role) return [];
+      const [perms, existing] = await Promise.all([
+        this.prisma.client.permission.findMany({ where: { code: { in: codes } } }),
+        this.prisma.client.rolePermission.findMany({
+          where: { roleId: role.id },
+          select: { permissionId: true },
+        }),
+      ]);
+      const have = new Set(existing.map((e) => e.permissionId));
+      const missing = perms.filter((perm) => !have.has(perm.id));
+      if (missing.length === 0) return [];
+      await this.prisma.client.$transaction(async (tx) => {
+        for (const perm of missing) {
+          await tx.rolePermission.create({
+            data: { tenantId, roleId: role.id, permissionId: perm.id, scope: 'all' },
+          });
+        }
+        await this.audit.writeInTx(tx, {
+          tenantId,
+          entity: 'Role',
+          entityId: role.id,
+          action: AUDIT_ACTIONS.PERMISSION_AUTO_GRANT,
+          actorName: 'system:permission-sync',
+          after: { granted: missing.map((perm) => perm.code) },
+        });
+      });
+      return missing.map((perm) => perm.code);
     });
   }
 }
