@@ -52,6 +52,25 @@ ALTER TABLE order_items ADD CONSTRAINT order_items_order_fk
 
 ---
 
+## ⛔ KHÔNG dùng `prisma migrate dev` trên repo này (F08/C1)
+
+Cột `org_units.path` (ltree), partial unique, partition và composite FK đều
+là **manual DDL** nằm ngoài schema.prisma. `migrate dev` thấy "drift" và đề
+nghị **DROP** đúng những thứ đó — người mới gõ Enter là mất cột trên DB dev.
+
+Công thức an toàn khi thêm bảng mới:
+
+```bash
+# 1. Sinh diff (KHÔNG áp) — chỉ để đọc
+npx prisma migrate diff --from-schema-datasource prisma/schema.prisma   --to-schema-datamodel prisma/schema.prisma --script > /tmp/diff.sql
+# 2. TRÍCH RIÊNG các câu CREATE TABLE / CREATE INDEX / FK của bảng MỚI
+#    vào migrations/<timestamp>_<tên>/migration.sql — BỎ mọi câu DROP
+# 3. Áp bằng migrate deploy (KHÔNG phải migrate dev)
+pnpm prisma:migrate
+```
+
+---
+
 # 2. Thêm một module CRUD hoàn chỉnh
 
 ```bash
@@ -186,23 +205,39 @@ Generator sinh 7 file BE+FE (module, controller, repository, schema, actions, pa
 
 # 7. Thêm một báo cáo
 
+API thật là `ReportDef` trong `apps/api/src/modules/reports/report-registry.ts`
+— thêm báo cáo = thêm MỘT phần tử vào mảng `REPORTS` (menu tự đăng ký, FE
+render động, KHÔNG viết màn hình). Copy [REF] `salesByCustomer`:
+
 ```ts
-defineReport({
+export const invoiceByMonth: ReportDef = {
   id: 'invoice-by-month',
   name: 'Doanh thu theo tháng',
-  permission: 'report:invoice',
-  params: [dateRange('period'), orgUnit()],
-  query: (p, ability) => kysely.selectFrom('invoices')
-    .where('tenant_id', '=', p.tenantId)
-    .where(ability.scopeWhere('invoice'))   // ⚠️ bắt buộc
-    ...,
-  columns: [{ key: 'revenue', label: 'Doanh thu', type: 'money', summary: 'sum' }],
-  drilldown: (row) => `/invoices?filter[month][eq]=${row.month}`,
-})
+  permission: 'report:invoice',           // khai ở permissions.ts trước
+  params: [dateRange('period')],
+  columns: [
+    { key: 'revenue', label: 'Doanh thu', type: 'money', summary: 'sum' },
+    // §4.4c nơi 3: cột nhạy cảm khai fieldGroup — thiếu field:cost là cột biến mất
+    { key: 'margin', label: 'Lãi gộp', type: 'money', summary: 'sum', fieldGroup: 'cost' },
+  ],
+  drilldown: (row) => `/invoices?filter[month][eq]=${String(row['month'])}`,
+  query: async (ctx) => {
+    let q = ctx.db.selectFrom('invoices')
+      .where('invoices.tenant_id', '=', ctx.tenantId)   // Kysely KHÔNG qua extension — tự tay
+      .where('invoices.deleted_at', 'is', null);
+    // Row-level scope NHÚNG VÀO QUERY (§4.4) — ctx.scope do framework resolve sẵn
+    if (ctx.scope === 'own') q = q.where('invoices.created_by_id', '=', ctx.userId);
+    else if (ctx.scope === 'department' || ctx.scope === 'descendants')
+      q = q.where('invoices.org_unit_id', 'in', ctx.orgUnitIds ?? ['__none__']);
+    return q.execute();
+  },
+};
+// rồi: REPORTS = [salesByCustomer, invoiceByMonth]
+// và: bảng mới phải có trong ReportDatabase type (infra/kysely/kysely.service.ts)
 ```
 
 **⚠️ Đừng quên**
-- **Áp `ability.scopeWhere()`** — báo cáo là đường rò rỉ dữ liệu hay bị quên nhất
+- **Áp `ctx.scope` vào query** — báo cáo là đường rò rỉ dữ liệu hay bị quên nhất
 - **Áp cả field-level permission** — cột giá vốn phải ẩn theo quyền, kể cả trong báo cáo
 - Dùng Kysely hoặc raw SQL, **không** dùng Prisma cho báo cáo tổng hợp
 - Kysely chỉ để **đọc**. Ghi bằng Kysely không đi qua audit extension

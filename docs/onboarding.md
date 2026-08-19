@@ -18,21 +18,13 @@ Yêu cầu: **Node 22+**, **pnpm 8**, **Docker Desktop**, Git.
 ```bash
 git clone <repo> && cd nexus
 cp .env.example .env          # sửa JWT_SECRET + APP_ENCRYPTION_KEY
-make setup                    # dựng postgres/redis/minio/mailpit + migrate + seed
-make dev                      # web :3000 · api :4000 · swagger :4000/docs
+pnpm bootstrap                # V1-V4: container + install + build shared + migrate + seed
+pnpm dev                      # cổng đọc từ .env (mặc định web :3000 · api :4000)
 ```
 
-**Lần đầu tiên** (migration chưa tồn tại — trạng thái hiện tại của repo):
-
-```bash
-docker compose -f docker-compose.dev.yml up -d --wait
-pnpm install
-cd apps/api
-npx prisma migrate dev --create-only --name init
-# DÁN nội dung prisma/sql/manual-ddl.sql vào CUỐI file migration vừa sinh
-npx prisma migrate dev
-pnpm prisma:seed
-```
+> F01/C1: bản trước dạy `make setup` + luồng `migrate dev` "lần đầu tiên" —
+> hai tài liệu nói hai đường và `migrate dev` có nguy cơ DROP manual-DDL
+> (xem cookbook §1 mục ⛔). Chuẩn duy nhất giờ là `pnpm bootstrap` như README.
 
 Tài khoản seed: xem `apps/api/prisma/seed.ts` (mật khẩu chung `Passw0rd!`).
 
