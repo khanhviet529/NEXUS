@@ -39,5 +39,11 @@ describe('{{pascalCase name}}s — CRUD + cách ly tenant', () => {
       .get('/api/v1/{{dashCase name}}s')
       .set('Authorization', `Bearer ${adminBToken}`);
     expect(listB.body.data.map((r: { code: string }) => r.code)).not.toContain('{{constantCase name}}-T1');
+
+    // id của tenant A với token tenant B → 404, không phải 200/403 (IDOR §4.10)
+    const crossDetail = await agent()
+      .get(`/api/v1/{{dashCase name}}s/${create.body.id}`)
+      .set('Authorization', `Bearer ${adminBToken}`);
+    expect(crossDetail.status).toBe(404);
   });
 });

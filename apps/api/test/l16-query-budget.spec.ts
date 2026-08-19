@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createTestApp, type TestHarness } from './setup/test-app';
 import { PrismaService } from '../src/infra/prisma/prisma.service';
 import { collectRoutes, routeKey, type RouteInfo } from './setup/route-inventory';
+import { LIST_PATHS } from './setup/list-paths';
 
 /**
  * L16 — ngân sách query cho MỌI endpoint danh sách (test-catalog §3.1).
@@ -26,27 +27,7 @@ describe('L16 — số query không tăng theo số dòng (test-catalog §3.1)',
   let listRoutes: RouteInfo[];
   let token = '';
 
-  /**
-   * Endpoint danh sách = GET, không có tham số đường dẫn, và nhận `limit`.
-   * Chỉ định TƯỜNG MINH thay vì đoán theo tên, vì `GET /me` cũng là GET không
-   * tham số mà không phải danh sách.
-   */
-  const LIST_PATHS = new Set([
-    '/api/v1/orders',
-    '/api/v1/products',
-    '/api/v1/customers',
-    '/api/v1/users',
-    '/api/v1/org-units',
-    '/api/v1/roles',
-    '/api/v1/audit-logs',
-    '/api/v1/notifications',
-    '/api/v1/saved-views',
-    '/api/v1/approval-authorities',
-    '/api/v1/inventory/balances',
-    '/api/v1/webhooks/endpoints',
-    '/api/v1/webhooks/deliveries',
-  ]);
-
+  // LIST_PATHS chuyển sang setup/list-paths.ts — L12a dùng chung một nguồn.
   const countQueries = async (fn: () => Promise<unknown>): Promise<number> => {
     const prisma = h.app.get(PrismaService);
     let n = 0;
