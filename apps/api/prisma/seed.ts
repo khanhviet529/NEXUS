@@ -96,8 +96,11 @@ async function seedTenant(
   });
 
   // Cây đơn vị tối thiểu: 1 gốc — GĐ3 mở rộng
+  // F12 (C1): PrismaClient TRẦN không qua soft-delete extension — mọi query
+  // model soft-delete trong seed PHẢI tự lọc deletedAt, nếu không sẽ khớp
+  // bản ghi ĐÃ XOÁ (vd role mồ côi soft-delete) và gán dữ liệu vào xác chết.
   let root = await prisma.orgUnit.findFirst({
-    where: { tenantId: tenant.id, code: 'ROOT' },
+    where: { tenantId: tenant.id, code: 'ROOT', deletedAt: null },
   });
   if (!root) {
     root = await prisma.orgUnit.create({
@@ -111,7 +114,7 @@ async function seedTenant(
   const roleIds = new Map<string, string>();
   for (const [roleCode, perms] of Object.entries(ROLE_PERMISSIONS)) {
     let role = await prisma.role.findFirst({
-      where: { tenantId: tenant.id, code: roleCode },
+      where: { tenantId: tenant.id, code: roleCode, deletedAt: null }, // F12
     });
     if (!role) {
       role = await prisma.role.create({
@@ -176,7 +179,7 @@ async function seedTenant(
   // GĐ10 — hạn mức duyệt seed (§5C.12): MANAGER + TENANT_ADMIN duyệt ORDER
   // KHÔNG GIỚI HẠN. FAIL-CLOSED: thiếu dòng nào = không ai duyệt được.
   const hasAuthority = await prisma.approvalAuthority.findFirst({
-    where: { tenantId: tenant.id, documentType: 'ORDER' },
+    where: { tenantId: tenant.id, documentType: 'ORDER', deletedAt: null }, // F12
   });
   if (!hasAuthority) {
     for (const roleCode of [SEED_ROLES.MANAGER, SEED_ROLES.TENANT_ADMIN]) {
@@ -257,7 +260,7 @@ export async function runSeed(client: PrismaClient): Promise<SeedResult> {
   // SYSADMIN: membership ở tenant A, cross-tenant qua /admin/* + audit (§4.4b)
   const sysadmin = await seedUser('sysadmin@nexus.local', 'System Admin', passwordHash);
   const sysRole = await prisma.role.findFirst({
-    where: { tenantId: a.tenantId, code: SEED_ROLES.SYSADMIN },
+    where: { tenantId: a.tenantId, code: SEED_ROLES.SYSADMIN, deletedAt: null }, // F12
   });
   if (!sysRole) throw new Error('SYSADMIN role chưa seed');
   const sysMembership = await prisma.tenantMembership.upsert({
@@ -287,7 +290,7 @@ export async function runSeed(client: PrismaClient): Promise<SeedResult> {
   const dual = await seedUser('dual@nexus.local', 'Dual Membership', passwordHash);
   for (const t of [a, b]) {
     const staffRole = await prisma.role.findFirst({
-      where: { tenantId: t.tenantId, code: SEED_ROLES.STAFF },
+      where: { tenantId: t.tenantId, code: SEED_ROLES.STAFF, deletedAt: null }, // F12
     });
     if (!staffRole) continue;
     const m = await prisma.tenantMembership.upsert({

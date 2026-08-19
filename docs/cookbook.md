@@ -115,7 +115,8 @@ Generator sinh ra BE (module, controller, service, repository, DTO, test) và FE
 1. packages/shared/src/permissions.ts
      { code: 'invoice:approve', resource: 'invoice', action: 'approve' }
 2. Khởi động lại API → tự sync xuống bảng permissions
-3. Gán vào vai trò seed: apps/api/prisma/seed.ts
+3. Gán vào vai trò: TENANT_ADMIN TỰ NHẬN quyền mới lúc boot (PermissionSync
+     auto-grant — F11/C1); role hẹp hơn thì gán qua UI /roles hoặc seed-roles.ts
 4. Thêm dòng vào docs/permission-matrix.md
 5. Thêm dòng vào MATRIX trong permission-matrix.spec.ts
 6. Dùng: @RequirePermission('invoice:approve') ở controller
@@ -290,6 +291,10 @@ it('GET /invoices không N+1', async () => {
 6. Bảng con có composite FK chưa? Không có thì DB không chặn được
 7. Cache Redis: key có tiền tố t:<tenantId>: chưa?
 8. Job BullMQ: payload có tenantId chưa? Worker set CLS chưa?
+9. Script seed/CLI dùng PrismaClient TRẦN? → client trần KHÔNG qua extension:
+     không inject tenant VÀ THẤY CẢ BẢN GHI SOFT-DELETE. Mọi query trong seed
+     phải tự lọc tenantId + deletedAt (F12/C1: seed gán userRole vào role
+     mồ côi đã soft-delete, lỗi chỉ lộ khi login 403)
 ```
 
 Chín trên mười lần nguyên nhân nằm ở bước 2, 3 hoặc 4.
