@@ -167,3 +167,27 @@ Sửa sourcing thuộc lượt vá riêng của repo đó (ngoài phạm vi lư�
 - **test:a11y chưa chạy** trên sourcing (thuộc ngày-0 của playbook, dành cho người).
 - **F10 (RolesService không tx)** là lỗi boilerplate THẬT nhưng KHÔNG sửa trong lượt 1 theo luật — ứng viên đầu bảng cho lượt 2.
 - Nhập 1-2h dữ liệu thật như người dùng (ngày 5) — agent không thay được.
+
+## 11. SỔ NỢ sau lượt 2 (ghi, KHÔNG làm — chi tiết ở docs/progress.md)
+
+| Khoản | Trạng thái |
+|---|---|
+| **M3b → module-tự-khai** (ADR, kèm bảng so sánh thêm/xoá/xung-đột-git/bắt-lỗi-biên-dịch) | CHỜ dữ liệu dự án thứ hai — ưu tiên cao |
+| **F15 list-drawer** | CHỜ FRICTION.md của người (ngày 5) |
+| **packages/vn** không tồn tại (F-05 C0) | CHỜ người dùng quyết: xây hay bỏ khỏi spec |
+| **F17** spec §4.5 Transaction kê cơ chế không có thật | Sửa docs sau |
+| **Mục 8 "nên cắt"** | GIỮ NGUYÊN — dữ liệu một dự án chưa đủ để cắt |
+
+## 12. Lượt 2 đã vá gì (đối chiếu nhanh)
+
+| Ma sát | Vá ở lượt 2 | Bằng chứng |
+|---|---|---|
+| F06 (P0) | Khuôn generator áp scope + test #37 khẳng định #5 + lưới L12a | #5 ĐỎ trước vá ("RÒ SCOPE: staff thấy bản ghi của admin") → 9/9 sau vá |
+| F10 (P1.1) | RolesService.create MỘT tx + P2002→409 ROLE.CODE_EXISTS; provisionTenant bọc tx | roles-tx.spec 3/3 |
+| F11 (P1.2) | PermissionSync auto-grant TENANT_ADMIN (loại system*) + audit | permission-autogrant.spec 3/3 |
+| F12 (P1.3) | seed lọc deletedAt ×5 + cookbook §12 bước 9 | seed-soft-delete.spec 1/1 |
+| F03/F04/F05 (P2-A) | plural theo luật · 3 flag thật · i18n tuỳ chọn | sinh material-categories đúng; test #37 9/9 |
+| F01/F07/F08 (P2-B) | onboarding = README · cookbook §7 API thật · ⛔ migrate dev | run-all xanh |
+| F02/F16 (P2-C) | setup in cổng từ .env · test đọc ALLOWED_ORIGINS · check-hardcoded-ports (#12) | kiểm âm tính ĐỎ đúng; auth-gd2 12/12 |
+| F09/F13/F14 (P2-D) | run-all ba trạng thái · checklist +RESTART · formatCell number | clone sạch local 12/12 ĐẠT/exit 0, CI mô phỏng exit 1; reports spec 3/3 |
+| F15, F17 | KHÔNG vá — sổ nợ | |
