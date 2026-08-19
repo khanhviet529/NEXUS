@@ -1,17 +1,23 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+{{#if i18n}}
 import { IsInt, IsNotEmptyObject, IsObject, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+{{else}}
+import { IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+{{/if}}
 import { AUDIT_ACTIONS } from '@nexus/shared';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, type AuthUser } from '../../common/decorators/current-user.decorator';
 import { AppException } from '../../common/errors/app.exception';
 import { buildMeta } from '../../common/dto/paginated.dto';
+{{#if i18n}}
 import { resolveLocalizedValue, type Locale, type LocalizedText } from '../../common/query/localized';
 import { RequestContextService } from '../../infra/cls/request-context';
+{{/if}}
 import { AbilityService } from '../auth/ability.service';
 import { AuditRepository } from '../audit/audit.repository';
-import { {{pascalCase name}}sRepository } from './{{dashCase name}}s.repository';
+import { {{plural (pascalCase name)}}Repository } from './{{plural (dashCase name)}}.repository';
 
 class Create{{pascalCase name}}Dto {
   @ApiProperty({ example: '{{constantCase name}}-001' })
@@ -19,13 +25,20 @@ class Create{{pascalCase name}}Dto {
   @MinLength(1)
   code!: string;
 
+{{#if i18n}}
   @ApiProperty({ example: { vi: 'Tên tiếng Việt' } })
   @IsObject()
   @IsNotEmptyObject()
   name!: LocalizedText;
+{{else}}
+  @ApiProperty({ example: 'Tên bản ghi' })
+  @IsString()
+  @MinLength(1)
+  name!: string;
+{{/if}}
 }
 
-class List{{pascalCase name}}sDto {
+class List{{plural (pascalCase name)}}Dto {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
   @Type(() => Number)
@@ -43,19 +56,20 @@ class List{{pascalCase name}}sDto {
 }
 
 /**
- * [GEN] {{pascalCase name}}s — khuôn [REF] orders: @RequirePermission MỌI route
+ * [GEN] {{plural (pascalCase name)}} — khuôn [REF] orders: @RequirePermission MỌI route
  * (check #5 quét), row-level scope NHÚNG VÀO WHERE (§4.4 — list scopeWhere,
- * detail findInScope, KHÔNG lọc sau khi query), audit MỌI đường ghi (§4.9),
- * locale resolve response (§3.10).
+ * detail findInScope, KHÔNG lọc sau khi query), audit MỌI đường ghi (§4.9).
  * TODO sau khi sinh: filter/sort whitelist qua QueryConfig (khuôn products).
  */
-@ApiTags('{{dashCase name}}s')
-@Controller('{{dashCase name}}s')
-export class {{pascalCase name}}sController {
+@ApiTags('{{plural (dashCase name)}}')
+@Controller('{{plural (dashCase name)}}')
+export class {{plural (pascalCase name)}}Controller {
   constructor(
-    private readonly repo: {{pascalCase name}}sRepository,
+    private readonly repo: {{plural (pascalCase name)}}Repository,
     private readonly audit: AuditRepository,
+{{#if i18n}}
     private readonly ctx: RequestContextService,
+{{/if}}
     private readonly ability: AbilityService,
   ) {}
 
@@ -67,19 +81,25 @@ export class {{pascalCase name}}sController {
   @Get()
   @RequirePermission('{{dashCase name}}:read')
   @ApiOperation({ summary: 'Danh sách — NHỚ viết test đếm query (#12)' })
-  async list(@CurrentUser() user: AuthUser, @Query() query: List{{pascalCase name}}sDto) {
+  async list(@CurrentUser() user: AuthUser, @Query() query: List{{plural (pascalCase name)}}Dto) {
     const scopeWhere = await this.scopeWhere(user, '{{dashCase name}}:read');
     const [data, total] = await this.repo.list({
       scopeWhere,
       page: query.page,
       limit: query.limit,
     });
+{{#if i18n}}
     const locale = this.ctx.locale as Locale;
+{{/if}}
     return {
       data: data.map((row) => ({
         id: row.id,
         code: row.code,
+{{#if i18n}}
         name: resolveLocalizedValue(row.name, locale),
+{{else}}
+        name: row.name,
+{{/if}}
         createdAt: row.createdAt,
       })),
       meta: buildMeta(query.page, query.limit, total),
@@ -95,7 +115,11 @@ export class {{pascalCase name}}sController {
     return {
       id: row.id,
       code: row.code,
+{{#if i18n}}
       name: resolveLocalizedValue(row.name, this.ctx.locale as Locale),
+{{else}}
+      name: row.name,
+{{/if}}
       createdAt: row.createdAt,
     };
   }
