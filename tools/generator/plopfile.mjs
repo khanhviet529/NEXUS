@@ -128,7 +128,9 @@ export default function (plop) {
             ? '     + soft-delete-models.ts (đã chọn có deletedAt).'
             : '     (đã chọn KHÔNG soft-delete — đừng thêm vào soft-delete-models).',
           '     RỒI: pnpm --filter @nexus/shared build — app đọc DIST, check đọc SOURCE:',
-          '     quên build là app chết lúc khởi động trong khi check kiến trúc VẪN XANH',
+          '     quên build là app chết lúc khởi động trong khi check kiến trúc VẪN XANH.',
+          '     VÀ RESTART mọi process đang chạy (api, worker) — process cũ giữ dist CŨ',
+          '     trong RAM: sensitive-fields sửa rồi mà audit vẫn rò tới khi restart (F13/C1)',
           '  4. docs/permission-matrix.md + boilerplate-spec.md §6.5: thêm dòng.',
           `     VÀ bảng cắt gọt §11: thêm dòng \`${P}\` — check-cut-table (V5) bắt`,
           '     mọi thư mục modules/ phải có mặt trong bảng. Cột "Màn hình" (R2)',
