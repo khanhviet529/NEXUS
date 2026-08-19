@@ -55,10 +55,19 @@ ALTER TABLE order_items ADD CONSTRAINT order_items_order_fk
 # 2. Thêm một module CRUD hoàn chỉnh
 
 ```bash
-pnpm gen:module invoice --base=business --soft-delete
+# Chạy tay: được HỎI 3 câu (base / soft-delete / i18n)
+pnpm gen:module invoice
+
+# Không tương tác (CI, script): truyền đủ 3 flag — thiếu là plop chờ stdin
+pnpm gen:module invoice -- --base business --softDelete true --i18n false
 ```
 
-Generator sinh ra BE (module, controller, service, repository, DTO, test) và FE (list, detail, form, actions, columns). Sau đó:
+- `--base tenant|business` — business = có `orgUnitId` (BẮT BUỘC cho scope department/descendants)
+- `--softDelete true|false` — quyết bước khai soft-delete-models trong checklist
+- `--i18n true|false` — name LocalizedText JSONB + cột *_search, hay String thường (mặc định KHÔNG — phần lớn danh mục không cần)
+- Số nhiều theo LUẬT (category→categories, box→boxes); tên bất quy tắc hơn nữa thì đổi tay sau khi sinh
+
+Generator sinh 7 file BE+FE (module, controller, repository, schema, actions, page, test) và IN CHECKLIST các bước tay. Sau đó:
 
 ```
 1. Sửa schema.prisma theo công thức #1

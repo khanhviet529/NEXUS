@@ -3,10 +3,14 @@ import { z } from 'zod';
 /** [GEN] Schema zod tại features/<domain> (§5.8) — khớp Create{{pascalCase name}}Dto BE */
 export const {{camelCase name}}Schema = z.object({
   code: z.string().min(1, 'Mã bắt buộc').max(32),
+{{#if i18n}}
   name: z.object({
     vi: z.string().min(1, 'Tên tiếng Việt bắt buộc'),
     en: z.string().optional(),
   }),
+{{else}}
+  name: z.string().min(1, 'Tên bắt buộc'),
+{{/if}}
 });
 
 export type {{pascalCase name}}FormValues = z.infer<typeof {{camelCase name}}Schema>;

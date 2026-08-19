@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+{{#if i18n}}
 import { buildSearchColumns, type LocalizedText } from '../../common/query/localized';
+{{/if}}
 import { PrismaService } from '../../infra/prisma/prisma.service';
 
 /**
@@ -12,7 +14,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
  * thiếu là phân trang sai âm thầm).
  */
 @Injectable()
-export class {{pascalCase name}}sRepository {
+export class {{plural (pascalCase name)}}Repository {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(params: { scopeWhere: Record<string, unknown>; page: number; limit: number }) {
@@ -35,6 +37,7 @@ export class {{pascalCase name}}sRepository {
     });
   }
 
+{{#if i18n}}
   create(input: { tenantId: string; createdById: string; code: string; name: LocalizedText }) {
     return this.prisma.client.{{camelCase name}}.create({
       data: {
@@ -48,4 +51,17 @@ export class {{pascalCase name}}sRepository {
       },
     });
   }
+{{else}}
+  create(input: { tenantId: string; createdById: string; code: string; name: string }) {
+    return this.prisma.client.{{camelCase name}}.create({
+      data: {
+        tenantId: input.tenantId,
+        // scope `own` so trên createdById — không ghi cột này là mù scope
+        createdById: input.createdById,
+        code: input.code,
+        name: input.name,
+      },
+    });
+  }
+{{/if}}
 }

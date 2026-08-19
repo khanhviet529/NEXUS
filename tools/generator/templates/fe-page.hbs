@@ -15,19 +15,19 @@ interface {{pascalCase name}}Row {
 }
 
 /** [GEN] Trang danh sách — URL là nguồn sự thật (§5.4). Sau `pnpm gen:api`
- *  thay apiAxios bằng hook sinh tự động ({{camelCase name}}sControllerList). */
-function {{pascalCase name}}sPage() {
+ *  thay apiAxios bằng hook sinh tự động ({{plural (camelCase name)}}ControllerList). */
+function {{plural (pascalCase name)}}Page() {
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     limit: parseAsInteger.withDefault(20),
   });
 
   const query = useQuery({
-    queryKey: ['{{dashCase name}}s', params],
+    queryKey: ['{{plural (dashCase name)}}', params],
     queryFn: async () =>
       (
         await apiAxios.get<{ data: {{pascalCase name}}Row[]; meta: DataTableMeta }>(
-          '/api/v1/{{dashCase name}}s',
+          '/api/v1/{{plural (dashCase name)}}',
           { params },
         )
       ).data,
@@ -44,9 +44,9 @@ function {{pascalCase name}}sPage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-4 p-6">
-      <h1 className="text-xl font-semibold">{{pascalCase name}}s</h1>
+      <h1 className="text-xl font-semibold">{{plural (pascalCase name)}}</h1>
       <DataTable
-        tableKey="{{dashCase name}}s"
+        tableKey="{{plural (dashCase name)}}"
         columns={columns}
         rows={query.data?.data ?? []}
         meta={query.data?.meta}
@@ -63,7 +63,7 @@ function {{pascalCase name}}sPage() {
 export default function Page() {
   return (
     <Suspense>
-      <{{pascalCase name}}sPage />
+      <{{plural (pascalCase name)}}Page />
     </Suspense>
   );
 }

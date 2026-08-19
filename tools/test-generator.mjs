@@ -103,12 +103,21 @@ try {
   // ══ KHẲNG ĐỊNH 1 — sinh đủ 7 file ════════════════════════════════════════
   for (const f of EXPECTED_FILES) rmSync(join(ROOT, f), { force: true });
 
+  // P2-A (C1): generator giờ có 3 flag thật — caller TỰ ĐỘNG phải truyền đủ
+  // bypass, thiếu là plop chờ stdin và CI treo. i18n=true giữ nguyên hành vi
+  // LocalizedText mà model tạm + spec sinh kèm của test này dựa vào.
   const gen = run('npx', [
     'plop',
     '--plopfile',
     'tools/generator/plopfile.mjs',
     'module',
     NAME,
+    '--base',
+    'tenant',
+    '--softDelete',
+    'true',
+    '--i18n',
+    'true',
   ]);
   const missing = EXPECTED_FILES.filter((f) => !existsSync(join(ROOT, f)));
   assert(
