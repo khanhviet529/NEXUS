@@ -4,7 +4,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { createTestApp, type TestHarness } from './setup/test-app';
 import { PasswordResetService } from '../src/modules/auth/password-reset.service';
 
-const ORIGIN = 'http://localhost:3000';
+// F16 (C1): đọc từ allowlist thật — clone đổi cổng thì test vẫn đúng
+const ORIGIN = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000').split(',')[0]!;
 
 /** Parse Set-Cookie → map name→value */
 function parseCookies(res: request.Response): Record<string, string> {

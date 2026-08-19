@@ -41,6 +41,7 @@ const checks = [
   // mới trong design-system/ hoặc components/common/ mà không màn nào dùng là ĐỎ.
   'check-component-usage.mjs',
   'check-cut-table.mjs', // V5: bảng cắt gọt §11 khớp thư mục thật (bài học F-05/F-07)
+  'check-hardcoded-ports.mjs', // C1 F02+F16: cổng mặc định phải có đường env
 ];
 
 /**
